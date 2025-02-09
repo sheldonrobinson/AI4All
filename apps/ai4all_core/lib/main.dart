@@ -1,0 +1,113 @@
+import 'dart:async';
+import 'dart:developer' as dev;
+import 'dart:io';
+
+import 'package:asset_cache/asset_cache.dart';
+import 'package:feedback/feedback.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_memory_info/flutter_memory_info.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:june/june.dart';
+import 'package:lcpp_ngin/lcpp_ngin.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:unnu_sap/unnu_asr.dart';
+import 'package:unnu_sap/unnu_tts.dart';
+import 'package:unnu_speech/unnu_speech.dart';
+
+import 'initialize/initialize.dart';
+import 'src/app.dart';
+import 'src/types.dart';
+
+void log(
+  Object? message, {
+  DateTime? time,
+  int? sequenceNumber,
+  int level = 0,
+  String name = '',
+  Zone? zone,
+  Object? error,
+  StackTrace? stackTrace,
+}) {
+  dev.log(
+    message?.toString() ?? '',
+    time: time,
+    sequenceNumber: sequenceNumber,
+    level: level,
+    name: name,
+    zone: zone,
+    error: error,
+    stackTrace: stackTrace,
+  );
+}
+
+final jsonAssets = JsonAssetCache(
+  assetBundle: rootBundle,
+  basePath: 'assets/json/',
+);
+
+Future<void> main() async {
+  FlutterError.onError = (FlutterErrorDetails details) {
+    if (kDebugMode) {
+      // In development mode, simply print to console.
+      FlutterError.dumpErrorToConsole(details);
+    } else {
+      // In production mode, report to the application zone to report to sentry.
+      Zone.current.handleUncaughtError(details.exception, details.stack!);
+    }
+  };
+
+  /// Captures errors reported by the native environment, including native iOS
+  /// and Android code.
+
+  runZonedGuarded<void>(
+    () async {
+      WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+      FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+      if (Platform.isMacOS || Platform.isIOS) {
+        SystemChrome.setEnabledSystemUIMode(
+          SystemUiMode.manual,
+          overlays: [SystemUiOverlay.bottom, SystemUiOverlay.top],
+        );
+      }
+      LlamaCpp.init();
+      UnnuTts.init();
+      UnnuAsr.init();
+      await jsonAssets.preload(['config.json']);
+      await registerModels();
+      await UnnuTts.configure(await getOfflineTtsConfig());
+      await UnnuAsr.configure(
+        getOnlineRecognizerConfig(await getOnlineModelConfig()),
+        await getVadModelConfig(),
+        OnlinePunctuationConfig(model: await getOnlinePunctuationModelConfig()),
+      );
+
+      await registerChatDatabase('chat.db');
+
+      final sysInfo = June.getState(() => SystemInformationController());
+
+      sysInfo.fromPackage(await PackageInfo.fromPlatform());
+
+      sysInfo.fromMemoryInfo(
+        PhysicalMemory: await MemoryInfo.getTotalPhysicalMemorySize(),
+        VirtualMemory: await MemoryInfo.getTotalVirtualMemorySize(),
+      );
+
+      runApp(BetterFeedback(child: MyApp()));
+    },
+    (Object error, StackTrace stackTrace) {},
+    zoneValues: {},
+  );
+}
+
+/// The main application widget for this example.
+class MyApp extends StatelessWidget {
+  /// Creates a const main application widget.
+  MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MyHomePage();
+  }
+}

@@ -1,0 +1,84 @@
+name: AI4All
+publish_to: none
+environment:
+  sdk: '>=3.7.0 < 4.0.0'
+  flutter: '>=3.27.0'
+  
+workspace:
+  - apps/core
+  - apps/plus
+  - apps/premium
+  - apps/ultimate
+  - apps/ultra
+  - packages/unnu_aux
+  - packages/unnu_ai_model
+  - packages/unnu_common
+  - packages/unnu_ce
+  - packages/unnu_dxl
+  - packages/unnu_know
+  - packages/unnu_mi5
+  - packages/unnu_ragl
+  - packages/unnu_sap
+  - packages/unnu_shared
+  - packages/unnu_speech
+  - packages/unnu_tts
+  - packages/unnu_widgets
+  - packages/mcp_dart
+  - packages/serious-python/src/serious_python
+  - packages/serious-python/src/serious_python_platform_interface
+  - packages/serious-python/src/serious_python_linux
+  - packages/serious-python/src/serious_python_darwin
+  - packages/serious-python/src/serious_python_android
+  - packages/serious-python/src/serious_python_windows
+  - packages/unnu_addins_client/unnu_addins_client
+  - packages/unnu_addins_client/unnu_addins_client_platform_interface
+  - packages/unnu_addins_client/unnu_addins_client_android
+  - packages/unnu_addins_client/unnu_addins_client_ios
+  - packages/unnu_addins_client/unnu_addins_client_windows
+  
+dev_dependencies:
+  melos: ^7.3.0
+  
+melos:
+  repository: https://github.com/sheldonrobinson/AI4All
+  categories:
+    apps:
+      - apps/*
+    packages:
+      - packages/*
+  ide:
+    intellij:
+      enabled: true
+  scripts:
+    format:package:
+      description: "Run `dart format` in a specific package."
+      run: melos exec -- dart format .
+      packageFilters:
+        flutter: true
+    analyze:package:
+      description: "Run `dart analyze` in a specific package."
+      run: melos exec -- dart analyze .
+      packageFilters:
+        flutter: true
+    launcher_icon:
+      description: "Update Flutter app's launcher icon in a specific package."
+      exec: dart run flutter_launcher_icons:generate
+      packageFilters:
+        dependsOn: flutter_launcher_icons
+    df_asset:
+      description: "Generate asset classes from asset directories."
+      run: melos exec -- dart run dart_fusion asset
+      packageFilters:
+        flutter: true
+    df_model:
+      description: "Update models by generating toJSON, fromJSON and copyWith based on given annotation."
+      run: melos exec -- dart run dart_fusion model
+      packageFilters:
+        flutter: true
+    df_localize:
+      description: "Generate localization classes from JSON files."
+      run: melos exec -- dart run dart_fusion localize
+      packageFilters:
+        flutter: true
+  
+  

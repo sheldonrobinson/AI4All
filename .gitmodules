@@ -1,0 +1,21 @@
+[submodule "packages/unnu_ort/src/zlib"]
+	path = pkgs/unnu_ort/src/zlib
+	url = https://github.com/madler/zlib.git
+[submodule "packages/unnu_ort/src/ort"]
+	path = pkgs/unnu_ort/src/ort
+	url = https://github.com/microsoft/onnxruntime.git
+[submodule "packages/unnu_ce/src/tokenizers"]
+	path = pkgs/unnu_ce/src/tokenizers
+	url = https://github.com/mlc-ai/tokenizers-cpp.git
+[submodule "packages/unnu_ce/src/sentencepiece"]
+	path = packages/unnu_ce/src/sentencepiece
+	url = https://github.com/google/sentencepiece.git
+[submodule "packages/unnu_ort/src/tokenizers"]
+	path = pkgs/unnu_ort/src/tokenizers
+	url = https://github.com/mlc-ai/tokenizers-cpp.git
+[submodule "packages/unnu_ce/src/protobuf"]
+	path = packages/unnu_ce/src/protobuf
+	url = https://github.com/protocolbuffers/protobuf.git
+[submodule "packages/unnu_dxl/src/boostcontainer"]
+	path = packages/unnu_dxl/src/boostcontainer
+	url = https://github.com/boostorg/container.git

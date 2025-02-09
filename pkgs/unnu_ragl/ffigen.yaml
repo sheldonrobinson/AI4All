@@ -1,0 +1,28 @@
+# Run with `dart run ffigen --config ffigen.yaml`.
+name: UnnuRagLiteBindings
+description: |
+  Bindings for `src/unnu_ragl.h`.
+
+  Regenerate bindings with `dart run ffigen --config ffigen.yaml`.
+output: 'lib/src/bindings.dart'
+ignore-source-errors: false
+headers:
+  entry-points:
+    - 'src/unnu_ragl.h'
+compiler-opts:
+  - '-I./src'
+preamble: |
+  // ignore_for_file: always_specify_types
+  // ignore_for_file: camel_case_types
+  // ignore_for_file: non_constant_identifier_names
+  // ignore_for_file: unused_import
+comments:
+  style: any
+  length: full
+
+include-unused-typedefs: true
+silence-enum-warning: true
+
+ffi-native:
+    asset-id: 'package:unnu_ragl/src/bindings.dart' # (optional)
+
