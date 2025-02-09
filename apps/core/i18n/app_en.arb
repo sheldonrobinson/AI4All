@@ -1,0 +1,110 @@
+{
+  "appName": "Core",
+  "@appName": {
+    "description": "Core Edition. Secure, Private, Cognitive Solution."
+  },
+  "switchModel": "Switch Model",
+  "@switchModel": {
+    "description": "Load a different Large Language Model"
+  },
+  "selectFolder": "Select folders to add to context",
+  "@selectFolder": {
+    "description": "Select documents folder to add to context"
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel"
+  },
+  "history": "History",
+  "@histpry": {
+    "description": "Chat History"
+  },
+  "models": "Models",
+  "@models": {
+    "description": "Available models"
+  },
+  "mute": "Mute",
+  "@mute": {
+    "description": "Mute Audio"
+  },
+  "unmute": "Unmute",
+  "@unmute": {
+    "description": "Unmute Audio"
+  },
+  "send": "Send",
+  "@send": {
+    "description": "Send message"
+  },
+  "stop": "Stop",
+  "@stop": {
+    "description": "Stop processing"
+  },
+  "busy": "busy",
+  "@busy": {
+    "description": "Busy processing"
+  },
+  "newChat": "New Chat",
+  "@newChat": {
+    "description": "New Chat session"
+  },
+  "clearAll": "Clear All",
+  "@clearAll": {
+    "description": "Delete messages from session"
+  },
+  "tapToSpeak": "Tap to Speak",
+  "@tapToSpeak": {
+    "description": "On Demand, tap to speak"
+  },
+  "noMessages": "No messages yet",
+  "@noMessages": {
+    "description": "No messages in chat"
+  },
+  "chatHint": "Type a message",
+  "@chatHint": {
+    "description": "Type a message in chat"
+  },
+  "textOnly": "Text-Only",
+  "@textOnly": {
+    "description": "Text Only Mode, no speech recognition\\speech synthesis"
+  },
+  "onDemand": "On-Demand",
+  "@onDemand": {
+    "description": "On Demand Mode, Tap to Speak"
+  },
+  "live": "Live",
+  "@live": {
+    "description": "Live Mode, Voice activity detection and transcription"
+  },
+  "noMic": "Microphone not found",
+  "@noMic": {
+    "description": "No microphone was found"
+  },
+  "noItems": "No items",
+  "@noItems": {
+    "description": "No chat items"
+  },
+  "about": "About",
+  "@about": {
+    "description": "About"
+  },
+  "dock": "Dock",
+  "@dock": {
+    "description": "Dock"
+  },
+  "feedback": "Feedback",
+  "@feedback": {
+    "description": "Feedback"
+  },
+  "thinking": "Thinking",
+  "@thinking": {
+    "description": "Loading text Thinking"
+  },
+  "copy": "Copy",
+  "@copy": {
+    "description": "Copy content"
+  },
+  "share": "Share",
+  "@share": {
+    "description": "Share content"
+  }
+}

@@ -1,0 +1,38 @@
+name: unnu_know
+description: "Unnu know package"
+version: 0.0.1
+homepage: "https://konnekted.ai"
+
+resolution: workspace
+
+environment:
+  sdk: '>=3.7.0 < 4.0.0'
+  flutter: '>=3.27.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  langchain:
+    git:
+      url: https://github.com/sheldonrobinson/langchain_dart.git
+      path: packages/langchain
+  langchain_core:
+    git:
+      url: https://github.com/sheldonrobinson/langchain_dart.git
+      path: packages/langchain_core
+  collection: ^1.19.1
+  june: ^1.0.0+1
+  path: ^1.9.1
+  unnu_ragl:
+  unnu_dxl:
+  unnu_shared:
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  very_good_analysis: ^10.0.0
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+

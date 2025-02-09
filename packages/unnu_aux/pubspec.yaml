@@ -1,0 +1,48 @@
+name: unnu_aux
+description: "The unnu auxiliary functions plugin"
+version: 0.0.2
+issue_tracker: https://github.com/sheldonrobinson/unnu_aux/issues
+homepage: https://github.com/sheldonrobinson/unnu_aux
+maintainer: Sheldon Robinson (sheldon.robinson@gmail.com)
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  windows:
+  
+resolution: workspace
+
+environment:
+  sdk: '>=3.7.0 < 4.0.0'
+  flutter: '>=3.27.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  ffi: ^2.1.4
+
+dev_dependencies:
+  ffigen: ^20.0.0
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  very_good_analysis: ^10.0.0
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
+flutter:
+  plugin:
+    platforms:
+      android:
+        ffiPlugin: true
+      ios:
+        ffiPlugin: true
+      linux:
+        ffiPlugin: true
+      macos:
+        ffiPlugin: true
+      windows:
+        ffiPlugin: true

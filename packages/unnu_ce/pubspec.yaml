@@ -1,0 +1,202 @@
+name: unnu_ce
+description: "unnu Cognitive Environment for running cognitive agents."
+version: 0.0.1
+homepage:
+
+resolution: workspace
+
+environment:
+  sdk: '>=3.7.0 < 4.0.0'
+  flutter: '>=3.27.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  plugin_platform_interface: ^2.1.8
+  ffi: ^2.1.4
+  unnu_shared:
+
+dev_dependencies:
+  ffigen: ^19.1.0
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  very_good_analysis: ^10.0.0
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
+flutter:
+  # This section identifies this Flutter project as a plugin project.
+  # The 'pluginClass' specifies the class (in Java, Kotlin, Swift, Objective-C, etc.)
+  # which should be registered in the plugin registry. This is required for
+  # using method channels.
+  # The Android 'package' specifies package in which the registered class is.
+  # This is required for using method channels on Android.
+  # The 'ffiPlugin' specifies that native code should be built and bundled.
+  # This is required for using `dart:ffi`.
+  # All these are used by the tooling to maintain consistency when
+  # adding or updating assets for this project.
+  #
+  # Please refer to README.md for a detailed explanation.
+  plugin:
+    platforms:
+      android:
+        ffiPlugin: true
+      ios:
+        ffiPlugin: true
+      linux:
+        ffiPlugin: true
+      macos:
+        ffiPlugin: true
+      windows:
+        ffiPlugin: true
+
+  # To add assets to your plugin package, add an assets section, like this:
+  assets:
+    - assets/models/agents/SmolLM2-135M-Instruct/
+    - assets/models/operators/ner/cner-base/
+    - assets/models/prompts/system_prompt.txt
+    - assets/agents/unnu/
+    - assets/agents/unnu/agent/
+    - assets/agents/unnu/agent/default/
+    - assets/agents/unnu/agent/default/selection/
+    - assets/agents/unnu/agent/default/selection/all/
+    - assets/agents/unnu/agent/default/selection/elaborations/
+    - assets/agents/unnu/agent/default/selection/Operator_Tie/
+    - assets/agents/unnu/agent/default/selection/Operator_Tie/evaluate-operator/
+    - assets/agents/unnu/agent/default/selection/Operator_Tie/evaluate-operator/Operator_Constraint-Failure/
+    - assets/agents/unnu/agent/default/selection/Operator_Tie/evaluate-operator/Operator_Tie/
+    - assets/agents/unnu/agent/default/selection/Operator_Tie/evaluate-operator/State_No-Change/
+    - assets/agents/unnu/agent/default/selection/Operator_Tie/evaluate-operator/State_No-Change/State_No-Change/
+    - assets/agents/unnu/agent/default/selection-iterative-deepening-general-chunks/
+    - assets/agents/unnu/agent/default/selection-iterative-deepening-general-chunks/all/
+    - assets/agents/unnu/agent/default/selection-iterative-deepening-general-chunks/elaborations/
+    - assets/agents/unnu/agent/default/selection-iterative-deepening-general-chunks/Impasse__Operator_Tie/
+    - assets/agents/unnu/agent/default/selection-iterative-deepening-general-chunks/Impasse__Operator_Tie/evaluate-operator/
+    - assets/agents/unnu/agent/default/selection-iterative-deepening-general-chunks/Impasse__Operator_Tie/evaluate-operator/Impasse__Operator_Tie/
+    - assets/agents/unnu/agent/elaborations/
+    - assets/agents/unnu/agent/execute-task/
+    - assets/agents/unnu/agent/game-learning/
+    - assets/agents/unnu/agent/game-learning/convert-formats/
+    - assets/agents/unnu/agent/game-learning/convert-formats/create-conditions/
+    - assets/agents/unnu/agent/game-learning/goal-demonstration/
+    - assets/agents/unnu/agent/game-learning/goal-demonstration/state-demonstration/
+    - assets/agents/unnu/agent/game-learning/resolve-conditions/
+    - assets/agents/unnu/agent/game-learning/resolve-conditions/primitive-operators/
+    - assets/agents/unnu/agent/game-learning/search/
+    - assets/agents/unnu/agent/interaction/
+    - assets/agents/unnu/agent/interaction/initiate-interaction/
+    - assets/agents/unnu/agent/interaction/interpret-failure/
+    - assets/agents/unnu/agent/interaction/interpret-message/
+    - assets/agents/unnu/agent/interaction/push-segment/
+    - assets/agents/unnu/agent/interaction/send-message/
+    - assets/agents/unnu/agent/interaction/send-message/generate-object-description/
+    - assets/agents/unnu/agent/language-comprehension/
+    - assets/agents/unnu/agent/language-comprehension/comprehension/
+    - assets/agents/unnu/agent/language-comprehension/comprehension/comprehend-construction/
+    - assets/agents/unnu/agent/language-comprehension/comprehension/comprehend-word/
+    - assets/agents/unnu/agent/language-comprehension/comprehension/ground-referent/
+    - assets/agents/unnu/agent/language-comprehension/comprehension/Impasse__Operator_Tie/
+    - assets/agents/unnu/agent/language-comprehension/comprehension/Impasse__Operator_Tie/evaluate-operator/
+    - assets/agents/unnu/agent/language-comprehension/comprehension/process-multiple-groundings/
+    - assets/agents/unnu/agent/language-comprehension/comprehension/termination-processing/
+    - assets/agents/unnu/agent/language-comprehension/elaborations/
+    - assets/agents/unnu/agent/lucia/
+    - assets/agents/unnu/agent/lucia/act/
+    - assets/agents/unnu/agent/lucia/comprehend/
+    - assets/agents/unnu/agent/lucia/comprehend/comprehend-word-A/
+    - assets/agents/unnu/agent/lucia/comprehend/comprehend-word-A/init-smem/
+    - assets/agents/unnu/agent/lucia/comprehend/comprehend-word-A/init-smem/templates/
+    - assets/agents/unnu/agent/lucia/comprehend/comprehend-word-B/
+    - assets/agents/unnu/agent/lucia/comprehend/comprehend-word-B/build-cxn/
+    - assets/agents/unnu/agent/lucia/interpret/
+    - assets/agents/unnu/agent/manage-world-state/
+    - assets/agents/unnu/agent/manage-world-state/add-object-to-world/
+    - assets/agents/unnu/agent/manage-world-state/add-object-to-world/new-perception-object/
+    - assets/agents/unnu/agent/manage-world-state/change-world-state/
+    - assets/agents/unnu/agent/problem-space/
+    - assets/agents/unnu/agent/problem-space/action/
+    - assets/agents/unnu/agent/problem-space/action/Impasse__Operator-No-Change/
+    - assets/agents/unnu/agent/problem-space/action/Impasse__Operator-No-Change/learn-task-action-model/
+    - assets/agents/unnu/agent/problem-space/action/Impasse__Operator-Tie/
+    - assets/agents/unnu/agent/problem-space/action/Impasse__Operator-Tie/evaluate-operator/
+    - assets/agents/unnu/agent/problem-space/action/Impasse__State-No-Change/
+    - assets/agents/unnu/agent/problem-space/action/Impasse__State-No-Change/learn-desired-elaboration-rule/
+    - assets/agents/unnu/agent/problem-space/action/Impasse__State-No-Change/learn-select-next-goal-rule/
+    - assets/agents/unnu/agent/problem-space/action/Impasse__State-No-Change/learn-subtask-proposal/
+    - assets/agents/unnu/agent/problem-space/action/Impasse__State-No-Change/search-for-next-subtask/
+    - assets/agents/unnu/agent/problem-space/action/Impasse__State-No-Change/search-for-next-subtask/top-subtask-search-state/
+    - assets/agents/unnu/agent/problem-space/action/retrospective-learning/
+    - assets/agents/unnu/agent/problem-space/action/retrospective-learning/learn-proposal-rule/
+    - assets/agents/unnu/agent/problem-space/action/retrospective-learning/learn-proposal-rule/Impasse__State-No-Change/
+    - assets/agents/unnu/agent/problem-space/action/retrospective-learning/learn-subtask-policy/
+    - assets/agents/unnu/agent/problem-space/action/retrospective-learning/learn-subtask-policy/task-operator/
+    - assets/agents/unnu/agent/problem-space/action/subproblem-execute/
+    - assets/agents/unnu/agent/problem-space/action/subproblem-execute/handle-execution-failure/
+    - assets/agents/unnu/agent/problem-space/action/subproblem-execute/learn-new-subtask/
+    - assets/agents/unnu/agent/problem-space/action/subproblem-execute/learn-task-goal/
+    - assets/agents/unnu/agent/problem-space/action/subproblem-retrospective/
+    - assets/agents/unnu/agent/problem-space/action/subproblem-retrospective/Impasse__Operator-Tie/
+    - assets/agents/unnu/agent/problem-space/action/subproblem-retrospective/Impasse__Operator-Tie/evaluate-operator/
+    - assets/agents/unnu/agent/problem-space/action/subproblem-search/
+    - assets/agents/unnu/agent/problem-space/action/subproblem-search/Impasse__Operator-Tie/
+    - assets/agents/unnu/agent/problem-space/action/subproblem-search/Impasse__Operator-Tie/evaluate-operator/
+    - assets/agents/unnu/agent/problem-space/action/task-implementations/
+    - assets/agents/unnu/agent/problem-space/action/task-implementations/op_ask/
+    - assets/agents/unnu/agent/problem-space/action/task-implementations/op_recall/
+    - assets/agents/unnu/agent/problem-space/action/task-implementations/op_remember/
+    - assets/agents/unnu/agent/problem-space/action/task-implementations/op_remove/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/add-node-to-goal-graph/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/construct/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/construct/construct-task-argument/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/construct/construct-task-goal/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/construct/construct-task-operator/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/construct/construct-task-operator/update-tcn/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/copy/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/copy/copy-task-argument/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/copy/copy-task-goal/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/copy/copy-task-operator/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/generalize/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/generalize/generalize-task-argument/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/generalize/generalize-task-goal/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/generalize/generalize-task-operator/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/instantiate/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/instantiate/instantiate-task-argument/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/instantiate/instantiate-task-goal/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/instantiate/instantiate-task-operator/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/match-task-operator/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/pop-task-segment/
+    - assets/agents/unnu/agent/problem-space/action/task-utils/push-task-segment/
+    - assets/agents/unnu/agent/problem-space/learning/
+    - assets/agents/unnu/agent/problem-space/world/
+    - assets/agents/unnu/agent/satisfy-purpose/
+    - assets/agents/unnu/agent/satisfy-purpose/dialog-event/
+    - assets/agents/unnu/agent/satisfy-purpose/dialog-event/answer-game-related-questions/
+    - assets/agents/unnu/agent/satisfy-purpose/dialog-event/describe-object/
+    - assets/agents/unnu/agent/satisfy-purpose/dialog-event/describe-object/lookup-label/
+    - assets/agents/unnu/agent/satisfy-purpose/dialog-event/hypothetical-situations/
+    - assets/agents/unnu/agent/satisfy-purpose/dialog-event/language-model/
+    - assets/agents/unnu/agent/satisfy-purpose/learning-event/
+    - assets/agents/unnu/agent/satisfy-purpose/learning-event/equate-objects/
+    - assets/agents/unnu/agent/satisfy-purpose/learning-event/learn-predicate-info/
+    - assets/agents/unnu/agent/satisfy-purpose/learning-event/learn-whenever-task/
+    - assets/agents/unnu/agent/satisfy-purpose/learning-event/learn-whenever-task/setup-whenever-state/
+    - assets/agents/unnu/agent/satisfy-purpose/learning-event/train-on-object/
+    - assets/agents/unnu/agent/satisfy-purpose/learning-event/train-on-object/train-predicate/
+    - assets/agents/unnu/agent/satisfy-purpose/task-event/
+    - assets/agents/unnu/agent/satisfy-purpose/task-event/handle-execute-task/
+    - assets/agents/unnu/agent/satisfy-purpose/task-event/handle-learn-task-goal/
+    - assets/agents/unnu/agent/smem-operators/
+    - assets/agents/unnu/agent/spatial-reasoning/
+    - assets/agents/unnu/agent/spatial-reasoning/find-relations/
+    - assets/agents/unnu/agent/spatial-reasoning/learn-preposition/
+    - assets/agents/unnu/agent/spatial-reasoning/lookup-smem/
+    - assets/agents/unnu/agent/spatial-reasoning/query-relation/
+    - assets/agents/unnu/agent/spatial-reasoning/world/
+    - assets/agents/unnu/agent/state-no-change/
+    - assets/agents/unnu/agent/svs-command-operators/
