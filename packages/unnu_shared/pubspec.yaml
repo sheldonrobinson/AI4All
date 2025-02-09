@@ -1,0 +1,27 @@
+name: unnu_shared
+description: "Unnu shared package"
+version: 0.0.1
+homepage: "https://konnekted.ai"
+
+environment:
+  sdk: '>=3.7.0 <4.0.0'
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  path_provider: ^2.1.5
+  path: ^1.9.1
+  json_annotation: ^4.9.0
+  beautiful_soup_dart: ^0.3.0
+  markdown: ^7.3.0
+  remove_emoji: ^0.0.10
+  large_file_handler: ^0.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  json_serializable: ^6.9.5
+  build_runner: ^2.5.4
+

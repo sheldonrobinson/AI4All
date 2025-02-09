@@ -1,0 +1,274 @@
+name: AI4All
+  
+packages:
+  - apps/**
+  - packages/**
+
+ignore:
+  # e.g. ignore example apps
+  - 'packages/*/example'
+  - 'packages/*/src/**'
+command:
+  bootstrap:
+    dependencies:
+      # chat ui
+      flutter_chat_ui: ^2.6.2
+      flutter_chat_types: ^3.6.2
+      flutter_chat_core: ^2.6.2
+      flyer_chat_text_message: ^2.3.3
+      flyer_chat_image_message: ^2.1.12
+      flyer_chat_system_message: ^2.1.10
+      flyer_chat_file_message: ^2.2.2
+      flyer_chat_text_stream_message: ^2.2.3
+      # ai
+      dart_mcp: ^0.3.0
+      mcp_llm: ^1.0.2
+      mcp_server: ^1.0.2
+      mcp_client: ^1.0.1
+      flutter_mcp: ^1.0.4
+      flutter_mcp_ui_core: ^0.2.2
+      flutter_mcp_ui_runtime: ^0.2.2
+      flutter_mcp_ui_generator: ^0.2.3
+      flutter_ai_toolkit: ^0.9.1
+      sherpa_onnx: ^1.12.1
+      langchain: ^0.7.8
+      langchain_core: ^0.3.7
+      # widgets
+      flutter_expandable_fab: ^2.5.2
+      grouped_list: ^6.0.0
+      holdable_button: ^0.0.12
+      flutter_link_previewer: ^3.2.2
+      drop_down_list: ^2.0.0
+      sliver_sticky_collapsable_panel: ^3.0.0
+      flutter_slidable: ^4.0.0
+      expansion_tile_list: ^2.0.0
+      accordion: ^2.6.0
+      readmore_expandable_text: ^0.0.3
+      expansion_tile_group: ^2.3.0
+      # layout
+      flutter_staggered_grid_view: ^0.7.0
+      flutter_adaptive_scaffold: ^0.3.3+1
+      enough_platform_widgets: ^1.1.1
+      adaptive_display: ^0.0.3
+      # data
+      pro_binary: ^2.0.0
+      pro_mpack: ^2.0.2
+      json_serializable: ^6.9.5
+      json_annotation: ^4.9.0
+      freezed: ^3.0.6
+      freezed_annotation: ^3.1.0
+      yaml: ^3.1.3
+      xml: ^6.6.0
+      # ui
+      elementary: ^3.2.0
+      fluentui_system_icons: ^1.1.273
+      fluent_ui: ^4.12.0
+      flutter_spinkit: ^5.2.1
+      flutter_inappwebview: ^6.1.5
+      flutter_settings_screens: ^0.3.4
+      whiteboard: ^1.0.0
+      signature: ^6.3.0
+      disclosure: ^2.2.0
+      getwidget: ^5.0.0
+      gpt_markdown: ^1.1.2
+      markdown: ^7.3.0
+      about: ^2.2.0
+      pref: ^2.8.0
+      animations: ^2.0.11
+      animated_text_kit: ^4.2.3
+      glow_container: ^1.0.1
+      ai_glow: ^0.0.2
+      uikit_flutter: ^0.0.4
+      easy_date_timeline: ^2.0.9
+      dynamic_timeline_tile_flutter: ^0.0.4
+      timelines_plus: ^1.0.7
+      timeline_tile_plus: ^0.0.3
+      showcaseview: ^4.0.1
+      showcaseview_skipbutton: ^2.2.0
+      awesome_flutter_extensions: ^1.3.0
+      # splash/loading screen
+      native_splash_screen: ^2.1.0 #destop
+      flutter_native_splash: ^2.4.6 #mobile
+      loader_overlay: ^5.0.0
+      image_circular_progress: ^1.0.1
+      # graphics
+      sdl3: ^1.6.2
+      visibility_detector: ^0.4.0+2
+      opencv_core: ^1.4.1
+      opencv_dart: ^1.4.1
+      dartcv4: ^1.1.4
+      #  audio
+      record: ^6.0.0
+      flutter_recorder: ^1.1.1
+      waveform_flutter: ^1.2.0
+      siri_wave: ^2.3.0
+      audio_service: ^0.18.16
+      mp_audio_stream: ^0.2.2
+      flutter_soloud: ^3.0.0-pre.0
+      pro_miniaudio: ^0.0.11
+      coast_audio: ^1.0.0
+      fvp: ^0.31.2
+      # identity
+      flutter_udid: ^4.0.0
+      ulid: ^2.0.1
+      uuid: ^4.5.1
+      cuid2: ^3.1.0
+      # events
+      async: ^2.13.0
+      flutter_streamer: ^2.3.0
+      stream_transform: ^2.1.1
+      event: ^3.1.0
+      once: ^1.7.0
+      eventsubscriber: ^3.0.0
+      stream_channel: ^2.1.4
+      # database
+      sembast_sqflite: ^2.2.1
+      sembast: ^3.8.5+1
+      sqflite: ^2.4.2
+      sqflite_common_ffi: ^2.3.6
+      objectbox: ^4.3.0
+      # business logic
+      june: ^1.0.0+1
+      rxdart: ^0.28.0
+      bloc_ease: ^1.3.0 
+      flutter_bloc: ^9.1.1
+      get: ^4.7.2
+      pro_validator: ^2.0.1
+      bit_array: ^2.2.1
+      cancellable: ^2.2.4
+      sanitize_html: ^2.1.0
+      basics: ^0.10.0
+      ## tuple: ^2.0.2
+      basic_utils: ^5.8.2
+      # file
+      cross_cache: ^1.0.3
+      open_file: ^3.5.10
+      mime: ^2.0.0
+      cross_file: ^0.3.4+2
+      file_selector: ^1.0.3
+      path_provider: ^2.1.5
+      path: ^1.9.1
+      # io
+      pigeon: ^25.3.2
+      w_common: ^3.2.0
+      messaging: ^0.3.1
+#      url_launcher: ^6.3.1
+      permission_handler: ^12.0.1
+      background_downloader: ^9.2.2
+      flutter_download_manager: ^0.5.5
+      file_picker: ^10.2.0
+      filesystem_picker: ^4.1.0
+      # settings_ui: ^2.0.2
+      # flutter_settings_ui: ^3.0.1
+      # utils
+      thumbnailer: ^3.1.0
+      asset_cache: ^2.2.0
+      mu_state: ^2.0.0+4
+      byte_converter: ^2.0.0
+      feedback: ^3.2.0
+      feedback_gitlab: ^3.0.0
+      orange: ^1.2.10
+      serious_python: ^0.9.2
+      flet: ^0.28.3
+      flutter_local_notifications: ^19.3.0
+      interval_tree: ^0.4.1
+      package_info_plus: ^8.3.0
+      device_info_plus: ^11.5.0
+      provider: ^6.1.5
+      beautiful_soup_dart: ^0.3.0
+      meta: ^1.16.0
+      characters: ^1.4.1
+      convert: ^3.1.2
+      intl: ^0.20.2
+      intl_translation: ^0.20.1
+      timeago: ^3.7.1
+      collection: ^1.19.1
+      os_detect: ^2.0.3
+      built_value: ^8.10.1
+      window_manager: ^0.5.0
+      menubar:
+        git:
+          url: https://github.com/google/flutter-desktop-embedding.git
+          path: plugins/menubar
+      window_size: ^0.1.0
+      built_collection:
+        git:
+          url: https://github.com/google/built_collection.dart
+      hierarchical_state_machine:
+        git:
+          url: https://github.com/google/hierarchical-state-machine.dart
+      quiver: ^3.2.2
+      state_machine: ^3.0.1
+      async_state_builder: ^0.4.2
+      chunked_stream: ^1.4.2
+      flutter_secure_storage: ^9.2.4
+      shared_preferences: ^2.5.3
+      encrypt_shared_preferences: ^0.9.9
+      state_watcher: ^0.1.0
+      share_plus: ^11.0.0
+      wakelock_plus: ^1.3.2
+      tokenizer: ^1.0.0
+      acyclic_steps: ^0.11.2
+      log_pro: ^0.0.4
+      logging: ^1.3.0
+      diffutil_dart: ^4.0.1
+      easy_localization: ^3.0.7+1
+      devicelocale: ^0.8.1
+      language_code: ^0.5.5
+      # add-ons
+      mutex: ^3.1.0
+      app_runner: ^2.2.2
+      dependency_initializer: ^3.0.0
+      upgrade: ^0.0.8
+      app_links: ^6.4.0
+      source_helper: ^1.3.5
+      code_builder: ^4.10.1
+      ffi: ^2.1.4
+      plugin_platform_interface: ^2.1.8
+      device_preview_plus: ^2.4.2
+      # mobile
+      asset_delivery: ^1.1.0
+      android_package_installer: ^0.0.3
+    dev_dependencies:
+      msix: ^3.16.9
+      flutter_lints: ^6.0.0
+      flutter_launcher_icons: ^0.14.4
+      built_value_generator: ^8.10.1
+      ffigen: ^19.0.0
+      build_runner: ^2.5.4
+      native_splash_screen_cli: ^2.1.1
+#    hooks:
+#      post: melos run launcher_icon   
+
+scripts:
+  format:package:
+    description: "Run `dart format` in a specific package."
+    run: melos exec -- dart format .
+    packageFilters:
+      flutter: true
+  analyze:package:
+    description: "Run `dart analyze` in a specific package."
+    run: melos exec -- dart analyze .
+    packageFilters:
+      flutter: true
+  launcher_icon:
+    description: "Update Flutter app's launcher icon in a specific package."
+    exec: dart run flutter_launcher_icons:generate
+    packageFilters:
+      dependsOn: flutter_launcher_icons
+  df_asset:
+    description: "Generate asset classes from asset directories."
+    run: melos exec -- dart run dart_fusion asset
+    packageFilters:
+      flutter: true
+  df_model:
+    description: "Update models by generating toJSON, fromJSON and copyWith based on given annotation."
+    run: melos exec -- dart run dart_fusion model
+    packageFilters:
+      flutter: true
+  df_localize:
+    description: "Generate localization classes from JSON files."
+    run: melos exec -- dart run dart_fusion localize
+    packageFilters:
+      flutter: true
+  

@@ -1,0 +1,34 @@
+# Run with `dart run ffigen --config ffigen.yaml`.
+name: LlamaCppBindings
+description: |
+  Bindings for `llama.cpp`.
+
+  Regenerate bindings with `dart run ffigen --config ffigen.yaml`.
+output: 'lib/src/bindings.dart'
+ignore-source-errors: false
+headers:
+  entry-points:
+    - 'src/llamacpp.h'
+    - 'src/lcpp/include/llama.h'
+    - 'src/lcpp/ggml/include/ggml.h'
+    - 'src/lcpp/ggml/include/ggml-cpu.h'
+    - 'src/lcpp/ggml/include/ggml-backend.h'
+    - 'src/lcpp/ggml/include/ggml-common.h'
+compiler-opts:
+  - '-I./src/lcpp/ggml/include'
+  - '-I./src/lcpp/include'
+  - '-I./src/lcpp/common'
+  - '-I./src/lcpp/src'
+preamble: |
+  // ignore_for_file: always_specify_types
+  // ignore_for_file: camel_case_types
+  // ignore_for_file: non_constant_identifier_names
+comments:
+  style: any
+  length: full
+
+include-unused-typedefs: true
+silence-enum-warning: true
+
+ffi-native:
+  asset-id: 'package:llamacpp/src/bindings.dart' # (optional)

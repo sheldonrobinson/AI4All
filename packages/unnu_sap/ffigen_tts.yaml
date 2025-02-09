@@ -1,0 +1,34 @@
+# Run with `dart run ffigen --config ffigen_tts.yaml`.
+name: UnnuTtsBindings
+description: |
+  Bindings for `src/unnu_tts.h`.
+
+  Regenerate bindings with
+  `dart run ffigen --config ffigen_tts.yaml`
+  or
+  `export CPATH="$(clang -v 2>&1 | grep "Selected GCC installation" | rev | cut -d' ' -f1 | rev)/include";  dart run ffigen --config ffigen.yaml`
+output: 'lib/src/tts/bindings.dart'
+ignore-source-errors: false
+
+headers:
+  entry-points:
+    - 'src/unnu_tts.h'
+    - 'src/types.h'
+    - 'src/sherpa-onnx/sherpa-onnx/c-api/c-api.h'
+
+compiler-opts:
+  - '-I./src'
+
+preamble: |
+  // ignore_for_file: always_specify_types
+  // ignore_for_file: camel_case_types
+  // ignore_for_file: non_constant_identifier_names
+  // ignore_for_file: unused_import
+silence-enum-warning: true
+include-unused-typedefs: true
+comments:
+  style: any
+  length: full
+
+ffi-native:
+  asset-id: 'package:unnu_sap/src/tts/bindings.dart' # (optional)

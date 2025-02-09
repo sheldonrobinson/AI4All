@@ -1,0 +1,419 @@
+name: core
+description: "AI4All Core Edition"
+
+# Prevent accidental publishing to pub.dev.
+publish_to: 'none'
+
+version: 1.1.0
+
+environment:
+  sdk: '>=3.7.2 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
+  unnu_ai_model: ^0.0.1
+  langchain: ^0.7.8
+  unnu_shared: ^0.0.1
+  unnu_widgets: ^0.0.1
+  unnu_speech: ^0.0.1
+  unnu_sap: ^0.0.1
+  flutter_chat_core: ^2.6.2
+  permission_handler: ^12.0.1
+  llamacpp: ^1.0.0
+  sqflite: ^2.4.2
+  sqflite_common_ffi: ^2.3.6
+  sembast: ^3.8.5+1
+  sembast_sqflite: ^2.2.1
+  ai_glow: ^0.0.2
+  uuid: ^4.5.1
+  async: ^2.13.0
+  stream_transform: ^2.1.1
+  shared_preferences: ^2.5.3
+  june: ^1.0.0+1
+  file_picker: ^10.2.0
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  readmore_expandable_text: ^0.0.3
+  timeago: ^3.7.1
+  native_splash_screen: ^2.1.0
+  msix: ^3.16.9
+  feedback: ^3.2.0
+  feedback_gitlab: ^3.0.0
+  asset_cache: ^2.2.0
+  window_size: ^0.1.0
+  flutter_adaptive_scaffold: ^0.3.3+1
+  package_info_plus: ^8.3.0
+  disclosure: ^2.2.0
+  gpt_markdown: ^1.1.2
+  byte_converter: ^2.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+  native_splash_screen_cli: ^2.1.1
+
+      
+flutter:
+  generate: true # Add this line
+  uses-material-design: true
+
+  assets:
+    # Add assets from the images directory to the application.
+    - assets/images/
+    - assets/images/2.0x/
+    - assets/images/3.0x/
+    - assets/icon/
+    - assets/icon/2.0x/
+    - assets/icon/3.0x/
+    # model
+    - assets/models/chat/Qwen3-1.7B-Q4_K_M.gguf
+    # resources
+    - assets/json/config.json
+    - assets/resources/disclaimer.md
+    - assets/resources/eula.md
+    - assets/resources/toc.md
+    - assets/resources/privacy_policy.md
+  fonts:
+    - family: Horizon
+      fonts:
+        - asset: assets/fonts/Horizon.otf
+    - family: Opening Hours Sans
+      fonts:
+        - asset: assets/fonts/OpeningHoursSans-Regular.otf
+    - family: Jellee Roman
+      fonts:
+        - asset: assets/fonts/Jellee-Roman.otf
+    - family: Good Timing Rg
+      fonts:
+        - asset: assets/fonts/good-timing-bd.otf
+    - family: IBM Logo
+      fonts:
+        - asset: assets/fonts/IBM-Logo.ttf
+    - family: Proletarsk
+      fonts:
+        - asset: assets/fonts/Proletarsk.ttf
+    - family: Audex
+      fonts:
+        - asset: assets/fonts/audex/Audex.ttf
+        - asset: assets/fonts/audex/AudexItalic.ttf
+          style: italic
+    - family: Trek
+      fonts:
+        - asset: assets/fonts/TKDS9CRD.TTF
+    - family: Home Video
+      fonts:
+        - asset: assets/fonts/homevideo/HomeVideo.ttf
+        - asset: assets/fonts/homevideo/HomeVideoBold.ttf
+          weight: 700
+    - family: Octarine
+      fonts:
+        - asset: assets/fonts/octarine/Octarine-Bold.otf
+          weight: 700
+        - asset: assets/fonts/octarine/Octarine-BoldOblique.otf
+          weight: 700
+          style: italic
+        - asset: assets/fonts/octarine/Octarine-Light.otf
+          weight: 300
+        - asset: assets/fonts/octarine/Octarine-LightOblique.otf
+          style: italic
+          weight: 300
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/roboto/Roboto-Regular.ttf
+        - asset: assets/fonts/roboto/Roboto-Italic.ttf
+          style: italic
+        - asset: assets/fonts/roboto/Roboto-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/roboto/Roboto-BoldItalic.ttf
+          style: italic
+          weight: 700
+        - asset: assets/fonts/roboto/Roboto-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/roboto/Roboto-ExtraBoldItalic.ttf
+          style: italic
+          weight: 800
+        - asset: assets/fonts/roboto/Roboto-Black.ttf
+          weight: 900
+        - asset: assets/fonts/roboto/Roboto-BlackItalic.ttf
+          style: italic
+          weight: 900
+        - asset: assets/fonts/roboto/Roboto-Light.ttf
+          weight: 300
+        - asset: assets/fonts/roboto/Roboto-LightItalic.ttf
+          style: italic
+          weight: 300
+        - asset: assets/fonts/roboto/Roboto-ExtraLight.ttf
+          weight: 200
+        - asset: assets/fonts/roboto/Roboto-ExtraLightItalic.ttf
+          style: italic
+          weight: 200
+        - asset: assets/fonts/roboto/Roboto-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/roboto/Roboto-MediumItalic.ttf
+          style: italic
+          weight: 500
+        - asset: assets/fonts/roboto/Roboto-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/roboto/Roboto-SemiBoldItalic.ttf
+          style: italic
+          weight: 600
+        - asset: assets/fonts/roboto/Roboto-Thin.ttf
+          weight: 100
+        - asset: assets/fonts/roboto/Roboto-ThinItalic.ttf
+          style: italic
+          weight: 100
+    - family: Noto Sans
+      fonts:
+        - asset: assets/fonts/noto-sans/NotoSans-Regular.ttf
+        - asset: assets/fonts/noto-sans/NotoSans-Italic.ttf
+          style: italic
+        - asset: assets/fonts/noto-sans/NotoSans-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/noto-sans/NotoSans-BoldItalic.ttf
+          style: italic
+          weight: 700
+        - asset: assets/fonts/noto-sans/NotoSans-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/noto-sans/NotoSans-ExtraBoldItalic.ttf
+          style: italic
+          weight: 800
+        - asset: assets/fonts/noto-sans/NotoSans-Black.ttf
+          weight: 900
+        - asset: assets/fonts/noto-sans/NotoSans-BlackItalic.ttf
+          style: italic
+          weight: 900
+        - asset: assets/fonts/noto-sans/NotoSans-Light.ttf
+          weight: 300
+        - asset: assets/fonts/noto-sans/NotoSans-LightItalic.ttf
+          style: italic
+          weight: 300
+        - asset: assets/fonts/noto-sans/NotoSans-ExtraLight.ttf
+          weight: 200
+        - asset: assets/fonts/noto-sans/NotoSans-ExtraLightItalic.ttf
+          style: italic
+          weight: 200
+        - asset: assets/fonts/noto-sans/NotoSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/noto-sans/NotoSans-MediumItalic.ttf
+          style: italic
+          weight: 500
+        - asset: assets/fonts/noto-sans/NotoSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/noto-sans/NotoSans-SemiBoldItalic.ttf
+          style: italic
+          weight: 600
+        - asset: assets/fonts/noto-sans/NotoSans-Thin.ttf
+          weight: 100
+        - asset: assets/fonts/noto-sans/NotoSans-ThinItalic.ttf
+          style: italic
+          weight: 100
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/poppins/Poppins-Regular.ttf
+        - asset: assets/fonts/poppins/Poppins-Italic.ttf
+          style: italic
+        - asset: assets/fonts/poppins/Poppins-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/poppins/Poppins-BoldItalic.ttf
+          style: italic
+          weight: 700
+        - asset: assets/fonts/poppins/Poppins-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/poppins/Poppins-ExtraBoldItalic.ttf
+          style: italic
+          weight: 800
+        - asset: assets/fonts/poppins/Poppins-Black.ttf
+          weight: 900
+        - asset: assets/fonts/poppins/Poppins-BlackItalic.ttf
+          style: italic
+          weight: 900
+        - asset: assets/fonts/poppins/Poppins-Light.ttf
+          weight: 300
+        - asset: assets/fonts/poppins/Poppins-LightItalic.ttf
+          style: italic
+          weight: 300
+        - asset: assets/fonts/poppins/Poppins-ExtraLight.ttf
+          weight: 200
+        - asset: assets/fonts/poppins/Poppins-ExtraLightItalic.ttf
+          style: italic
+          weight: 200
+        - asset: assets/fonts/poppins/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/poppins/Poppins-MediumItalic.ttf
+          style: italic
+          weight: 500
+        - asset: assets/fonts/poppins/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/poppins/Poppins-SemiBoldItalic.ttf
+          style: italic
+          weight: 600
+        - asset: assets/fonts/poppins/Poppins-Thin.ttf
+          weight: 100
+        - asset: assets/fonts/poppins/Poppins-ThinItalic.ttf
+          style: italic
+          weight: 100
+    - family: Pitagon Sans Text
+      fonts:
+        - asset: assets/fonts/pitagon-sans-text/PitagonSansText-Regular.otf
+        - asset: assets/fonts/pitagon-sans-text/PitagonSansText-Italic.otf
+          style: italic
+        - asset: assets/fonts/pitagon-sans-text/PitagonSansText-Bold.otf
+          weight: 700
+        - asset: assets/fonts/pitagon-sans-text/PitagonSansText-BoldItalic.otf
+          style: italic
+          weight: 700
+        - asset: assets/fonts/pitagon-sans-text/PitagonSansText-ExtraBold.otf
+          weight: 800
+        - asset: assets/fonts/pitagon-sans-text/PitagonSansText-ExtraBoldItalic.otf
+          style: italic
+          weight: 800
+        - asset: assets/fonts/pitagon-sans-text/PitagonSansText-Light.otf
+          weight: 300
+        - asset: assets/fonts/pitagon-sans-text/PitagonSansText-LightItalic.otf
+          style: italic
+          weight: 300
+        - asset: assets/fonts/pitagon-sans-text/PitagonSansText-ExtraLight.otf
+          weight: 200
+        - asset: assets/fonts/pitagon-sans-text/PitagonSansText-ExtraLightItalic.otf
+          style: italic
+          weight: 200
+        - asset: assets/fonts/pitagon-sans-text/PitagonSansText-Medium.otf
+          weight: 500
+        - asset: assets/fonts/pitagon-sans-text/PitagonSansText-MediumItalic.otf
+          style: italic
+          weight: 500
+        - asset: assets/fonts/pitagon-sans-text/PitagonSansText-SemiBold.otf
+          weight: 600
+        - asset: assets/fonts/pitagon-sans-text/PitagonSansText-SemiBoldItalic.otf
+          style: italic
+          weight: 600
+    - family: Pitagon Serif
+      fonts:
+        - asset: assets/fonts/pitagon-serif/PitagonSerif-Regular.otf
+        - asset: assets/fonts/pitagon-serif/PitagonSerif-Italic.otf
+          style: italic
+        - asset: assets/fonts/pitagon-serif/PitagonSerif-Bold.otf
+          weight: 700
+        - asset: assets/fonts/pitagon-serif/PitagonSerif-BoldItalic.otf
+          style: italic
+          weight: 700
+        - asset: assets/fonts/pitagon-serif/PitagonSerif-ExtraBold.otf
+          weight: 800
+        - asset: assets/fonts/pitagon-serif/PitagonSerif-ExtraBoldItalic.otf
+          style: italic
+          weight: 800
+        - asset: assets/fonts/pitagon-serif/PitagonSerif-Black.otf
+          weight: 900
+        - asset: assets/fonts/pitagon-serif/PitagonSerif-BlackItalic.otf
+          style: italic
+          weight: 900
+        - asset: assets/fonts/pitagon-serif/PitagonSerif-Light.otf
+          weight: 300
+        - asset: assets/fonts/pitagon-serif/PitagonSerif-LightItalic.otf
+          style: italic
+          weight: 300
+        - asset: assets/fonts/pitagon-serif/PitagonSerif-ExtraLight.otf
+          weight: 200
+        - asset: assets/fonts/pitagon-serif/PitagonSerif-ExtraLightItalic.otf
+          style: italic
+          weight: 200
+        - asset: assets/fonts/pitagon-serif/PitagonSerif-Medium.otf
+          weight: 500
+        - asset: assets/fonts/pitagon-serif/PitagonSerif-MediumItalic.otf
+          style: italic
+          weight: 500
+        - asset: assets/fonts/pitagon-serif/PitagonSerif-SemiBold.otf
+          weight: 600
+        - asset: assets/fonts/pitagon-serif/PitagonSerif-SemiBoldItalic.otf
+          style: italic
+          weight: 600
+        - asset: assets/fonts/pitagon-serif/PitagonSerif-Thin.otf
+          weight: 100
+        - asset: assets/fonts/pitagon-serif/PitagonSerif-ThinItalic.otf
+          style: italic
+          weight: 100
+    - family: IBM Plex Sans
+      fonts:
+        - asset: assets/fonts/plex/IBMPlexSans-Regular.otf
+        - asset: assets/fonts/plex/IBMPlexSans-Italic.otf
+          style: italic
+        - asset: assets/fonts/plex/IBMPlexSans-Bold.otf
+          weight: 700
+        - asset: assets/fonts/plex/IBMPlexSans-BoldItalic.otf
+          style: italic
+          weight: 700
+        - asset: assets/fonts/plex/IBMPlexSans-Light.otf
+          weight: 300
+        - asset: assets/fonts/plex/IBMPlexSans-LightItalic.otf
+          style: italic
+          weight: 300
+        - asset: assets/fonts/plex/IBMPlexSans-ExtraLight.otf
+          weight: 200
+        - asset: assets/fonts/plex/IBMPlexSans-ExtraLightItalic.otf
+          style: italic
+          weight: 200
+        - asset: assets/fonts/plex/IBMPlexSans-Medium.otf
+          weight: 500
+        - asset: assets/fonts/plex/IBMPlexSans-MediumItalic.otf
+          style: italic
+          weight: 500
+        - asset: assets/fonts/plex/IBMPlexSans-SemiBold.otf
+          weight: 600
+        - asset: assets/fonts/plex/IBMPlexSans-SemiBoldItalic.otf
+          style: italic
+          weight: 600
+        - asset: assets/fonts/plex/IBMPlexSans-Thin.otf
+          weight: 100
+        - asset: assets/fonts/plex/IBMPlexSans-ThinItalic.otf
+          style: italic
+          weight: 100
+    - family: IBM Plex Sans Text
+      fonts:
+        - asset: assets/fonts/plex/IBMPlexSans-Text.otf
+        - asset: assets/fonts/plex/IBMPlexSans-TextItalic.otf
+          style: italic
+    - family: Segoe UI This
+      fonts:
+        - asset: assets/fonts/segoe-ui-this/segoeuithis.ttf
+        - asset: assets/fonts/segoe-ui-this/segoeuithibd.ttf
+          weight: 700
+        - asset: assets/fonts/segoe-ui-this/segoeuithisi.ttf
+          style: italic
+        - asset: assets/fonts/segoe-ui-this/segoeuithisz.ttf
+          weight: 700
+          style: italic
+    - family: Noto Sans Mono
+      fonts:
+        - asset: assets/fonts/NotoSansMono-Regular.otf
+    - family: Noto Serif
+      fonts:
+        - asset: assets/fonts/noto-serif/NotoSerif-Regular.ttf
+        - asset: assets/fonts/noto-serif/NotoSerif-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/noto-serif/NotoSerif-Italic.ttf
+          style: italic
+        - asset: assets/fonts/noto-serif/NotoSerif-BoldItalic.ttf
+          style: italic
+          weight: 700
+# 
+msix_config:
+  display_name: AI4All Core
+  app_installer: #<-- app installer configuration
+    publish_folder_path: AI4All.Core
+    hours_between_update_checks: 0
+    automatic_background_task: true
+    update_blocks_activation: true
+    show_prompt: true
+    force_update_from_any_version: false
+  publisher_display_name: Sheldon Robinson
+  identity_name: SheldonRobinson.AI4AllCore
+  publisher: CN=1F2E715E-C3E2-42EE-A3A0-0B5CA6D53B74
+  msix_version: 1.1.0.0
+  logo_path: H:\Projects\AI4All\apps\Core\assets\icon\3.0x\icon.png
+  capabilities: microphone, broadFileSystemAccess, internetClient 
+  store: true

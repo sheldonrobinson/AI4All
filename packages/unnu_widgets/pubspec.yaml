@@ -1,0 +1,48 @@
+name: unnu_widgets
+description: "Unnu Widgets package"
+version: 0.0.1
+homepage: https://konnekted.ai
+
+environment:
+  sdk: '>=3.7.0 <4.0.0'
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
+  unnu_ai_model: ^0.0.1
+  cross_cache: ^1.0.3
+  flutter_chat_ui: ^2.6.2
+  flutter_chat_core: ^2.6.2
+  flyer_chat_text_message: ^2.3.3
+  flyer_chat_system_message: ^2.1.10
+  flyer_chat_image_message: ^2.1.12
+  flyer_chat_text_stream_message: ^2.2.3
+  langchain_core: ^0.3.7
+  collection: ^1.19.1
+  sembast: ^3.8.5+1
+  provider: ^6.1.5
+  uuid: ^4.5.1
+  flutter_link_previewer: ^3.2.2
+  readmore_expandable_text: ^0.0.3
+  diffutil_dart: ^4.0.1
+  unnu_shared: ^0.0.1
+  flutter_spinkit: ^5.2.1
+  asset_cache: ^2.2.0
+  async: ^2.13.0
+  june: ^1.0.0+1
+  quiver: ^3.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  
+flutter:
+  generate: true # Add this line
+  assets:
+    - assets/images/user.png
+    - assets/images/assistant.png
