@@ -36,13 +36,27 @@ typedef struct  UnnuRaglFragment {
 
 typedef struct  UnnuRaglResult {
 	UnnuRaglResultType_t type;
+	char* ref_id;
+	int reflen;
 	char* text;
 	int length;
-	UnnuRaglFragment_t* fragments;
+	UnnuRaglFragment_t** fragments;
 	int64_t count;
 } UnnuRaglResult_t;
 
+typedef struct  UnnuRagEmbdVec {
+	UnnuRaglResultType_t type;
+	char* ref_id;
+	int reflen;
+	char* text;
+	int length;
+	float* values;
+	int64_t count;
+} UnnuRagEmbdVec_t;
+
 typedef void (*UnnuRaglResponseCallback)(UnnuRaglResult_t* response);
+
+typedef void (*UnnuRaglEmbeddingCallback)(UnnuRagEmbdVec_t* embedding);
 
 #ifdef __cplusplus
 }
@@ -50,7 +64,7 @@ typedef void (*UnnuRaglResponseCallback)(UnnuRaglResult_t* response);
 
 FFI_PLUGIN_EXPORT void unnu_rag_lite_open_kb(char* db_path, int* errorCode);
 
-FFI_PLUGIN_EXPORT void unnu_rag_lite_open_memory(char* mem_id, int* errorCode);
+// FFI_PLUGIN_EXPORT void unnu_rag_lite_open_memory(char* mem_id, int* errorCode);
 
 FFI_PLUGIN_EXPORT void unnu_rag_lite_closeall_kb();
 // FFI_PLUGIN_EXPORT void unnu_rag_lite_close_kb(char* tag);
@@ -59,11 +73,35 @@ FFI_PLUGIN_EXPORT void unnu_rag_lite_init(const char* path);
 
 FFI_PLUGIN_EXPORT void unnu_rag_lite_query(const char* text);
 
+FFI_PLUGIN_EXPORT void unnu_rag_lite_retrieve(const char* uri);
+
+FFI_PLUGIN_EXPORT void unnu_rag_lite_mapping(const char* uri, const char* document_id);
+
+FFI_PLUGIN_EXPORT void unnu_rag_lite_delete(const char* document_id, const char* uri);
+
 FFI_PLUGIN_EXPORT void unnu_rag_lite_embed(const char* text);
+
+FFI_PLUGIN_EXPORT void unnu_rag_lite_update_dims(int32_t sz);
+
+FFI_PLUGIN_EXPORT void unnu_rag_lite_result_limit(int32_t sz);
+
+FFI_PLUGIN_EXPORT void unnu_rag_lite_enable_paragraph_chunking(int8_t val);
+
+FFI_PLUGIN_EXPORT void unnu_rag_lite_set_chunk_size(int32_t val);
+
+FFI_PLUGIN_EXPORT void unnu_rag_lite_set_pooling_type(int32_t val);
 
 FFI_PLUGIN_EXPORT void unnu_set_ragl_result_callback(UnnuRaglResponseCallback callback);
 
+FFI_PLUGIN_EXPORT void unnu_set_ragl_embedding_callback(UnnuRaglEmbeddingCallback callback);
+
+FFI_PLUGIN_EXPORT void unnu_ragl_free_result(UnnuRaglResult_t* result);
+
+FFI_PLUGIN_EXPORT void unnu_ragl_free_embedvector(UnnuRagEmbdVec_t* vec);
+
 FFI_PLUGIN_EXPORT void unnu_unset_ragl_result_callback();
+
+FFI_PLUGIN_EXPORT void unnu_unset_ragl_embedding_callback();
 
 FFI_PLUGIN_EXPORT void unnu_rag_lite_destroy();
 

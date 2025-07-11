@@ -1,13 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:collection/collection.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_core/flutter_chat_core.dart' as chat_core;
 import 'package:flutter_chat_core/flutter_chat_core.dart';
-import 'package:flutter_chat_ui/flutter_chat_ui.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:june/june.dart';
 import 'package:langchain_core/chat_models.dart' as cm;
 import 'package:langchain_core/llms.dart';
@@ -16,10 +12,9 @@ import 'package:unnu_ai_model/unnu_ai_model.dart';
 import 'package:unnu_shared/unnu_shared.dart';
 import 'package:uuid/uuid.dart';
 
-import 'config.dart';
 import '../components/sembast_chat_controller.dart';
-import '../components/composer_action_bar.dart';
 import '../components/unnu_stream_manager.dart';
+import 'config.dart';
 
 enum TranscriptionFragmentType { start, chunk, partial, complete, end }
 
@@ -47,17 +42,9 @@ enum SendIconState {
   };
 }
 
-class StreamingMessageVM {
-  UnnuStreamManager streamManager;
-  Map<String, TextStreamMessage> active;
-  Map<String, StreamSubscription<LLMResult>> subscriptions;
-  StreamSubscription<LLMResult> assistant;
-  ChatController chatController;
-  BiMap<String, String> responses;
-  String sessionId;
-  Dialoguizer parser;
-
-  StreamingMessageVM({
+@immutable
+class StreamingMessageView {
+  const StreamingMessageView({
     required this.streamManager,
     required this.active,
     required this.subscriptions,
@@ -67,18 +54,26 @@ class StreamingMessageVM {
     required this.sessionId,
     required this.parser,
   });
+  final UnnuStreamManager streamManager;
+  final Map<String, TextStreamMessage> active;
+  final Map<String, StreamSubscription<LLMResult>> subscriptions;
+  final StreamSubscription<LLMResult> assistant;
+  final ChatController chatController;
+  final BiMap<String, String> responses;
+  final String sessionId;
+  final Dialoguizer parser;
 
-  StreamingMessageVM copyWith({
+  StreamingMessageView copyWith({
     UnnuStreamManager? streamManager,
     Map<String, TextStreamMessage>? active,
     Map<String, StreamSubscription<LLMResult>>? subscriptions,
     StreamSubscription<LLMResult>? assistant,
-    SembastChatController? chatController,
+    ChatController? chatController,
     BiMap<String, String>? responses,
     String? sessionId,
     Dialoguizer? parser,
   }) {
-    return StreamingMessageVM(
+    return StreamingMessageView(
       streamManager: streamManager ?? this.streamManager,
       active: active ?? this.active,
       subscriptions: subscriptions ?? this.subscriptions,
@@ -89,9 +84,9 @@ class StreamingMessageVM {
       parser: parser ?? this.parser,
     );
   }
-   static StreamingMessageVM getDefaults() {
 
-    return StreamingMessageVM(
+  static StreamingMessageView getDefaults() {
+    return StreamingMessageView(
       sessionId: Uuid().v4(),
       streamManager: UnnuStreamManager(
         chatController: InMemoryChatController(),
@@ -105,14 +100,18 @@ class StreamingMessageVM {
       parser: Dialoguizer(
         separators: RegExp(''),
         reasoning: false,
-        thinking: (start_tag: '<think>', end_tag: '</think>'),
       ),
     );
   }
 
   @override
   String toString() {
-    return 'StreamingMessageVM(streamManager: $streamManager, active: $active, subscriptions: $subscriptions, assistant: $assistant, chatController: $chatController, responses: $responses, sessionId: $sessionId, parser: $parser)';
+    return '''
+    StreamingMessageVM(streamManager: $streamManager, active: $active,
+    subscriptions:  $subscriptions, assistant: $assistant, 
+    chatController: $chatController, responses: $responses, 
+    sessionId: $sessionId, parser: $parser)
+    ''';
   }
 
   @override
@@ -120,7 +119,7 @@ class StreamingMessageVM {
     if (identical(this, other)) return true;
     final mapEquals = const DeepCollectionEquality().equals;
 
-    return other is StreamingMessageVM &&
+    return other is StreamingMessageView &&
         other.streamManager == streamManager &&
         mapEquals(other.active, active) &&
         mapEquals(other.subscriptions, subscriptions) &&
@@ -146,7 +145,7 @@ class StreamingMessageVM {
 
 class StreamingMessageController extends JuneState {
   static final _uuid = Uuid();
-  StreamingMessageVM messagingModel = StreamingMessageVM.getDefaults();
+  StreamingMessageView messagingModel = StreamingMessageView.getDefaults();
 
   static String newUuid() {
     return _uuid.v4();
@@ -173,8 +172,11 @@ class StreamingMessageController extends JuneState {
   Map<String, List<Message>> get chats =>
       UnmodifiableMapView<String, List<Message>>(
         groupBy<Message, String>(
-          (messagingModel.chatController as SembastChatController).allMessages,
-          (element) => element.metadata?['session.id'] ?? '',
+          messagingModel.chatController is SembastChatController
+              ? (messagingModel.chatController as SembastChatController)
+                  .allMessages
+              : messagingModel.chatController.messages,
+          (element) => (element.metadata?['session.id'] ?? '') as String,
         ),
       );
 
@@ -203,9 +205,6 @@ class StreamingMessageController extends JuneState {
   void resubscribe() {
     messagingModel.assistant.onData((event) async {
       if (event.metadata.containsKey('message.id')) {
-        if (kDebugMode) {
-          print('StrmngMsgCntrl:onData $event');
-        }
         final messageId = event.metadata['message.id'] as String;
         final streamId = getStreamId(messageId);
         if (streamId != null) {
@@ -213,24 +212,21 @@ class StreamingMessageController extends JuneState {
           final oldMetadata =
               oldMessage?.metadata ??
               {'session.id': messagingModel.sessionId, 'message.id': messageId};
-          final newMetadata = <String, dynamic>{};
-          newMetadata.addEntries(oldMetadata.entries);
+          final newMetadata =
+              <String, dynamic>{}..addEntries(oldMetadata.entries);
           newMetadata['allow.updates'] = false;
           newMetadata['is.streaming'] = false;
           if (chat_core.isOnlyEmoji(event.output)) {
             newMetadata['isOnlyEmoji'] = true;
           }
 
-          if (messagingModel.parser.tags != null) {
+          if (messagingModel.parser.reasoning) {
             if (event.output.startsWith(
               RegExp(
-                messagingModel.parser.tags!.start_tag,
+                '<think>',
                 caseSensitive: false,
               ),
             )) {
-              if (kDebugMode) {
-                print('messagingModel:resubscribe parsing ...');
-              }
               final segments = messagingModel.parser.extract(event.output);
               if (segments.containsKey('thought')) {
                 newMetadata['parsed.thx'] = segments['thought'] ?? '';
@@ -239,15 +235,8 @@ class StreamingMessageController extends JuneState {
               if (segments.containsKey('context')) {
                 newMetadata['parsed.ctx'] = segments['context'] ?? '';
               }
-              if (kDebugMode) {
-                final resp = segments['response'];
-                print('UnnuChatWidget::responses.listen $resp');
-              }
               newMetadata['parsed.out'] = segments['response'];
             }
-          }
-          if (kDebugMode) {
-            print('messagingModel:resubscribe newMetadata $newMetadata');
           }
           final newMessage = chat_core.TextMessage(
             id: oldMessage!.id,
@@ -261,11 +250,6 @@ class StreamingMessageController extends JuneState {
                     : event.output,
             metadata: newMetadata,
           );
-          if (kDebugMode) {
-            print(
-              'UnnuChat::responses.listen() updateMessages:\nold: $oldMessage\nnew: $newMessage',
-            );
-          }
           await messagingModel.chatController.updateMessage(
             oldMessage,
             newMessage,
@@ -297,9 +281,6 @@ class StreamingMessageController extends JuneState {
         message.metadata!.containsKey('message.id')) {
       final msgId = message.metadata!['message.id'] as String;
       messagingModel.responses[msgId] = streamId;
-      if (kDebugMode) {
-        print('onStartStream $msgId <-> $streamId | ${message.streamId}');
-      }
     }
   }
 
@@ -316,9 +297,6 @@ class StreamingMessageController extends JuneState {
   }
 
   Future<void> onComplete(String streamId) async {
-    if (kDebugMode) {
-      print('StrmngMsgCntrl:onComplete $streamId');
-    }
     if (messagingModel.active.containsKey(streamId)) {
       await messagingModel.streamManager.completeStream(streamId);
     }
@@ -327,9 +305,6 @@ class StreamingMessageController extends JuneState {
       messagingModel.subscriptions.remove(streamId);
     }
     setState();
-    if (kDebugMode) {
-      print('StrmMsgCtrl:onComplete:>');
-    }
   }
 
   void cleanup(String streamId) {
@@ -337,9 +312,6 @@ class StreamingMessageController extends JuneState {
     messagingModel.subscriptions.remove(streamId);
     messagingModel.active.remove(streamId);
     setState();
-    if (kDebugMode) {
-      print('StrmngMsgCntrl:cleanup:>');
-    }
   }
 
   Future<void> onError(String streamId, Object err) async {
@@ -355,9 +327,6 @@ class StreamingMessageController extends JuneState {
       messagingModel.responses.inverse.remove(streamId);
     }
     setState();
-    if (kDebugMode) {
-      print('StrmngMsgCntrl:onError:>');
-    }
   }
 
   Future<void> onStopStream(String sessionId) async {
@@ -384,15 +353,9 @@ class StreamingMessageController extends JuneState {
       }
     }
     setState();
-    if (kDebugMode) {
-      print('StrmngMsgCntrl:onStopStream:>');
-    }
   }
 
   Future<void> clearMessages() async {
-    if (kDebugMode) {
-      print('clearMessages: ${messagingModel.sessionId}');
-    }
     final sessionMessages =
         messagingModel.chatController.messages
             .where(
@@ -400,12 +363,13 @@ class StreamingMessageController extends JuneState {
                   messagingModel.sessionId == element.metadata!['session.id'],
             )
             .toList();
-    for (var element in sessionMessages) {
+    for (final element in sessionMessages) {
       await messagingModel.chatController.removeMessage(element);
     }
     final newSessionId = newUuid();
     messagingModel = messagingModel.copyWith(sessionId: newSessionId);
-    (messagingModel.chatController as SembastChatController).activeSessionId = newSessionId;
+    (messagingModel.chatController as SembastChatController).activeSessionId =
+        newSessionId;
     await messagingModel.chatController.setMessages([]);
     setState();
   }
@@ -413,77 +377,94 @@ class StreamingMessageController extends JuneState {
   Future<void> newChat() async {
     final newSessionId = newUuid();
     messagingModel = messagingModel.copyWith(sessionId: newSessionId);
-    (messagingModel.chatController as SembastChatController).activeSessionId = newSessionId;
+    (messagingModel.chatController as SembastChatController).activeSessionId =
+        newSessionId;
     await messagingModel.chatController.setMessages([]);
     setState();
   }
 
   Future<void> loadChat(String sessionId) async {
-    if (kDebugMode) {
-      print('loadChat $sessionId');
-    }
     final sessionMessages = chats[sessionId] ?? <Message>[];
-    if (kDebugMode) {
-      print('loadChat messages $sessionMessages');
-    }
+
     await messagingModel.chatController.setMessages(sessionMessages);
-    (messagingModel.chatController as SembastChatController).activeSessionId = sessionId;
+    (messagingModel.chatController as SembastChatController).activeSessionId =
+        sessionId;
     messagingModel = messagingModel.copyWith(sessionId: sessionId);
     setState();
   }
 }
 
-class ChatSessionVM {
-  ChatSession activeSession;
-  UnnuAIModel ai;
+@immutable
+class ChatSessionView {
+  const ChatSessionView({
+    required this.activeSession,
+    required this.ai,
+    required this.webSearch,
+    required this.documentSearch,
+  });
+  final ChatSession activeSession;
+  final UnnuAIModel ai;
+  final bool webSearch;
+  final bool documentSearch;
 
-  ChatSessionVM({required this.activeSession, required this.ai});
-
-  static ChatSessionVM getDefaults() {
-    return ChatSessionVM(
+  static ChatSessionView getDefaults() {
+    return ChatSessionView(
       activeSession: ChatSession.dummy(),
       ai: UnnuAIModel(
         model: LlamaCppProvider(
-          defaultOptions: LcppOptions(
-            concurrencyLimit: 1000,
-            defaultIsStreaming: true,
-          ),
+          defaultOptions: const LcppOptions(),
         ),
       ),
-      //     sessions: <String, List<Message>>{},
+      webSearch: false,
+      documentSearch: false,
     );
   }
 
-  ChatSessionVM copyWith({ChatSession? activeSession, UnnuAIModel? ai}) {
-    return ChatSessionVM(
+  ChatSessionView copyWith({
+    ChatSession? activeSession,
+    UnnuAIModel? ai,
+    bool? webSearch,
+    bool? documentSearch,
+  }) {
+    return ChatSessionView(
       activeSession: activeSession ?? this.activeSession,
       ai: ai ?? this.ai,
+      webSearch: webSearch ?? this.webSearch,
+      documentSearch: documentSearch ?? this.documentSearch,
     );
   }
 
   @override
-  String toString() => 'ChatSessionVM(activeSession: $activeSession, ai: $ai)';
+  String toString() =>
+      'ChatSessionVM(activeSession: $activeSession, ai: $ai, webSearch: $webSearch, documentSearch: $documentSearch)';
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
 
-    return other is ChatSessionVM &&
+    return other is ChatSessionView &&
         other.activeSession == activeSession &&
-        other.ai == ai;
+        other.ai == ai &&
+        other.webSearch == webSearch &&
+        other.documentSearch == documentSearch;
   }
 
   @override
-  int get hashCode => activeSession.hashCode ^ ai.hashCode;
+  int get hashCode =>
+      activeSession.hashCode ^
+      ai.hashCode ^
+      webSearch.hashCode ^
+      documentSearch.hashCode;
 }
 
 class ChatSessionController extends JuneState {
-  ChatSessionVM chatSessionVM = ChatSessionVM.getDefaults();
+  ChatSessionView chatSessionVM = ChatSessionView.getDefaults();
 
-  Future<void> newChat() async {
+  Future<void> newChat({bool? search}) async {
     await chatSessionVM.ai.reset();
     chatSessionVM = chatSessionVM.copyWith(
       activeSession: chatSessionVM.ai.getChatSession(history: []),
+      webSearch: search ?? false,
     );
     setState();
   }
@@ -514,150 +495,186 @@ class ChatSessionController extends JuneState {
     chatSessionVM.activeSession.rewrite([]);
     setState();
   }
+
+  Future<String> asMarkdown() async {
+    final List<cm.ChatMessage> chatMessages = await chatSessionVM.ai.messages;
+    return chatMessages.isNotEmpty ? chatMessagesToMarkdown(chatMessages) : '';
+  }
+
+  static String chatMessagesToMarkdown(List<cm.ChatMessage> chatMessages) {
+    final buffer = StringBuffer();
+    for (final message in chatMessages) {
+      switch (message) {
+        case cm.HumanChatMessage():
+          switch (message.content) {
+            case cm.ChatMessageContentText():
+              buffer.write(
+                '\n> ##### User\n---\n\n${(message.content as cm.ChatMessageContentText).text}\n',
+              );
+            default:
+              break;
+          }
+        case cm.AIChatMessage():
+          buffer.write('\n> ##### Assistant\n---\n\n${message.content}\n');
+        default:
+          break;
+      }
+    }
+    return buffer.toString();
+  }
 }
 
-class ChatWidgetVM {
-  SendIconState status;
-  bool nonblocking;
-  ChatWidgetVM({required this.status, required this.nonblocking});
+typedef CopiedMessage = ({String content, DateTime startDate});
 
-  static ChatWidgetVM getDefaults() {
-    return ChatWidgetVM(status: SendIconState.idle, nonblocking: true);
+// @immutable
+// final class ChatWidgetView {
+//   const ChatWidgetView({
+//     required this.status,
+//     required this.nonblocking,
+//     required this.search,
+//   });
+//
+//   factory ChatWidgetView.fromMap(Map<String, dynamic> map) {
+//     return ChatWidgetView(
+//       status: SendIconState.fromValue((map['status'] ?? 0) as int),
+//       nonblocking: (map['nonblocking'] ?? false) as bool,
+//       search: (map['search'] ?? false) as bool,
+//     );
+//   }
+//
+//   factory ChatWidgetView.fromJson(String source) =>
+//       ChatWidgetView.fromMap(json.decode(source) as Map<String, dynamic>);
+//   final SendIconState status;
+//   final bool nonblocking;
+//   final bool search;
+//
+//   static ChatWidgetView getDefaults() {
+//     return ChatWidgetView(
+//       status: SendIconState.idle,
+//       nonblocking: true,
+//       search: false,
+//     );
+//   }
+//
+//   ChatWidgetView copyWith({
+//     SendIconState? status,
+//     bool? nonblocking,
+//     bool? search,
+//   }) {
+//     return ChatWidgetView(
+//       status: status ?? this.status,
+//       nonblocking: nonblocking ?? this.nonblocking,
+//       search: search ?? this.search,
+//     );
+//   }
+//
+//   Map<String, dynamic> toMap() {
+//     final result =
+//         <String, dynamic>{}..addAll({
+//           'status': status.value,
+//           'nonblocking': nonblocking,
+//           'search': search,
+//         });
+//
+//     return result;
+//   }
+//
+//   String toJson() => json.encode(toMap());
+//
+//   @override
+//   String toString() =>
+//       'ChatWidgetVM(status: $status, nonblocking: $nonblocking, search: $search)';
+//
+//   @override
+//   bool operator ==(Object other) {
+//     if (identical(this, other)) return true;
+//
+//     return other is ChatWidgetView &&
+//         other.status == status &&
+//         other.nonblocking == nonblocking &&
+//         other.search == search;
+//   }
+//
+//   @override
+//   int get hashCode => status.hashCode ^ nonblocking.hashCode ^ search.hashCode;
+// }
+
+class ChatWidgetChangeNotifier {
+  SendIconState _status = SendIconState.idle;
+  bool _nonblocking = true;
+  bool _search = false;
+  ChatWidgetChangeNotifier({
+    SendIconState status = SendIconState.idle,
+    bool nonblocking = true,
+    bool search = false,
+  }) : _status = status,
+       _nonblocking = nonblocking,
+       _search = search;
+
+  SendIconState get status => _status;
+
+  set status(SendIconState status) {
+    _status = status;
   }
 
-  ChatWidgetVM copyWith({SendIconState? status, bool? nonblocking}) {
-    return ChatWidgetVM(
-      status: status ?? this.status,
-      nonblocking: nonblocking ?? this.nonblocking,
+  bool get nonblocking => _nonblocking;
+
+  set nonblocking(bool nonblocking) {
+    _nonblocking = nonblocking;
+  }
+
+  bool get search => _search;
+
+  set search(bool search) {
+    _search = _search;
+  }
+
+  void update({SendIconState? status, bool? nonblocking, bool? search}) {
+    _status = status ?? this._status;
+    _nonblocking = nonblocking ?? this._nonblocking;
+    _search = search ?? this._search;
+  }
+
+  ChatWidgetChangeNotifier copyWith({
+    SendIconState? status,
+    bool? nonblocking,
+    bool? search,
+  }) {
+    return ChatWidgetChangeNotifier(
+      status: status ?? this._status,
+      nonblocking: nonblocking ?? this._nonblocking,
+      search: search ?? this._search,
     );
   }
-
-  Map<String, dynamic> toMap() {
-    final result = <String, dynamic>{};
-
-    result.addAll({'status': status.value, 'nonblocking': nonblocking});
-
-    return result;
-  }
-
-  factory ChatWidgetVM.fromMap(Map<String, dynamic> map) {
-    return ChatWidgetVM(
-      status: SendIconState.fromValue(map['status']),
-      nonblocking: map['nonblocking'] ?? false,
-    );
-  }
-
-  String toJson() => json.encode(toMap());
-
-  factory ChatWidgetVM.fromJson(String source) =>
-      ChatWidgetVM.fromMap(json.decode(source));
 
   @override
   String toString() =>
-      'ChatWidgetVM(status: $status, nonblocking: $nonblocking)';
+      'ChatWidgetChangeNotifier(status: $_status, nonblocking: $_nonblocking, search: $_search)';
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
 
-    return other is ChatWidgetVM &&
-        other.status == status &&
-        other.nonblocking == nonblocking;
+    return other is ChatWidgetChangeNotifier &&
+        other._status == _status &&
+        other._nonblocking == _nonblocking &&
+        other._search == _search;
   }
 
   @override
-  int get hashCode => status.hashCode ^ nonblocking.hashCode;
+  int get hashCode =>
+      _status.hashCode ^ _nonblocking.hashCode ^ _search.hashCode;
 }
 
 class ChatWidgetController extends JuneState {
-  ChatWidgetVM viewModel = ChatWidgetVM.getDefaults();
+  final ChatWidgetChangeNotifier changeNotifier = ChatWidgetChangeNotifier();
 
-  Widget emptyChatList(BuildContext context, Map<String, String> tooltips) {
-    return EmptyChatList(text: tooltips['noMessages'] ?? 'No messages yet');
-  }
-
-  Widget? actionBar(Map<String, String> tooltips) {
-    return ComposerActionBar(
-      buttons: [
-        ComposerActionButton(
-          icon: Icons.delete_sweep,
-          title: tooltips['clearAll'] ?? 'Clear All',
-          onPressed: () {
-            final chatSessionController = June.getState(
-              () => ChatSessionController(),
-            );
-            final streamingMessageController = June.getState(
-                  () => StreamingMessageController(),
-            );
-            chatSessionController.clearMessages();
-            streamingMessageController.clearMessages();
-
-          },
-          destructive: true,
-        ),
-      ],
+  void update({SendIconState? status, bool? nonblocking, bool? search}) {
+    changeNotifier.update(
+      status: status,
+      nonblocking: nonblocking,
+      search: search,
     );
-  }
-
-  Widget sendIcon(BuildContext context, Map<String, String> tooltips) {
-    if (kDebugMode) {
-      print('sendIcon (${viewModel.status}, ${viewModel.nonblocking})');
-    }
-    String message = tooltips['send'] ?? 'Send';
-    IconData iconData = Icons.send;
-
-    switch (viewModel.status) {
-      case SendIconState.busy:
-        message = tooltips['cancel'] ?? 'Cancel';
-        iconData = Icons.stop_circle;
-        break;
-      case SendIconState.loading:
-        message = tooltips['busy'] ?? 'Busy';
-        ;
-        iconData = Icons.hourglass_empty;
-        break;
-      case SendIconState.transcribing:
-        message = tooltips['send'] ?? 'Send';
-        iconData = Icons.chat;
-        break;
-      case SendIconState.idle:
-        message = tooltips['send'] ?? 'Send';
-        iconData = Icons.send;
-        break;
-    }
-
-    return viewModel.status != SendIconState.idle
-        ? Container(
-          width: 44,
-          height: 44,
-          alignment: Alignment.center,
-          child: Tooltip(
-            message: message,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                SpinKitDualRing(color: Theme.of(context).colorScheme.primary),
-                Icon(
-                  iconData,
-                  color: viewModel.nonblocking ? Colors.red : Colors.grey,
-                  size: 32,
-                ),
-              ],
-            ),
-          ),
-        )
-        : Tooltip(
-          message: tooltips['send'] ?? 'Send',
-          child: Container(
-            width: 40,
-            height: 40,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: BoxBorder.all(style: BorderStyle.none),
-            ),
-            child: const Icon(Icons.send),
-          ),
-        );
+    setState();
   }
 }

@@ -4,12 +4,12 @@ import 'package:langchain/langchain.dart';
 import 'package:llamacpp/llamacpp.dart' as lcpp;
 
 class LcppOptions extends LLMOptions {
-  final bool defaultIsStreaming;
   const LcppOptions({
     super.model,
     super.concurrencyLimit,
     this.defaultIsStreaming = true,
   });
+  final bool defaultIsStreaming;
 
   @override
   LcppOptions copyWith({
@@ -42,28 +42,35 @@ class LcppOptions extends LLMOptions {
 ///
 ///
 final class LlamaCppProvider extends BaseLLM<LcppOptions> {
-  lcpp.LlamaCpp model;
-
-  Stream<LLMResult> get responseStream => model.responses;
-
   LlamaCppProvider({
     lcpp.ContextParams? contextParams,
     lcpp.LlamaCppParams? lcppParams,
     super.defaultOptions = const LcppOptions(model: 'unspecified'),
+    lcpp.LlamaCppSamplingParams? samplingParams,
   }) : this.model = lcpp.LlamaCpp(
          contextParams: contextParams ?? lcpp.ContextParams.defaultParams(),
          lcppParams: lcppParams ?? lcpp.LlamaCppParams.defaultParams(),
-       );
+       ),
+       this.samplingParams = samplingParams ?? lcpp.LlamaCppSamplingParams();
+  lcpp.LlamaCpp model;
+
+  lcpp.LlamaCppSamplingParams samplingParams;
+
+  Stream<LLMResult> get responseStream => model.responses;
 
   Stream<double> init() async* {
     yield* this.model.reconfigure();
+  }
+
+  void update(lcpp.LlamaCppSamplingParams sampling) {
+    samplingParams = sampling;
   }
 
   Stream<LLMResult> generateStream(
     PromptValue prompt, {
     bool streaming = true,
   }) async* {
-    final response = model.prompt(prompt, streaming: streaming);
+    final response = model.prompt(samplingParams, prompt, streaming: streaming);
     yield* response;
   }
 
@@ -87,13 +94,6 @@ final class LlamaCppProvider extends BaseLLM<LcppOptions> {
 
   @override
   Future<LLMResult> invoke(PromptValue input, {LcppOptions? options}) async {
-    return await generateStream(input, streaming: false).first;
-  }
-
-  @override
-  void close() {
-    // Override this method if the Runnable needs to clean up resources
-    model.destroy();
-    super.close();
+    return generateStream(input, streaming: false).first;
   }
 }

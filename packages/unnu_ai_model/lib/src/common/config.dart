@@ -1,49 +1,108 @@
-import 'dart:io';
-import 'dart:async';
+// Based on https://colab.research.google.com/github/mozilla-ai/structured-qa/blob/main/demo/notebook.ipynb#scrollTo=EXoMLseCvjtX&line=7&uniqifier=1
+const UNNU_RAG_SYSTEM_PROMPT = '''
+You are a rigorous assistant answering questions.
+You must only answer based on the current information available which is:
 
-import 'package:flutter/foundation.dart';
-import 'package:llamacpp/llamacpp.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
-import 'package:unnu_shared/unnu_shared.dart';
+```
+{CURRENT_INFO}
+```
 
-Future<LlamaCppParams> getDefaultLcppParams() async {
-  final Directory directory = await getApplicationSupportDirectory();
+If the current information available not enough to answer the question,
+you must return "I need more info" and nothing else.
+''';
 
-  final dst = p.joinAll([
-    directory.path,
-    'assets',
-    'models',
-    'chat',
-  ]);
-  final modelDir = 'assets/models/chat';
-  final modelFilename = 'Qwen3-1.7B-Q4_K_M.gguf';
-  final params = LlamaCppParams.defaultParams();
-  final completer = Completer();
-  if(kDebugMode){
-    print('unnu_a_model: copying model file $modelFilename');
-  }
-  final modelFilePath = copyAssetFile('$modelDir/$modelFilename', dst).whenComplete(() {
-    if(kDebugMode){
-      print('unnu_ai_model: copied model file $modelFilename');
-    }
-    completer.complete();
-  },);
+// Based on https://machinelearningmastery.com/prompt-engineering-patterns-successful-rag-implementations/
+const UNNU_RAG_QUERY_EXPANSION_PROMPT = '''
+Expand the query:
+```
+{USER_QUERY} 
+```
+into 3 search-friendly versions using synonyms and related terms.
 
-  while (!completer.isCompleted) {
-    await Future.delayed(const Duration(milliseconds: 100));
-  }
+Prioritize technical terms from {KEYWORDS}.
+''';
 
-  if(kDebugMode){
-    print('unnu_ai_model: getDefaultLcppParams:>');
-  }
-  return params.copyWith(
-    modelPath: await modelFilePath,
-    splitMode: lcpp_split_mode.LCPP_SPLIT_MODE_LAYER,
-    modelFamily: lcpp_model_family.LCPP_MODEL_FAMILY_UNSPECIFIED,
-    mainGPU: 0,
-    nGpuLayers: 99,
-    useMmap: true,
-    useMlock: true,
-  );
-}
+const UNNU_RAG_CONTEXTUAL_CONTINUITY_PROMPT = '''
+Based on the chat history:
+``` 
+{CHAT_HISTORY} 
+```
+
+Rewrite the query:
+```
+{USER_QUERY}
+```
+into a standalone search query.
+''';
+
+const UNNU_RAG_HyDE_PROMPT = '''
+Write a hypothetical paragraph answering:
+```
+{USER_QUERY}.
+```
+
+Use this text to find relevant documents.
+''';
+
+const UNNU_RAG_RETRIEVAL_CONSTRAINTS_PROMPT = '''
+Answer the question:
+```
+{USER_QUERY}
+```
+using ONLY using the provided context:
+```
+{CURRENT_INFO}
+```
+
+If the answer isn’t there, say ‘I don’t know.’
+Do not use prior knowledge.
+''';
+
+const UNNU_RAG_COT_PROMPT = '''
+Based on the provided context:
+```
+{CURRENT_INFO}
+```
+
+Answer the question:
+``` 
+{USER_QUERY}
+``` 
+Using a step by step process: 
+- first, identify key facts, 
+- then reasoning through the answer.
+
+Answer should be consistent with the provided context.
+''';
+
+const UNNU_RAG_EXTRACTIVE_ANSWER_PROMPT = '''
+Extract the most relevant passage from the retrieved documents:
+```
+{CURRENT_INFO}
+````
+that answers the query:
+```
+{USER_QUERY}
+```
+
+Return only the exact text from
+```
+{CURRENT_INFO} 
+```
+without modification.
+''';
+
+const UNNU_RAG_CONTRASTIVE_ANSWER_PROMPT = '''
+Based on the provided context:
+``` 
+{CURRENT_INFO}
+``` 
+provide a balanced analysis of
+```
+{USER_QUERY}
+``` 
+You should provide a listing of:
+– Pros (supporting arguments)
+– Cons (counterarguments)
+Support each point with evidence from the provided context.
+''';

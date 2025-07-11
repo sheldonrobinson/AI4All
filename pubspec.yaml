@@ -1,7 +1,71 @@
 name: AI4All
-
+publish_to: none
 environment:
-  sdk: '>=3.7.0 <4.0.0'
-dependencies:
-  melos: ^6.3.3
+  sdk: '>=3.7.0 < 4.0.0'
+  flutter: '>=3.27.0'
+  
+workspace:
+  - apps/core
+  - apps/plus
+  - apps/premium
+  - apps/ultimate
+  - apps/ultra
+  - packages/llamacpp
+  - packages/unnu_aux
+  - packages/unnu_ai_model
+  - packages/unnu_common
+  - packages/unnu_dxl
+  - packages/unnu_know
+  - packages/unnu_ragl
+  - packages/unnu_sap
+  - packages/unnu_shared
+  - packages/unnu_speech
+  - packages/unnu_widgets
+  - packages/serious-python/src/serious_python
+  
+dev_dependencies:
+  melos: ^7.3.0
+  
+melos:
+  repository: https://github.com/sheldonrobinson/AI4All
+  categories:
+    apps:
+      - apps/*
+    examples:
+      - packages/example*
+  ide:
+    intellij:
+      enabled: true
+  scripts:
+    format:package:
+      description: "Run `dart format` in a specific package."
+      run: melos exec -- dart format .
+      packageFilters:
+        flutter: true
+    analyze:package:
+      description: "Run `dart analyze` in a specific package."
+      run: melos exec -- dart analyze .
+      packageFilters:
+        flutter: true
+    launcher_icon:
+      description: "Update Flutter app's launcher icon in a specific package."
+      exec: dart run flutter_launcher_icons:generate
+      packageFilters:
+        dependsOn: flutter_launcher_icons
+    df_asset:
+      description: "Generate asset classes from asset directories."
+      run: melos exec -- dart run dart_fusion asset
+      packageFilters:
+        flutter: true
+    df_model:
+      description: "Update models by generating toJSON, fromJSON and copyWith based on given annotation."
+      run: melos exec -- dart run dart_fusion model
+      packageFilters:
+        flutter: true
+    df_localize:
+      description: "Generate localization classes from JSON files."
+      run: melos exec -- dart run dart_fusion localize
+      packageFilters:
+        flutter: true
+  
   

@@ -2,22 +2,21 @@ import 'dart:async';
 import 'dart:developer' as dev;
 import 'dart:io';
 
+import 'package:asset_cache/asset_cache.dart';
+import 'package:feedback/feedback.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_memory_info/flutter_memory_info.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:june/june.dart';
 import 'package:llamacpp/llamacpp.dart';
-import 'package:unnu_ai_model/unnu_ai_model.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:unnu_sap/unnu_asr.dart';
 import 'package:unnu_sap/unnu_tts.dart';
-import 'package:intl/intl.dart';
 import 'package:unnu_speech/unnu_speech.dart';
-import 'package:feedback/feedback.dart';
-import 'package:asset_cache/asset_cache.dart';
-import 'package:june/june.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import 'initialize/initialize.dart';
-
 import 'src/app.dart';
 import 'src/types.dart';
 
@@ -62,10 +61,6 @@ Future<void> main() async {
   /// Captures errors reported by the native environment, including native iOS
   /// and Android code.
 
-  if (kDebugMode) {
-    print('main()');
-  }
-
   runZonedGuarded<void>(
     () async {
       WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -88,34 +83,18 @@ Future<void> main() async {
         OnlinePunctuationConfig(model: await getOnlinePunctuationModelConfig()),
       );
 
-      final llmProviderController = June.getState(
-        () => LLMProviderController(),
-      );
-      final appLayoutController = June.getState(
-        () => ApplicationLayoutModelController(),
-      );
-
-      await appLayoutController.configureModel(
-        llmProviderController.activeModel.info,
-      );
-
-      if (kDebugMode) {
-        print('getting currentLocale');
-      }
-
-      if (kDebugMode) {
-        final currentLocale = Intl.getCurrentLocale();
-        final langCode = Intl.shortLocale(currentLocale);
-        print(
-          'currentLocale: $currentLocale\nsystemLocale: ${Intl.systemLocale}\nlangCode: $langCode',
-        );
-      }
       await registerChatDatabase('chat.db');
 
+      final sysInfo = June.getState(() => SystemInformationController());
+
+      sysInfo.fromPackage(await PackageInfo.fromPlatform());
+
+      sysInfo.fromMemoryInfo(
+        PhysicalMemory: await MemoryInfo.getTotalPhysicalMemorySize(),
+        VirtualMemory: await MemoryInfo.getTotalVirtualMemorySize(),
+      );
+
       runApp(BetterFeedback(child: MyApp()));
-      if (kDebugMode) {
-        print('main:>');
-      }
     },
     (Object error, StackTrace stackTrace) {},
     zoneValues: {},
@@ -129,9 +108,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (kDebugMode) {
-      print('MyApp.build()');
-    }
-    return MyHomePage();
+    return const MyHomePage();
   }
 }

@@ -35,15 +35,17 @@ typedef enum UnnuDxlDataType : uint8_t {
 	UNNU_DXL_ERROR
 } UnnuDxlDataType_t;
 
+typedef union UnnuDxlValue {
+	bool boolvalue;
+	int intvalue;
+	float floatvalue;
+	int error;
+	char* value;
+} UnnuDxlValue_t;
+
 typedef struct UnnuDxlDataValue {
 	UnnuDxlDataType_t type;
-	union {
-		bool boolvalue;
-		int intvalue;
-		float floatvalue;
-		int error;
-		char* value;
-	} data;
+	UnnuDxlValue_t data;
 	int length;
 } UnnuDxlDataValue_t;
 
@@ -51,7 +53,7 @@ typedef struct UnnuDxlMetaDataEntry {
 	char* key;
 	int length;
 	UnnuDxlDataValue_t value;
-}UnnuDxlMetaDataEntry_t;
+} UnnuDxlMetaDataEntry_t;
 
 typedef struct UnnuDxlParseResult {
 	UnnuDxlDataType_t type;
@@ -63,7 +65,7 @@ typedef struct UnnuDxlParseResult {
 } UnnuDxlParseResult_t;
 
 
-typedef void (*UnnuDxlResultCallback)(UnnuDxlParseResult_t result);
+typedef void (*UnnuDxlResultCallback)(UnnuDxlParseResult_t* result);
 
 #ifdef __cplusplus
 }
@@ -72,6 +74,8 @@ typedef void (*UnnuDxlResultCallback)(UnnuDxlParseResult_t result);
 FFI_PLUGIN_EXPORT void unnu_dxl_parse(const char* filepath);
 
 FFI_PLUGIN_EXPORT void unnu_dxl_set_parse_callback(UnnuDxlResultCallback parse_callback);
+
+FFI_PLUGIN_EXPORT void unnu_dxl_free_result(UnnuDxlParseResult_t* result);
 
 FFI_PLUGIN_EXPORT void unnu_dxl_unset_parse_callback();
 

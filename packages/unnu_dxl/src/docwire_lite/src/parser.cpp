@@ -43,7 +43,9 @@ void Parser::process(Info &info)
   }
   catch (const std::exception& e)
   {
+#if defined(_DEBUG) || defined(DEBUG)
     std::throw_with_nested(make_error("Parsing failed"));
+#endif
   }
 }
 

@@ -26,10 +26,12 @@ final DynamicLibrary _dylib = () {
   throw UnsupportedError('Unknown platform: ${Platform.operatingSystem}');
 }();
 
-// final UnnuAsrBindings unnuAsrBindings = UnnuAsrBindings(_dylib);
+
 
 class UnnuAsr {
   static DynamicLibrary? _lib;
+
+  // static final UnnuAsrBindings unnuasr = UnnuAsrBindings(_lib ??= _dylib);
 
   static void init() {
     _lib ??= _dylib;
@@ -202,6 +204,7 @@ class UnnuAsr {
     _vad.ref.sample_rate = vadConfig.sampleRate;
     _vad.ref.num_threads = vadConfig.numThreads;
 
+
     final vadProviderPtr = vadConfig.provider.toNativeUtf8();
     _vad.ref.provider = vadProviderPtr.cast<Char>();
     _vad.ref.debug = vadConfig.debug ? 1 : 0;
@@ -216,13 +219,9 @@ class UnnuAsr {
     _punct.ref.model.num_threads = punctConfig.model.numThreads;
     _punct.ref.model.provider = punctProviderPtr.cast<Char>();
     _punct.ref.model.debug = punctConfig.model.debug ? 1 : 0;
-    if(kDebugMode){
-      print('UnnuAsr.configure -> unnu_asr_init');
-    }
+
     unnu_asr_init(_recognizer.ref, _vad.ref, _punct.ref);
-    if(kDebugMode){
-      print('UnnuAsr.configure <- unnu_asr_init');
-    }
+
     // Free the allocated strings and struct memory
     ffi.calloc.free(vadProviderPtr);
     ffi.calloc.free(modelPtr);
@@ -254,19 +253,13 @@ class UnnuAsr {
     ffi.calloc.free(_recognizer.ref.model_config.transducer.decoder);
     ffi.calloc.free(_recognizer.ref.model_config.transducer.joiner);
     ffi.calloc.free(_recognizer);
-    if(kDebugMode){
-      print('UnnuAsr.configure:>');
-    }
   }
 
   static void _listeningCallback(Pointer<UnnuASRBoolStruct_t> isListening) {
     try {
       _nowListeningEventController.add(isListening.ref.value);
-    } catch (e, s) {
-      if (kDebugMode) {
-        print("Failed on listening : ${e.toString()}");
+    } on Error catch  (e, s) {
         debugPrintStack(stackTrace: s);
-      }
     } finally {
       unnu_asr_free_bool(isListening);
     }
@@ -296,14 +289,8 @@ class UnnuAsr {
       _transcriptEventController
           .add((type: TranscriptType.fromValue(type), text: result));
 
-      if (kDebugMode) {
-        print('_transcriptCallback{type: $type, text: $result}');
-      }
     } on Error catch (e, s) {
-      if (kDebugMode) {
-        print("Failed on transcript: ${e.toString()}");
         debugPrintStack(stackTrace: s);
-      }
     } finally {
       unnu_asr_free_transcript(transcript);
     }
@@ -326,19 +313,13 @@ class UnnuAsr {
     try {
       _soundEventController.add(sound.ref.value);
     } on Error catch (e, s) {
-      if (kDebugMode) {
-        print("Failed on sound detected: ${e.toString()}");
         debugPrintStack(stackTrace: s);
-      }
     } finally {
       unnu_asr_free_float(sound);
     }
   }
 
   static void _set_sound_detected_callback() {
-    if (kDebugMode) {
-      print('_set_sound_detected_callback()');
-    }
     if (_nativeSoundDetectCallable == null) {
       _nativeSoundDetectCallable =
           NativeCallable<SoundEventCallbackFunction>.listener(
@@ -348,9 +329,6 @@ class UnnuAsr {
       _nativeSoundDetectCallable!.keepIsolateAlive = false;
 
       unnu_asr_set_sound_callback(_nativeSoundDetectCallable!.nativeFunction);
-    }
-    if (kDebugMode) {
-      print('_set_sound_detected_callback:>');
     }
   }
 
@@ -377,9 +355,6 @@ class UnnuAsr {
   bool get streaming => unnu_asr_is_streaming();
 
   static void destroy() {
-    if (kDebugMode) {
-      print('UnnuAsr::deinit()');
-    }
     if (_nativeSoundDetectCallable != null) {
       _nativeSoundDetectCallable!.close();
       _nativeSoundDetectCallable = null;
@@ -389,9 +364,6 @@ class UnnuAsr {
       _nativeTextDataCallable = null;
     }
     unnu_asr_destroy();
-    if (kDebugMode) {
-      print('UnnuAsr::deinit:>');
-    }
   }
 
   static void nudge(int ms) => unnu_asr_nudge(ms);

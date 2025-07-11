@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:intl/intl.dart';
@@ -10,10 +9,6 @@ import 'package:unnu_shared/unnu_shared.dart';
 
 // see https://github.com/k2-fsa/sherpa-onnx/blob/master/flutter-examples/tts/lib/model.dart
 Future<OfflineTtsConfig> getOfflineTtsConfig() async {
-  if(kDebugMode){
-    print('begin::getOfflineTtsConfig()\n');
-  }
-
   final Directory directory = await getApplicationSupportDirectory();
   String modelName = '';
   String voices = ''; // for Kokoro only
@@ -28,14 +23,14 @@ Future<OfflineTtsConfig> getOfflineTtsConfig() async {
 
   // Example 8
   // https://k2-fsa.github.io/sherpa/onnx/tts/pretrained_models/kokoro.html#kokoro-en-v0-19-english-11-speakers
-  final modelDir = 'packages/unnu_sap/assets/models/tts/kokoro-multi-lang-v1_1';
+  final modelDir = 'packages/unnu_sap/assets/models/tts/kokoro-int8-multi-lang-v1_1';
   final dst = p.joinAll([
     directory.path,
     'unnu_sap',
     'assets',
     'models',
     'tts',
-    'kokoro-multi-lang-v1_1',
+    'kokoro-int8-multi-lang-v1_1',
   ]);
   final modelFile = 'model.onnx';
   voices = 'voices.bin';
@@ -44,18 +39,11 @@ Future<OfflineTtsConfig> getOfflineTtsConfig() async {
   lexicon = 'lexicon-gb-en.txt,lexicon-us-en.txt,lexicon-zh.txt';
   dictDir = 'dict';
   lang = Intl.getCurrentLocale().split('_').first;
-  if(kDebugMode){
-    print('kokoro-lang = $lang');
-    print('copying $modelDir/$modelFile\n');
-  }
   modelName = await copyAssetFile('$modelDir/$modelFile', dst);
 
 
 
   if (ruleFsts != '') {
-    if(kDebugMode){
-      print('copying ruleFsts: $ruleFsts\n');
-    }
     final all = ruleFsts.split(',');
     var tmp = <String>[];
     for (final f in all) {
@@ -66,9 +54,6 @@ Future<OfflineTtsConfig> getOfflineTtsConfig() async {
   }
 
   if (ruleFars != '') {
-    if(kDebugMode){
-      print('copying ruleFars: $ruleFars\n');
-    }
     final all = ruleFars.split(',');
     var tmp = <String>[];
     for (final f in all) {
@@ -79,9 +64,6 @@ Future<OfflineTtsConfig> getOfflineTtsConfig() async {
   }
 
   if (lexicon != '') {
-    if(kDebugMode){
-      print('copying lexicon: $lexicon\n');
-    }
     final all = lexicon.split(',');
     var tmp = <String>[];
     for (final f in all) {
@@ -92,9 +74,6 @@ Future<OfflineTtsConfig> getOfflineTtsConfig() async {
   }
 
   if (dataDir != '') {
-    if(kDebugMode){
-      print('copying dataDir: $dataDir\n');
-    }
     dataDir = await copyAssetDirectory(
       '$modelDir/$dataDir',
       p.join(dst, dataDir),
@@ -102,9 +81,6 @@ Future<OfflineTtsConfig> getOfflineTtsConfig() async {
   }
 
   if (dictDir != '') {
-    if(kDebugMode){
-      print('copying dictDir: $dictDir\n');
-    }
     dictDir = await copyAssetDirectory(
       '$modelDir/$dictDir',
       p.join(dst, dictDir),
@@ -112,11 +88,7 @@ Future<OfflineTtsConfig> getOfflineTtsConfig() async {
   }
 
   if (voices != '') {
-    if(kDebugMode){
-      print('copying voices: $voices\n');
-    }
     voices = await copyAssetFile('$modelDir/$voices', dst);
-    //print('getOfflineTtsConfig()::voices: $voices\n');
   }
 
   final tokens = await copyAssetFile('$modelDir/tokens.txt', dst);
@@ -165,9 +137,7 @@ Future<OfflineTtsConfig> getOfflineTtsConfig() async {
     debug: false,
     provider: 'cpu',
   );
-  if(kDebugMode){
-    print('tts modelConfig: $modelConfig\n');
-  }
+
   return OfflineTtsConfig(
     model: modelConfig,
     ruleFsts: ruleFsts,
@@ -203,6 +173,7 @@ Future<OnlineModelConfig> getOnlineModelConfig() async {
         dst,
       ),
     ),
+
     modelingUnit: 'cjkchar',
     bpeVocab: '', // await copyAssetFile('$modelDir/bpe.vocab', dst),
     tokens: await copyAssetFile('$modelDir/tokens.txt', dst),

@@ -1,16 +1,16 @@
-// Copyright (c) 2025, Konnek
+// Copyright (c) 2025, Konnek Inc.
 
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart'
+    show AssetManifest, PlatformException, rootBundle;
+import 'package:large_file_handler/large_file_handler.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter/services.dart' show rootBundle, AssetManifest, PlatformException;
-import "dart:io";
-import 'package:large_file_handler/large_file_handler.dart';
 
-Future<String> copyAssetOnMobile(String src) async {
-
+Future<({String directory, String path})> dstOnMobile(String src) async {
   final Directory directory = await getApplicationDocumentsDirectory();
 
   final parts = src.split('/');
@@ -19,28 +19,31 @@ Future<String> copyAssetOnMobile(String src) async {
 
   final modelFileAbsPath = p.join(directory.path, modelFileRelPath);
 
+  return (directory: p.dirname(modelFileAbsPath), path: modelFileAbsPath);
+}
+
+Future<String> copyAssetOnMobile(String src) async {
   final localfile = src.substring('assets/'.length);
 
-  final dst = p.dirname(modelFileAbsPath);
+  final dst = await dstOnMobile(src);
 
-  bool exists = await Directory(dst).exists();
+  var exists = Directory(dst.directory).existsSync();
   if (!exists) {
     if (kDebugMode) {
       print('copyAssetFile:create $dst');
     }
-    await Directory(dst).create(recursive: true);
+    await Directory(dst.directory).create(recursive: true);
   }
 
-  exists = await File(modelFileAbsPath).exists();
+  exists = File(dst.path).existsSync();
   if (!exists) {
     try {
-      Stream<int> progressStream = LargeFileHandler()
-          .copyAssetToLocalStorageWithProgress(
-        assetName: src,
-        targetPath: localfile,
-      );
-      progressStream.listen(
-            (progress) {
+      final _ = LargeFileHandler()
+        .copyAssetToLocalStorageWithProgress(
+          assetName: src,
+          targetPath: localfile,
+        )..listen(
+        (progress) {
           if (kDebugMode) {
             print('copied number of models: $progress');
           }
@@ -62,7 +65,7 @@ Future<String> copyAssetOnMobile(String src) async {
       }
     }
   }
-  return Future.value(modelFileAbsPath);
+  return Future.value(dst.path);
 }
 
 // Copy the asset file from src to dst.
@@ -98,13 +101,12 @@ Future<String> copyAssetFile(String src, [String? dst]) async {
   if (kDebugMode) {
     print('copyAssetFile: target=$target');
   }
-  exists = await File(target).exists();
+  exists = File(target).existsSync();
 
   final data = rootBundle.load(src).then<String>((value) async {
     final completer = Completer<String>();
     final newLength = value.lengthInBytes;
     if (!exists || File(target).lengthSync() != newLength) {
-
       final bytes = value.buffer.asUint8List(
         value.offsetInBytes,
         value.lengthInBytes,
@@ -122,7 +124,10 @@ Future<String> copyAssetFile(String src, [String? dst]) async {
   return data;
 }
 
-Float32List convertBytesToFloat32(Uint8List bytes, [endian = Endian.little]) {
+Float32List convertBytesToFloat32(
+  Uint8List bytes, [
+  Endian endian = Endian.little,
+]) {
   final values = Float32List(bytes.length ~/ 2);
 
   final data = ByteData.view(bytes.buffer);
@@ -177,9 +182,8 @@ String topLevelDirectory(String src, {int n = 1}) {
 }
 
 Future<String> absoluteApplicationSupportPath(String? relpath) async {
-  final Directory directory = await getApplicationSupportDirectory();
+  final directory = await getApplicationSupportDirectory();
   if (kDebugMode) {
-    print('AppDir relpath: null  := ${p.join(directory.path, null)}');
     print('AppDir relpath: ${relpath} := ${p.join(directory.path, relpath)}');
   }
   return p.join(directory.path, relpath);
@@ -193,21 +197,14 @@ Future<String> copyAssetDirectory(String dir, [String? dst]) async {
   if (kDebugMode) {
     print('copyAssetDirectory: srcdir=$srcdir');
   }
-  if (dst == null) {
-    final Directory directory = await getApplicationSupportDirectory();
-    if (kDebugMode) {
-      print('copyAssetDirectory: directory=$directory');
-    }
-    dst ??= p.join(directory.path, srcdir);
-  }
-  if (kDebugMode) {
-    print('copyAssetDirectory: dst=$dst');
-  }
-  final target = dst;
+
+  final target =
+      dst ?? p.join((await getApplicationSupportDirectory()).path, srcdir);
+
   if (kDebugMode) {
     print('copyAssetDirectory: target=$target');
   }
-  bool exists = await Directory(target).exists();
+  var exists = Directory(target).existsSync();
   if (!exists) {
     if (kDebugMode) {
       print('copyAssetDirectory: create $target');
@@ -220,8 +217,8 @@ Future<String> copyAssetDirectory(String dir, [String? dst]) async {
       if (kDebugMode) {
         print('copyAssetDirectory: copying $src');
       }
-      dst = p.dirname(src.substring(srcdir.length));
-      final filedir = p.join(target, dst);
+      final dstPath = p.dirname(src.substring(srcdir.length));
+      final filedir = p.join(target, dstPath);
       if (kDebugMode) {
         print('copyAssetDirectory: filedir:=$filedir');
       }
@@ -239,4 +236,28 @@ Future<String> copyAssetDirectory(String dir, [String? dst]) async {
     print('copyAssetDirectory:=> $target');
   }
   return target;
+}
+
+Future<String> copyAssetDirectoryMobile(String dir) async {
+  if (kDebugMode) {
+    print('copyAssetDirectoryMobile($dir)');
+  }
+  final srcdir = dir.endsWith('/') ? dir : '$dir/';
+  if (kDebugMode) {
+    print('copyAssetDirectoryMobile: srcdir=$srcdir');
+  }
+  final dst = await dstOnMobile(srcdir);
+  final allFiles = await getAllAssetFiles();
+  for (final src in allFiles) {
+    if (src.startsWith(srcdir)) {
+      if (kDebugMode) {
+        print('copyAssetDirectoryMobile: copying $src');
+      }
+      await copyAssetOnMobile(src);
+    }
+  }
+  if (kDebugMode) {
+    print('copyAssetDirectory:=> ${dst.directory}');
+  }
+  return dst.directory;
 }

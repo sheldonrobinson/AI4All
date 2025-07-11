@@ -23,5 +23,6 @@
   "about": "Informação",
   "dock": "Configurações",
   "feedback": "Feedback",
-  "thinking": "Pensamento"
+  "thinking": "Pensamento",
+  "requiredmemory": "Memória necessária"
 }

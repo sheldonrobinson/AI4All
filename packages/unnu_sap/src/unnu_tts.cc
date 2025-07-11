@@ -4,19 +4,15 @@
 #include <atomic>
 #include <thread>
 #include <string>
-#define  THREAD_IMPLEMENTATION
-#include "mgthread.h"
-#include "common.h"
-#include "osaudio.h"
-#include "unnu_tts.h"
 
-// #define UNNU_TTS_SAMPLE_FORMAT  ma_format_s16
-
-#define UNNU_TTS_SAMPLE_FREQUENCY  (0.5f)
 
 #if defined(__WIN32__) || defined(_WIN32) || defined(WIN32) || defined(__WINDOWS__) || defined(__TOS_WIN__)
 
 #include <windows.h>
+
+#if defined(WIN32_LEAN_AND_MEAN)
+#include <timeapi.h>
+#endif
 
 inline void tts_delay(unsigned long ms)
 {
@@ -33,7 +29,14 @@ inline void tts_delay(unsigned long ms)
 }
 
 #endif
+#define  THREAD_IMPLEMENTATION
 
+#include "mgthread.h"
+#include "common.h"
+#include "osaudio.h"
+#include "unnu_tts.h"
+
+#define UNNU_TTS_SAMPLE_FREQUENCY  (0.5f)
 typedef struct maTtsData
 {
 	int32_t sampleRate;
@@ -102,6 +105,8 @@ typedef struct unnu_phrase {
 static thread_queue_ptr _phrases = thread_queue_ptr(std::make_unique<thread_queue_t>().release());
 
 static unnu_phrase_t queued[MAX_QUEUED_PHRASES];
+
+static thread_atomic_int_t play_flag;
 
 static std::unique_ptr<osaudio_t> speaker = std::make_unique<osaudio_t>();
 
@@ -219,17 +224,18 @@ void unnu_tts_unset_speaking_callback()
 
 
 
-int fling(void* data) {
+int fling(void* user_data) {
 	thread_set_high_priority();
 	unnu_oratory_t empty;
 	empty.text = "";
 	empty.sid = 0;
 	empty.speed = 1.0;
 	auto pempty = std::make_pair(false, empty);
-	while (tts_data->streaming) {
+	thread_atomic_int_t* exit_flag = (thread_atomic_int_t*)user_data;
+	while (thread_atomic_int_load(exit_flag) == 0) {
 		auto _phrase = !sentences.empty() ? std::make_pair(true, sentences.front()) : pempty; // pseudo atomic
 		if (_phrase.first) {
-			if (_phrases != nullptr &&  !_phrase.second.text.empty()) {
+			if (!_phrase.second.text.empty()) {
 				auto result = SherpaOnnxOfflineTtsGenerate(_tts, _phrase.second.text.c_str(), _phrase.second.sid, _phrase.second.speed);
 #if defined(DEBUG) || defined(_DEBUG)
 				fprintf(stderr, "playbackCall %i audio samples for: %s\n", result->n, _phrase.second.text.c_str());
@@ -237,15 +243,17 @@ int fling(void* data) {
 				int32_t num_samples = result->n;
 				int numChannels = 2;
 				int expanded = numChannels * num_samples;
-				unnu_phrase_t* oratory = (unnu_phrase_t*) malloc(sizeof(unnu_phrase_t));
-				oratory->audio = (float*) malloc(expanded * sizeof(float));
+				unnu_phrase_t* oratory = (unnu_phrase_t*)malloc(sizeof(unnu_phrase_t));
+				oratory->audio = (float*)malloc(expanded * sizeof(float));
 #pragma omp parallel for
 				for (int32_t i = 0; i < expanded; i++) { //convert to stereo
 					oratory->audio[i] = result->samples[(int)(i / numChannels)];
 				}
 				oratory->numSamples = num_samples;
 				SherpaOnnxDestroyOfflineTtsGeneratedAudio(result);
-				thread_queue_produce(_phrases.get(), oratory, THREAD_QUEUE_WAIT_INFINITE);
+				if (thread_atomic_int_load(exit_flag) == 0) {
+					thread_queue_produce(_phrases.get(), oratory, THREAD_QUEUE_WAIT_INFINITE);
+				}
 			}
 			if (!sentences.empty()) {
 				sentences.pop();
@@ -263,7 +271,7 @@ int fling(void* data) {
 	return 0;
 }
 
-int playbackCall(void* data) {
+int playbackCall(void* user_data) {
 	thread_set_high_priority();
 	_phrases = thread_queue_ptr(std::make_unique<thread_queue_t>().release());
 	thread_queue_init(_phrases.get(), MAX_QUEUED_PHRASES, (void**)&queued, 0);
@@ -274,8 +282,11 @@ int playbackCall(void* data) {
 		thread_exit(-1);
 		return -1;
 	}
-	oratory_flinger = thread_create(fling, NULL, THREAD_STACK_SIZE_DEFAULT);
-	while (tts_data->streaming) {
+	thread_atomic_int_t exit_flag;
+    thread_atomic_int_store( &exit_flag, 0 );
+	oratory_flinger = thread_create(fling, &exit_flag,THREAD_STACK_SIZE_DEFAULT);
+	thread_atomic_int_t* playback_flag = (thread_atomic_int_t*) user_data;
+	while (thread_atomic_int_load(playback_flag ) == 0) {
 		auto _phrase = (unnu_phrase_t*)thread_queue_consume(_phrases.get(), 10);
 		if (_phrase != NULL) {
 			if (!_isSpeaking) {
@@ -304,20 +315,15 @@ int playbackCall(void* data) {
 			}
 		}
 	}
+
 	if (_isSpeaking)
 	{
 		_isSpeaking = false;
 		on_speaking_event(false);
 	}
-	tts_data->streaming = false;
-	_phrases = nullptr;
-	if (oratory_flinger != nullptr) {
-		if (thread_join(oratory_flinger) == 0) {
-			thread_destroy(oratory_flinger);
-			oratory_flinger = nullptr;
-		}
-	}
-	
+	// tts_data->streaming = false;
+	thread_atomic_int_store(&exit_flag, 1);
+
 	osaudio_flush(*speaker.get());
 	if (osaudio_pause(*speaker.get()) == OSAUDIO_SUCCESS) {
 		tts_data->streaming = false;
@@ -328,7 +334,7 @@ int playbackCall(void* data) {
 		thread_exit(-1);
 		return -1;
 	}
-
+	
 	thread_exit(0);
 	return 0;
 }
@@ -345,12 +351,16 @@ void unnu_tts(const char* text, int32_t sid, float speed) {
 	}
 }
 
+
+
 bool unnu_tts_start() {
 #if defined(DEBUG) || defined(_DEBUG)
 	fprintf(stderr, "unnu_tts_start()\n");
 #endif
-	if (_supported && !tts_data->streaming) {
-		playback_worker = thread_create(playbackCall, NULL, THREAD_STACK_SIZE_DEFAULT);
+	if (_supported && thread_atomic_int_load(&play_flag) != 0) {
+		
+        thread_atomic_int_store( &play_flag, 0 );
+		playback_worker = thread_create(playbackCall, &play_flag, THREAD_STACK_SIZE_DEFAULT);
 		tts_data->streaming = true;
 	}
 #if defined(DEBUG) || defined(_DEBUG)
@@ -365,14 +375,7 @@ bool unnu_tts_stop() {
 #endif
 	if (_supported) {
 		tts_data->streaming = false;
-		if (playback_worker != nullptr) {
-			if (thread_join(playback_worker) == 0) {
-				thread_destroy(playback_worker);
-				playback_worker = nullptr;
-			}
-
-		}
-
+		thread_atomic_int_store( &play_flag, 1 );
 	}
 	return !tts_data->streaming;
 }

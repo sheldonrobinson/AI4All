@@ -2,7 +2,7 @@ name: unnu_sap
 description:
   Speech processing plugin which uses miniaudio as
   backend. Performs local ASR and TTS in real-time.
-version: 0.0.1
+version: 0.0.2
 issue_tracker: https://github.com/sheldonrobinson/unnu_asr/issues
 homepage: https://github.com/sheldonrobinson/unnu_asr
 maintainer: Sheldon Robinson (sheldon.robinson@gmail.com)
@@ -18,24 +18,25 @@ topics:
   - text-to-speech
   - speech-to-text
 
+resolution: workspace
+
 environment:
-  sdk: ^3.5.1
-  flutter: '>=3.3.0'
+  sdk: '>=3.7.0 < 4.0.0'
+  flutter: '>=3.27.0'
 
 dependencies:
-  ffi: ^2.1.4
   flutter:
     sdk: flutter
+  ffi: ^2.1.4
   logging: ^1.3.0
   meta: ^1.16.0
-  plugin_platform_interface: ^2.1.8
 
 dev_dependencies:
-  ffigen: ^19.0.0
+  ffigen: ^19.1.0
   flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter
-  very_good_analysis: ^6.0.0
+  very_good_analysis: ^10.0.0
 
 flutter:
   plugin:
@@ -52,47 +53,47 @@ flutter:
         ffiPlugin: true
 
   assets:
-  # TTS  find kokoro-multi-lang-v1_1 -type d -exec echo - assets/models/tts/{}/ \;
-    - assets/models/tts/kokoro-multi-lang-v1_1/
-    - assets/models/tts/kokoro-multi-lang-v1_1/dict/
-    - assets/models/tts/kokoro-multi-lang-v1_1/dict/pos_dict/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/aav/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/art/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/azc/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/bat/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/bnt/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/ccs/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/cel/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/cus/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/dra/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/esx/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/gmq/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/gmw/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/grk/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/inc/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/ine/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/ira/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/iro/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/itc/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/jpx/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/map/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/miz/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/myn/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/poz/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/roa/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/sai/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/sem/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/sit/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/tai/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/trk/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/urj/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/zle/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/zls/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/lang/zlw/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/voices/
-    - assets/models/tts/kokoro-multi-lang-v1_1/espeak-ng-data/voices/!v/
+  # TTS  find kokoro-int8-multi-lang-v1_1 -type d -exec echo - assets/models/tts/{}/ \;
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/dict/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/dict/pos_dict/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/aav/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/art/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/azc/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/bat/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/bnt/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/ccs/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/cel/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/cus/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/dra/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/esx/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/gmq/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/gmw/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/grk/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/inc/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/ine/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/ira/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/iro/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/itc/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/jpx/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/map/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/miz/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/myn/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/poz/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/roa/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/sai/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/sem/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/sit/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/tai/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/trk/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/urj/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/zle/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/zls/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/lang/zlw/
+    - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/voices/
+    # - assets/models/tts/kokoro-int8-multi-lang-v1_1/espeak-ng-data/voices/~v/
   # ASR
     - assets/models/asr/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20-mobile/
     - assets/models/asr/sherpa-onnx-online-punct-en-2024-08-06/

@@ -3,8 +3,10 @@ description: "unnu Cognitive Environment for running cognitive agents."
 version: 0.0.1
 homepage:
 
+resolution: workspace
+
 environment:
-  sdk: '>=3.7.0 <4.0.0'
+  sdk: '>=3.7.0 < 4.0.0'
   flutter: '>=3.27.0'
 
 dependencies:
@@ -17,10 +19,11 @@ dependencies:
   unnu_shared:
 
 dev_dependencies:
-  ffigen: ^19.0.0
+  ffigen: ^19.1.0
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  very_good_analysis: ^10.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

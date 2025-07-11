@@ -9,26 +9,29 @@
 /*  SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-DocWire-Commercial                                                                   */
 /*********************************************************************************************************************************************/
 
-#include "docx_parser.h"
 
-#include <duckx.hpp>
+
+
 
 #include <algorithm>
 #include <codecvt>
-#include "data_stream.h"
-#include "error_tags.h"
-#include <iostream>
-#include "log.h"
-#include <map>
-#include "make_error.hpp"
-#include "misc.h"
 #include <mutex>
 #include <new>
+#include <map>
 #include <set>
 #include <stdlib.h>
 #include <string.h>
+#include <iostream>
+#include "data_stream.h"
+#include "error_tags.h"
+#include "log.h"
+#include "make_error.hpp"
+#include "misc.h"
 #include "throw_if.hpp"
 
+#include <duckx.hpp>
+
+#include "docx_parser.h"
 
 namespace docwire
 {
@@ -87,7 +90,7 @@ namespace docwire
 
 	void DocxParser::parse(const data_source& data)
 	{
-		docwire_log(debug) << "Using PDF parser.";
+		docwire_log(debug) << "Using Docx parser.";
 		{
 			std::lock_guard<std::mutex> xpdf_mutex_lock(docx_mutex);
 			renew_impl();

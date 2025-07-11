@@ -1,8 +1,9 @@
 # The Flutter tooling requires that developers have CMake 3.10 or later
 # installed. You should not increase this version, as doing so will cause
 # the plugin to fail to compile for some customers of the plugin.
-cmake_minimum_required(VERSION 3.22...4.0 3.31)
-
+cmake_minimum_required(VERSION 3.10)
+cmake_policy(SET CMP0168 OLD)
+cmake_policy(SET CMP0169 OLD)
 # Project-level configuration.
 set(PROJECT_NAME "unnu_sap")
 project(${PROJECT_NAME} LANGUAGES CXX)
@@ -10,9 +11,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-cmake_policy(SET CMP0077 OLD) 
-
-set(CMAKE_POLICY_VERSION_MINIMUM "3.22" CACHE STRING "Specify a minimum Policy Version for a project without modifying its calls to cmake_minimum_required" FORCE) 
 
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
 	set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "Needed to avoid cmake_install.cmake build issues." FORCE) 
@@ -76,6 +74,7 @@ file(TO_NATIVE_PATH "${UNNU_SAP_SRC_DIR}/ort/tools/ci_build/build.py" ORTBUILD_B
 file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/ort/build/lnx-${ORT_PLATFORM}" ORTBUILD_DIR)
 file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/ort/build/lnx-${ORT_PLATFORM}/$<CONFIG>" ORTBUILD_ROOT_DIR)
 
+file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/ort/lnx-${ORT_PLATFORM}/include" ORTBUILD_INC_DIR)
 file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/ort/lnx-${ORT_PLATFORM}/lib" ORTBUILD_LIB_DIR)
 file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/ort/lnx-${ORT_PLATFORM}/include/onnxruntime" ORTBUILD_HDRS_DIR)
 file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/ort/lnx-${ORT_PLATFORM}/lib/libonnxruntime.so" ORTBUILD_BINARY)
@@ -90,17 +89,20 @@ set(ORT_HDRS_DIR "${CMAKE_CURRENT_BINARY_DIR}/ort/lnx-${ORT_PLATFORM}/include/on
 set(ORTBUILD_BINPATH "${CMAKE_CURRENT_BINARY_DIR}/ort/lnx-${ORT_PLATFORM}/lib/libonnxruntime.so")
 set(ORTBUILD_PROVIDERS_BINPATH "${CMAKE_CURRENT_BINARY_DIR}/ort/lnx-${ORT_PLATFORM}/lib/libonnxruntime_providers_shared.so")
 
+
+if(NOT EXISTS ${ORT_LIB_DIR})
+ file(MAKE_DIRECTORY ${ORT_LIB_DIR})
+endif()
+
+if(NOT EXISTS ${ORT_HDRS_DIR})
+ file(MAKE_DIRECTORY ${ORT_HDRS_DIR})
+endif()
+
 if(NOT DEFINED ENV{SHERPA_ONNXRUNTIME_INCLUDE_DIR})
 	set(ENV{SHERPA_ONNXRUNTIME_INCLUDE_DIR} ${ORT_HDRS_DIR})
 endif()
 if(NOT DEFINED ENV{SHERPA_ONNXRUNTIME_LIB_DIR})
 	set(ENV{SHERPA_ONNXRUNTIME_LIB_DIR} ${ORT_LIB_DIR})
-endif()
-if(NOT EXISTS ${ORT_HDRS_DIR})
- file(MAKE_DIRECTORY ${ORT_HDRS_DIR})
-endif()
-if(NOT EXISTS ${ORTBUILD_BINPATH})
- file(MAKE_DIRECTORY ${ORT_LIB_DIR})
 endif()
 
 if(NOT EXISTS ${ORTBUILD_BINPATH})
@@ -111,18 +113,16 @@ set(BUILD_TESTING OFF CACHE BOOL "Enable creation of tests." FORCE)
 set(EIGEN_BUILD_BLAS OFF CACHE BOOL "Toggles the building of the Eigen Blas library" FORCE)
 set(EIGEN_BUILD_LAPACK OFF CACHE BOOL "Toggles the building of the included Eigen LAPACK library" FORCE)
 
-add_custom_target(ortbuild ALL COMMAND python ${ORTBUILD_BUILD_PY}
-                                          --cmake_generator Ninja
+add_custom_target(ortbuild ALL COMMAND python ${ORTBUILD_BUILD_PY} 
+                                          --cmake_generator Ninja 
 					  --build_dir ${ORTBUILD_DIR} 
 					  --config $<CONFIG> 
-					  --skip_tests
-					  --skip_onnx_tests
-					  --build_shared_lib
-					  --use_mimalloc
-					  --use_full_protobuf
-#					  --parallel 
-					  --compile_no_warning_as_error 
-					  --skip_submodule_sync
+					  --skip_tests 
+					  --skip_onnx_tests 
+					  --build_shared_lib 
+					  --use_mimalloc 
+					  --use_full_protobuf 
+					  --skip_submodule_sync 
 					  --cmake_extra_defines CMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/ort/lnx-${ORT_PLATFORM} CMAKE_BUILD_TYPE=$<CONFIG>
 				  COMMAND cd ${ORTBUILD_ROOT_DIR} && ninja install && ${COPYCMD} ${COPYCMDFLAGS} onnxruntime_config.h  ${ORTBUILD_HDRS_DIR} 
 				  	  && ${COPYCMD} ${COPYCMDFLAGS} libonnxruntime.so.1 libonnxruntime.so.1.23.0 ${ORTBUILD_LIB_DIR}

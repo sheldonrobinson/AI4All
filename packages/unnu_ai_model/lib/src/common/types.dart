@@ -12,9 +12,19 @@ import 'package:june/june.dart';
 import 'package:langchain/langchain.dart';
 import 'package:llamacpp/llamacpp.dart';
 import 'package:path/path.dart' as p;
+import 'package:unnu_aux/unnu_aux.dart';
 import 'package:unnu_shared/unnu_shared.dart';
+import 'package:yaml/yaml.dart';
+import 'package:yaml_edit/yaml_edit.dart';
 
 import '../../unnu_ai_model.dart';
+
+enum UnnuQueryFragmentType {
+  CHAT_HISTORY,
+  CURRENT_INFO,
+  USER_QUERY,
+  OTHER;
+}
 
 enum ModelFamily {
   Llama(
@@ -73,6 +83,20 @@ enum ModelFamily {
     weight: FontWeight.bold,
     text: 'Poppins',
   ),
+  GPT(
+    familyName: 'GPT',
+    logo: 'Noto Serif',
+    style: FontStyle.normal,
+    weight: FontWeight.normal,
+    text: 'Noto Sans',
+  ),
+  Seed(
+    familyName: 'Seed',
+    logo: 'Noto Serif',
+    style: FontStyle.normal,
+    weight: FontWeight.normal,
+    text: 'Noto Sans',
+  ),
   Other(
     familyName: 'Other',
     logo: 'Noto Serif',
@@ -94,110 +118,91 @@ enum ModelFamily {
   final FontWeight weight;
   final String text;
 
-  //  TextTheme textTheme(BuildContext context) {
-  //    return buildTextTheme(context, this.text);
-  //  }
-
-  static ModelFamily modelFamilyFromFilename(String name) {
+  static ModelFamily modelFamilyFromName(String name) {
     final modelFilename = name.toLowerCase();
-    if (modelFilename.startsWith(RegExp(r'llama', caseSensitive: false))) {
+    if (modelFilename.startsWith(RegExp('llama', caseSensitive: false))) {
       return ModelFamily.Llama;
-    } else if (modelFilename.startsWith(RegExp(r'phi', caseSensitive: false)) ||
-        modelFilename.startsWith(RegExp(r'microsoft', caseSensitive: false))) {
+    } else if (modelFilename.startsWith(RegExp('phi|microsoft', caseSensitive: false))) {
       return ModelFamily.Phi;
     } else if (modelFilename.startsWith(
-      RegExp(r'gemma', caseSensitive: false),
+      RegExp('gemma', caseSensitive: false),
     )) {
       return ModelFamily.Gemma;
     } else if (modelFilename.startsWith(
-          RegExp(r'qwen', caseSensitive: false),
-        ) ||
-        modelFilename.startsWith(RegExp(r'qwq', caseSensitive: false))) {
+          RegExp('qwen|qwq', caseSensitive: false),
+        ) ) {
       return ModelFamily.Qwen;
     } else if (modelFilename.startsWith(
-      RegExp(r'granite', caseSensitive: false),
+      RegExp('granite', caseSensitive: false),
     )) {
       return ModelFamily.Granite;
     } else if (modelFilename.startsWith(
-      RegExp(r'deepseek', caseSensitive: false),
+      RegExp('deepseek', caseSensitive: false),
     )) {
       return ModelFamily.DeepSeek;
     } else if (modelFilename.startsWith(
-      RegExp(r'mistral', caseSensitive: false),
+      RegExp('mistral|magistral', caseSensitive: false),
     )) {
       return ModelFamily.Mistral;
     } else if (modelFilename.startsWith(
-      RegExp(r'ernie', caseSensitive: false),
+      RegExp('ernie', caseSensitive: false),
     )) {
       return ModelFamily.Ernie;
+    } else if (modelFilename.startsWith(
+      RegExp('gpt', caseSensitive: false),
+    )) {
+      return ModelFamily.GPT;
+    } else if (modelFilename.startsWith(
+      RegExp('seed', caseSensitive: false),
+    )) {
+      return ModelFamily.Seed;
     } else {
       return ModelFamily.Other;
     }
   }
 }
 
-enum LlmResource {
-  Unspecified(-1),
-  AssetBundle(0),
-  LocalFile(1),
-  RemoteFile(2),
-  AppStore(3),
-  Web(4);
-
-  final int value;
-
-  const LlmResource(this.value);
-
-  static LlmResource fromValue(int value) => switch (value) {
-    -1 => Unspecified,
-    0 => AssetBundle,
-    1 => LocalFile,
-    2 => RemoteFile,
-    3 => AppStore,
-    4 => Web,
-    _ => throw ArgumentError('Unknown value for LlmResourceLocation: $value'),
-  };
-}
-
+@immutable
 class LlmMetaInfo {
-  String baseName;
-  String version;
-  String sizeLabel;
-  String encoding;
-  String type;
-  String fileName;
-  Uri uri;
-  String filePath;
-  String nameInNamingConvention;
-  String shard;
-  LlmResource location;
-  int parameterCount;
-  int numberOfExperts;
+  final String version;
+  final String sizeLabel;
+  final String encoding;
+  final String type;
+  final String filePath;
+  final String nameInNamingConvention;
+  final String shard;
+  final int nCtx;
+
+  final int _parameterCount;
+  final int _numberOfExperts;
+  final ModelFamily _modelFamily;
   LlmMetaInfo({
-    required this.baseName,
+    required this.filePath,
+    required this.nameInNamingConvention,
     required this.version,
     required this.sizeLabel,
     required this.encoding,
     required this.type,
-    required this.fileName,
-    required this.uri,
-    required this.filePath,
-    required this.nameInNamingConvention,
     required this.shard,
-    required this.location,
-    required this.parameterCount,
-    required this.numberOfExperts,
-  });
+    required this.nCtx,
+  }) : _parameterCount = LlmMetaInfo.numberOfParmeters(sizeLabel),
+       _numberOfExperts = LlmMetaInfo.countOfExperts(sizeLabel),
+       _modelFamily = ModelFamily.modelFamilyFromName(nameInNamingConvention);
 
-  double get vram => vRamSize();
+  Map<int, double> get vram =>
+      vRamSize(nCtx, inferenceScheme: encoding.isNotEmpty ? encoding : 'Q8');
 
-  ModelFamily get modelFamily => ModelFamily.modelFamilyFromFilename(baseName);
+  int get numberOfExperts => _numberOfExperts;
 
-  ReasoningContext get reasoningContext => _reasoningContextFromInfo();
+  int get parameters => _parameterCount;
+
+  ModelFamily get modelFamily => _modelFamily;
+
+  // ReasoningContext get reasoningContext => _reasoningContextFromInfo();
   static const log1024 = 6.9314718055994530941723212145818;
 
   String vRamAsHumanReadable() {
-    final bytes = vram;
+    final bytes = vram.values.reduce(m.max);
     final order = (m.log(bytes) / log1024).floor();
     final converter = ByteConverter(bytes);
     switch (order) {
@@ -221,11 +226,13 @@ class LlmMetaInfo {
         paramCount.length > 1
             ? paramCount.substring(paramCount.length - 1).toUpperCase()
             : '';
-    final numParams = double.parse(
-      paramCount.length > 1
-          ? paramCount.substring(0, paramCount.length - 1)
-          : '0.0',
-    );
+    final numParams =
+        double.tryParse(
+          paramCount.length > 1
+              ? paramCount.substring(0, paramCount.length - 1)
+              : '0.0',
+        ) ??
+        0.0;
     switch (mult) {
       case 'K':
         return (numParams * 1024).ceil();
@@ -240,6 +247,12 @@ class LlmMetaInfo {
     }
   }
 
+  static int countOfExperts(String sizeLabel, {int? experts}) {
+    final segments = sizeLabel.split('x');
+    final nMoE = segments.length > 1 ? segments.first : '1';
+    return int.tryParse(nMoE) ?? experts ?? 1;
+  }
+
   static double kvCacheQuantFactor(String encoding) {
     final scheme = encoding.toUpperCase();
     if (scheme.startsWith('F32')) {
@@ -252,12 +265,14 @@ class LlmMetaInfo {
       return 0.75;
     } else if (scheme.startsWith('Q5')) {
       return 0.625;
-    } else if (scheme.startsWith('Q4')) {
+    } else if (scheme.startsWith('Q4') || scheme.startsWith('IQ4')) {
       return 0.5;
-    } else if (scheme.startsWith('Q3')) {
+    } else if (scheme.startsWith('Q3') || scheme.startsWith('IQ3')) {
       return 0.375;
-    } else if (scheme.startsWith('Q2')) {
+    } else if (scheme.startsWith('Q2') || scheme.startsWith('IQ2')) {
       return 0.25;
+    } else if (scheme.startsWith('MXFP4')) {
+      return 0.5;
     } else if (scheme.startsWith('AWQ')) {
       return 0.35;
     } else if (scheme.startsWith('GPTQ')) {
@@ -266,239 +281,568 @@ class LlmMetaInfo {
     return 1.0;
   }
 
-  double vRamSize({String inferenceScheme = 'Q8', int nCtx = 16384}) {
-    final alpha_2048 = 0.2;
-    final overHead = 1.1;
-    final totalParams = numberOfExperts * parameterCount;
+  Map<int, double> vRamSize(int n_Ctx, {String inferenceScheme = 'Q8'}) {
+    final mappings = <int, double>{};
+    final last = (m.max(m.log(n_Ctx) / m.ln2, 11) + 1).toInt();
+    const alpha_2048 = 0.2;
+    const overHead = 1.1;
+    final totalParams = _numberOfExperts * _parameterCount;
     final kvFactor = kvCacheQuantFactor(encoding);
     final kvInference = kvCacheQuantFactor(inferenceScheme);
-    final kvScale = (nCtx / 2048) * 1.1 * kvInference;
-    final requiredMem =
-        overHead * totalParams * (kvFactor + alpha_2048 * kvScale);
-    return requiredMem;
-  }
-
-  static int countOfExperts(String sizelabel) {
-    final segments = sizelabel.split('x');
-    final expertsCount = segments.length > 1 ? segments.first : '1';
-    return int.parse(expertsCount);
-  }
-
-  ReasoningContext _reasoningContextFromInfo() {
-    final name = baseName.toLowerCase();
-    switch (modelFamily) {
-      case ModelFamily.Llama:
-        return (reasoning: false, startTag: null, endTag: null);
-      case ModelFamily.Gemma:
-        return (reasoning: false, startTag: null, endTag: null);
-      case ModelFamily.Phi:
-        return name.contains(RegExp(r'reasoning', caseSensitive: false))
-            ? (reasoning: true, startTag: "<think>", endTag: "</think>")
-            : (reasoning: false, startTag: null, endTag: null);
-      case ModelFamily.Qwen:
-        return name.startsWith(RegExp(r'qwen3', caseSensitive: false)) ||
-                name.startsWith(RegExp(r'qwq', caseSensitive: false))
-            ? (reasoning: true, startTag: "<think>", endTag: "</think>")
-            : (reasoning: false, startTag: null, endTag: null);
-      case ModelFamily.Granite:
-        return (reasoning: false, startTag: "<think>", endTag: "</think>");
-      case ModelFamily.Ernie:
-        return (reasoning: false, startTag: "<think>", endTag: "</think>");
-      case ModelFamily.DeepSeek:
-        return name.startsWith(RegExp(r'deepseek-r', caseSensitive: false))
-            ? (reasoning: true, startTag: "<think>", endTag: "</think>")
-            : (reasoning: false, startTag: null, endTag: null);
-      case ModelFamily.Mistral:
-        return (reasoning: false, startTag: null, endTag: null);
-      case ModelFamily.Other:
-        return (reasoning: false, startTag: null, endTag: null);
+    for (var i = 11; i < last; i++) {
+      final idx = m.pow(2, i) as int;
+      final kvScale = (idx / 2048) * 1.1 * kvInference;
+      final requiredMem =
+          overHead * totalParams * (kvFactor + alpha_2048 * kvScale);
+      mappings[idx] = requiredMem;
     }
+
+    return mappings;
   }
+
+  // ReasoningContext _reasoningContextFromInfo() {
+  //   final name = nameInNamingConvention.toLowerCase();
+  //   switch (modelFamily) {
+  //     case ModelFamily.Llama:
+  //       return (reasoning: false, startTag: null, endTag: null);
+  //     case ModelFamily.Gemma:
+  //       return (reasoning: false, startTag: null, endTag: null);
+  //     case ModelFamily.Phi:
+  //       return name.contains(RegExp('reasoning', caseSensitive: false))
+  //           ? (reasoning: true, startTag: '<think>', endTag: '</think>')
+  //           : (reasoning: false, startTag: null, endTag: null);
+  //     case ModelFamily.Qwen:
+  //       return name.startsWith(RegExp(r'qwen3', caseSensitive: false)) ||
+  //               name.startsWith(RegExp('qwq', caseSensitive: false))
+  //           ? (reasoning: true, startTag: '<think>', endTag: '</think>')
+  //           : (reasoning: false, startTag: null, endTag: null);
+  //     case ModelFamily.Granite:
+  //       return (reasoning: true, startTag: '<think>', endTag: "</think>");
+  //     case ModelFamily.Ernie:
+  //       return (reasoning: false, startTag: '<think>', endTag: '</think>');
+  //     case ModelFamily.DeepSeek:
+  //       return (reasoning: true, startTag: '<think>', endTag: "</think>");
+  //     case ModelFamily.Mistral:
+  //       return (reasoning: false, startTag: null, endTag: null);
+  //     case ModelFamily.GPT:
+  //       return (reasoning: false, startTag: null, endTag: null);
+  //     case ModelFamily.Seed:
+  //       return (reasoning: true, startTag: '<think>', endTag: "</think>");
+  //     case ModelFamily.Other:
+  //       return (reasoning: false, startTag: null, endTag: null);
+  //   }
+  // }
 
   LlmMetaInfo copyWith({
-    String? baseName,
+    String? filePath,
+    String? nameInNamingConvention,
     String? version,
     String? sizeLabel,
     String? encoding,
     String? type,
-    String? fileName,
-    Uri? uri,
-    String? filePath,
-    String? nameInNamingConvention,
     String? shard,
-    LlmResource? location,
-    int? parameterCount,
-    int? numberOfExperts,
+    int? nCtx,
   }) {
     return LlmMetaInfo(
-      baseName: baseName ?? this.baseName,
+      filePath: filePath ?? this.filePath,
+      nameInNamingConvention:
+          nameInNamingConvention ?? this.nameInNamingConvention,
       version: version ?? this.version,
       sizeLabel: sizeLabel ?? this.sizeLabel,
       encoding: encoding ?? this.encoding,
       type: type ?? this.type,
-      fileName: fileName ?? this.fileName,
-      uri: uri ?? this.uri,
-      filePath: filePath ?? this.filePath,
-      nameInNamingConvention:
-          nameInNamingConvention ?? this.nameInNamingConvention,
       shard: shard ?? this.shard,
-      location: location ?? this.location,
-      parameterCount: parameterCount ?? this.parameterCount,
-      numberOfExperts: numberOfExperts ?? this.numberOfExperts,
+      nCtx: nCtx ?? this.nCtx,
     );
   }
 
   static LlmMetaInfo empty() {
     return LlmMetaInfo(
-      baseName: '',
       version: '',
       sizeLabel: '',
       encoding: '',
       type: '',
       shard: '',
-      fileName: '',
-      uri: Uri(),
       filePath: '',
       nameInNamingConvention: '',
-      location: LlmResource.Unspecified,
-      parameterCount: 0,
-      numberOfExperts: 0,
+      nCtx: 0,
     );
   }
 
   Map<String, dynamic> toMap() {
-    final result = <String, dynamic>{};
-
-    result.addAll({
-      'baseName': baseName,
+    return <String, dynamic>{
       'version': version,
       'sizeLabel': sizeLabel,
       'encoding': encoding,
       'type': type,
-      'fileName': fileName,
-      'uri': uri.toString(),
       'filePath': filePath,
       'nameInNamingConvention': nameInNamingConvention,
       'shard': shard,
-      'location': location.value,
-      'parameterCount': parameterCount,
-      'numberOfExperts': numberOfExperts,
-    });
-
-    return result;
+      'nCtx': nCtx,
+    };
   }
 
   factory LlmMetaInfo.fromMap(Map<String, dynamic> map) {
     return LlmMetaInfo(
-      baseName: map['baseName'] ?? '',
-      version: map['version'] ?? '',
-      sizeLabel: map['sizeLabel'] ?? '',
-      encoding: map['encoding'] ?? '',
-      type: map['type'] ?? '',
-      fileName: map['fileName'] ?? '',
-      uri: map.containsKey('uri') ? Uri.parse(map['uri'] ?? '') : Uri(),
-      filePath: map['filePath'] ?? '',
-      nameInNamingConvention: map['nameInNamingConvention'] ?? '',
-      shard: map['shard'] ?? '',
-      location: LlmResource.fromValue(
-        map['location'] ?? LlmResource.Unspecified.value,
-      ),
-      parameterCount: (map['parameterCount'] ?? 0) as int,
-      numberOfExperts: (map['numberOfExperts'] ?? 0) as int,
+      version: (map['version'] ?? '') as String,
+      sizeLabel: (map['sizeLabel'] ?? '') as String,
+      encoding: (map['encoding'] ?? '') as String,
+      type: (map['type'] ?? '') as String,
+      filePath: (map['filePath'] ?? '') as String,
+      nameInNamingConvention: (map['nameInNamingConvention'] ?? '') as String,
+      shard: (map['shard'] ?? '') as String,
+      nCtx: (map['nCtx'] ?? 0) as int,
     );
   }
 
   String toJson() => json.encode(toMap());
 
   factory LlmMetaInfo.fromJson(String source) =>
-      LlmMetaInfo.fromMap(json.decode(source));
+      LlmMetaInfo.fromMap(json.decode(source) as Map<String, dynamic>);
 
   @override
   String toString() {
-    return 'LlmMetaInfo(baseName: $baseName, version: $version, sizeLabel: $sizeLabel, encoding: $encoding, type: $type, fileName: $fileName, uri: $uri, filePath: $filePath, nameInNamingConvention: $nameInNamingConvention, shard: $shard, location: $location, parameterCount: $parameterCount, numberOfExperts: $numberOfExperts)';
+    return 'LlmMetaInfo(filePath: $filePath, nameInNamingConvention: $nameInNamingConvention, version: $version, sizeLabel: $sizeLabel, encoding: $encoding, type: $type, shard: $shard, nCtx: $nCtx)';
   }
 
   @override
-  bool operator ==(Object other) {
+  bool operator ==(covariant LlmMetaInfo other) {
     if (identical(this, other)) return true;
 
-    return other is LlmMetaInfo &&
-        other.baseName == baseName &&
-        other.version == version &&
+    return other.version == version &&
         other.sizeLabel == sizeLabel &&
         other.encoding == encoding &&
         other.type == type &&
-        other.fileName == fileName &&
-        other.uri == uri &&
         other.filePath == filePath &&
         other.nameInNamingConvention == nameInNamingConvention &&
         other.shard == shard &&
-        other.location == location;
+        other.nCtx == nCtx;
   }
 
   @override
   int get hashCode {
-    return baseName.hashCode ^
-        version.hashCode ^
+    return version.hashCode ^
         sizeLabel.hashCode ^
         encoding.hashCode ^
         type.hashCode ^
-        fileName.hashCode ^
-        uri.hashCode ^
         filePath.hashCode ^
         nameInNamingConvention.hashCode ^
         shard.hashCode ^
-        location.hashCode;
+        nCtx.hashCode;
   }
 }
 
+@immutable
 class LLMProviderVM {
-  LlamaCppProvider llm;
-  LlmMetaInfo info;
-  LLMProviderVM({required this.llm, required this.info});
+  final ContextParams contextParams;
+  final LlamaCppParams lcppParams;
+  final LlmMetaInfo info;
+  final LlamaCppModelInfo specifications;
+  final String uri;
+  LLMProviderVM({
+    required this.uri,
+    required this.contextParams,
+    required this.lcppParams,
+    required this.info,
+    required this.specifications,
+  });
 
-  LLMProviderVM copyWith({LlamaCppProvider? llm, LlmMetaInfo? info}) {
-    return LLMProviderVM(llm: llm ?? this.llm, info: info ?? this.info);
+  LLMProviderVM copyWith({
+    String? uri,
+    ContextParams? contextParams,
+    LlamaCppParams? lcppParams,
+    LlmMetaInfo? info,
+    LlamaCppModelInfo? specifications,
+  }) {
+    return LLMProviderVM(
+      uri: uri ?? this.uri,
+      contextParams: contextParams ?? this.contextParams,
+      lcppParams: lcppParams ?? this.lcppParams,
+      info: info ?? this.info,
+      specifications: specifications ?? this.specifications,
+    );
   }
 
   static LLMProviderVM getDefaults() {
-    return LLMProviderVM(llm: LlamaCppProvider(), info: LlmMetaInfo.empty());
+    return LLMProviderVM(
+      uri: '',
+      info: LlmMetaInfo.empty(),
+      specifications: LlamaCppModelInfo.empty(),
+      contextParams: ContextParams.defaultParams(),
+      lcppParams: LlamaCppParams.defaultParams(),
+    );
   }
 
   @override
-  String toString() => 'LLMProviderVM(llm: $llm, info: $info)';
+  String toString() {
+    return 'LLMProviderVM(uri: $uri, contextParams: $contextParams, lcppParams: $lcppParams, info: $info, specifications: $specifications)';
+  }
 
   @override
-  bool operator ==(Object other) {
+  bool operator ==(covariant LLMProviderVM other) {
     if (identical(this, other)) return true;
 
-    return other is LLMProviderVM && other.llm == llm && other.info == info;
+    return other.uri == uri &&
+        other.contextParams == contextParams &&
+        other.lcppParams == lcppParams &&
+        other.info == info &&
+        other.specifications == specifications;
   }
 
   @override
-  int get hashCode => llm.hashCode ^ info.hashCode;
+  int get hashCode {
+    return uri.hashCode ^
+        contextParams.hashCode ^
+        lcppParams.hashCode ^
+        info.hashCode ^
+        specifications.hashCode;
+  }
 
   Map<String, dynamic> toMap() {
-    final result = <String, dynamic>{};
-
-    result.addAll({'llm': llm});
-    result.addAll({'info': info.toMap()});
-
-    return result;
+    return <String, dynamic>{
+      'uri': uri,
+      'contextParams': contextParams.toMap(),
+      'lcppParams': lcppParams.toMap(),
+      'info': info.toMap(),
+      'specifications': specifications.toMap(),
+    };
   }
 
   factory LLMProviderVM.fromMap(Map<String, dynamic> map) {
     return LLMProviderVM(
-      llm: map['llm'],
-      info: LlmMetaInfo.fromMap(map['info']),
+      uri: (map['uri'] ?? '') as String,
+      contextParams: ContextParams.fromMap(
+        map['contextParams'] as Map<String, dynamic>,
+      ),
+      lcppParams: LlamaCppParams.fromMap(
+        map['lcppParams'] as Map<String, dynamic>,
+      ),
+      info: LlmMetaInfo.fromMap(map['info'] as Map<String, dynamic>),
+      specifications: LlamaCppModelInfo.fromMap(
+        map['specifications'] as Map<String, dynamic>,
+      ),
     );
   }
 
   String toJson() => json.encode(toMap());
 
   factory LLMProviderVM.fromJson(String source) =>
-      LLMProviderVM.fromMap(json.decode(source));
+      LLMProviderVM.fromMap(json.decode(source) as Map<String, dynamic>);
 }
+
+@immutable
+class UnnuModelDetails {
+  final LlmMetaInfo info;
+  final LlamaCppModelInfo specifications;
+  UnnuModelDetails({
+    required this.info,
+    required this.specifications,
+  });
+
+  static UnnuModelDetails? tryParse(String yaml) {
+    final settings = loadYaml(yaml);
+    final info = LlmMetaInfo(
+      type: (settings['type'] ?? '') as String,
+      filePath: (settings['path'] ?? '') as String,
+      sizeLabel: (settings['size_label'] ?? '') as String,
+      nameInNamingConvention: (settings['name'] ?? '') as String,
+      encoding: (settings['quantization_scheme'] ?? '') as String,
+      version: (settings['version'] ?? '') as String,
+      nCtx: (settings['n_ctx'] ?? 2048) as int,
+      shard: (settings['shard'] ?? '') as String,
+    );
+    final specifications = LlamaCppModelInfo(
+      architecture: (settings['architecture'] ?? '') as String,
+      quantization_version: (settings['quantization_version'] ?? 0) as int,
+      alignment: (settings['alignment'] ?? 0) as int,
+      gguf_version: (settings['gguf_version'] ?? 0) as int,
+      file_type:
+          settings['file_type'] != null ? settings['file_type'] as int : null,
+      name:
+          settings['model_name'] != null
+              ? settings['model_name'] as String
+              : null,
+      author: settings['author'] != null ? settings['author'] as String : null,
+      version:
+          settings['model_version'] != null
+              ? settings['model_version'] as String
+              : null,
+      organization:
+          settings['organization'] != null
+              ? settings['organization'] as String
+              : null,
+      basename:
+          settings['basename'] != null ? settings['basename'] as String : null,
+      finetune:
+          settings['finetune'] != null ? settings['finetune'] as String : null,
+      description:
+          settings['description'] != null
+              ? settings['description'] as String
+              : null,
+      size_label:
+          settings['size_label'] != null
+              ? settings['size_label'] as String
+              : null,
+      license:
+          settings['license'] != null ? settings['license'] as String : null,
+      license_link:
+          settings['license_link'] != null
+              ? settings['license_link'] as String
+              : null,
+      url: settings['url'] != null ? settings['url'] as String : null,
+      doi: settings['doi'] != null ? settings['doi'] as String : null,
+      uuid: settings['uuid'] != null ? settings['uuid'] as String : null,
+      repo_url:
+          settings['repo_url'] != null ? settings['repo_url'] as String : null,
+      n_ctx: settings['n_ctx'] != null ? settings['n_ctx'] as int : null,
+      n_embd: settings['n_embd'] != null ? settings['n_embd'] as int : null,
+      n_layers:
+          settings['n_layers'] != null ? settings['n_layers'] as int : null,
+      n_ff: settings['n_ff'] != null ? settings['n_ff'] as int : null,
+      use_parallel_residual:
+          settings['use_parallel_residual'] != null
+              ? settings['use_parallel_residual'] as bool
+              : null,
+      n_experts:
+          settings['n_experts'] != null ? settings['n_experts'] as int : null,
+      n_experts_used:
+          settings['n_experts_used'] != null
+              ? settings['n_experts_used'] as int
+              : null,
+      n_head: settings['n_head'] != null ? settings['n_head'] as int : null,
+      attn_head_kv:
+          settings['attn_head_kv'] != null
+              ? settings['attn_head_kv'] as int
+              : null,
+      attn_alibi_bias:
+          settings['attn_alibi_bias'] != null
+              ? settings['attn_alibi_bias'] as double
+              : null,
+      attn_layer_norm_eps:
+          settings['attn_layer_norm_eps'] != null
+              ? settings['attn_layer_norm_eps'] as double
+              : null,
+      attn_layer_norm_rms_eps:
+          settings['attn_layer_norm_rms_eps'] != null
+              ? settings['attn_layer_norm_rms_eps'] as double
+              : null,
+      attn_key_len:
+          settings['attn_key_len'] != null
+              ? settings['attn_key_len'] as int
+              : null,
+      attn_value_len:
+          settings['attn_value_len'] != null
+              ? settings['attn_value_len'] as int
+              : null,
+      rope_dim:
+          settings['rope_dim'] != null ? settings['rope_dim'] as int : null,
+      rope_freq_base:
+          settings['rope_freq_base'] != null
+              ? settings['rope_freq_base'] as double
+              : null,
+      rope_scaling_type:
+          settings['rope_scaling_type'] != null
+              ? settings['rope_scaling_type'] as String
+              : null,
+      rope_scaling_factor:
+          settings['rope_scaling_factor'] != null
+              ? settings['rope_scaling_factor'] as double
+              : null,
+      rope_orig_ctx:
+          settings['rope_orig_ctx'] != null
+              ? settings['rope_orig_ctx'] as int
+              : null,
+      split_count:
+          settings['split_count'] != null
+              ? settings['split_count'] as int
+              : null,
+      split_tensor_count:
+          settings['split_tensor_count'] != null
+              ? settings['split_tensor_count'] as int
+              : null,
+    );
+    return UnnuModelDetails(info: info, specifications: specifications);
+  }
+
+  static Future<UnnuModelDetails> trySettings(
+    UnnuModelSettings settings,
+  ) async {
+    final file = File(settings.path);
+    if (file.existsSync()) {
+      final yaml = await file.readAsString();
+      return UnnuModelDetails.tryParse(yaml) ??
+          UnnuModelDetails(
+            info: LlmMetaInfo.empty(),
+            specifications: LlamaCppModelInfo.empty(),
+          );
+    }
+    return UnnuModelDetails(
+      info: LlmMetaInfo.empty(),
+      specifications: LlamaCppModelInfo.empty(),
+    );
+  }
+
+  Map<String, dynamic> toYaml() {
+    final yaml = <String, dynamic>{
+      'path': info.filePath,
+      'name': info.nameInNamingConvention,
+      'version': info.version,
+      'size_label': info.sizeLabel,
+      'architecture': specifications.architecture,
+      'alignment': specifications.alignment,
+      'gguf_version': specifications.gguf_version,
+      'quantization_version': specifications.quantization_version,
+      'n_ctx': specifications.n_ctx ?? 2048,
+      'n_layers': specifications.n_layers ?? 99,
+    };
+    if (info.type.isNotEmpty) {
+      yaml['type'] = info.type;
+    }
+    if (info.shard.isNotEmpty) {
+      yaml['shard'] = info.shard;
+    }
+    if (info.encoding.isNotEmpty) {
+      yaml['quantization_scheme'] = info.encoding;
+    }
+    if (specifications.file_type != null) {
+      yaml['file_type'] = specifications.file_type!;
+    }
+    if (specifications.name != null) {
+      yaml['model_name'] = specifications.name!;
+    }
+    if (specifications.version != null) {
+      yaml['model_version'] = specifications.version!;
+    }
+    if (specifications.author != null) {
+      yaml['author'] = specifications.author!;
+    }
+    if (specifications.organization != null) {
+      yaml['organization'] = specifications.organization!;
+    }
+    if (specifications.description != null) {
+      yaml['description'] = specifications.description!;
+    }
+    if (specifications.uuid != null) {
+      yaml['uuid'] = specifications.uuid!;
+    }
+    if (specifications.license != null) {
+      yaml['license'] = specifications.license!;
+    }
+    if (specifications.license_link != null) {
+      yaml['license_link'] = specifications.license_link!;
+    }
+    if (specifications.n_embd != null) {
+      yaml['n_embd'] = specifications.n_embd!;
+    }
+    if (specifications.finetune != null) {
+      yaml['finetune'] = specifications.finetune!;
+    }
+    if (specifications.n_ff != null) {
+      yaml['n_ff'] = specifications.n_ff!;
+    }
+    if (specifications.n_head != null) {
+      yaml['n_head'] = specifications.n_head!;
+    }
+    if (specifications.n_experts != null) {
+      yaml['n_experts'] = specifications.n_experts!;
+    }
+    if (specifications.n_experts_used != null) {
+      yaml['n_used_experts'] = specifications.n_experts_used!;
+    }
+    if (specifications.attn_head_kv != null) {
+      yaml['attn_head_kv'] = specifications.attn_head_kv!;
+    }
+
+    if (specifications.attn_alibi_bias != null) {
+      yaml['attn_alibi_bias'] = specifications.attn_alibi_bias!;
+    }
+    if (specifications.attn_layer_norm_eps != null) {
+      yaml['attn_layer_norm_eps'] = specifications.attn_layer_norm_eps!;
+    }
+    if (specifications.attn_layer_norm_rms_eps != null) {
+      yaml['attn_layer_norm_rms_eps'] = specifications.attn_layer_norm_rms_eps!;
+    }
+    if (specifications.attn_key_len != null) {
+      yaml['attn_key_len'] = specifications.attn_key_len!;
+    }
+    if (specifications.attn_value_len != null) {
+      yaml['attn_value_len'] = specifications.attn_value_len!;
+    }
+    if (specifications.rope_dim != null) {
+      yaml['rope_dim'] = specifications.rope_dim!;
+    }
+    if (specifications.rope_freq_base != null) {
+      yaml['rope_freq_base'] = specifications.rope_freq_base!;
+    }
+    if (specifications.rope_scaling_type != null) {
+      yaml['rope_scaling_type'] = specifications.rope_scaling_type!;
+    }
+    if (specifications.rope_scaling_factor != null) {
+      yaml['rope_scaling_factor'] = specifications.rope_scaling_factor!;
+    }
+    if (specifications.rope_orig_ctx != null) {
+      yaml['rope_orig_ctx'] = specifications.rope_orig_ctx!;
+    }
+    if (specifications.split_count != null) {
+      yaml['split_count'] = specifications.split_count!;
+    }
+    if (specifications.split_tensor_count != null) {
+      yaml['split_tensor_count'] = specifications.split_tensor_count!;
+    }
+    return yaml;
+  }
+
+  UnnuModelDetails copyWith({
+    LlmMetaInfo? info,
+    LlamaCppModelInfo? specifications,
+  }) {
+    return UnnuModelDetails(
+      info: info ?? this.info,
+      specifications: specifications ?? this.specifications,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    final result =
+        <String, dynamic>{}..addAll({
+          'info': info.toMap(),
+          'specifications': specifications.toMap(),
+        });
+    return result;
+  }
+
+  factory UnnuModelDetails.fromMap(Map<String, dynamic> map) {
+    return UnnuModelDetails(
+      info: LlmMetaInfo.fromMap(map['info'] as Map<String, dynamic>),
+      specifications: LlamaCppModelInfo.fromMap(
+        map['specifications'] as Map<String, dynamic>,
+      ),
+    );
+  }
+
+  String toJson() => json.encode(toMap());
+
+  factory UnnuModelDetails.fromJson(String source) =>
+      UnnuModelDetails.fromMap(json.decode(source) as Map<String, dynamic>);
+
+  @override
+  String toString() =>
+      'UnnuModelDetails(info: $info, specifications: $specifications)';
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is UnnuModelDetails &&
+        other.info == info &&
+        other.specifications == specifications;
+  }
+
+  @override
+  int get hashCode => info.hashCode ^ specifications.hashCode;
+}
+
+typedef ModelFileWithDetails = ({String uri, UnnuModelDetails details});
 
 class LLMProviderController extends JuneState {
   static final filenameConvention = RegExp(
@@ -523,36 +867,43 @@ class LLMProviderController extends JuneState {
 
   LLMProviderVM activeModel = LLMProviderVM.getDefaults();
 
-  final Map<String, LlmMetaInfo> _modelRegistry = <String, LlmMetaInfo>{};
+  String currentSettings = '';
 
-  List<LlmMetaInfo> get models => UnmodifiableListView(
-    _modelRegistry.values.where((value) => !value.uri.hasEmptyPath),
+  LlamaCppProvider llm = LlamaCppProvider(
+    contextParams: ContextParams(),
+    lcppParams: const LlamaCppParams(),
   );
 
-  Stream<LLMResult> get responses => activeModel.llm.model.responses;
+  final Map<String, UnnuModelDetails> _modelRegistry =
+      <String, UnnuModelDetails>{};
+
+  List<UnnuModelDetails> get models => UnmodifiableListView(
+    _modelRegistry.values.where((value) => value.info.filePath.isNotEmpty),
+  );
+
+  Stream<LLMResult> get responses => llm.model.responses;
 
   void stop() {
-    activeModel.llm.model.stop();
+    llm.model.stop();
   }
 
   void cancel() {
-    activeModel.llm.model.cancel();
+    llm.model.cancel();
   }
 
-  static LlmMetaInfo parse(String modelPath) {
-    LlmMetaInfo metaInfo = LlmMetaInfo.empty();
-    final filePath = Uri.file(modelPath, windows: Platform.isWindows);
-    final modelFileName = p.basename(modelPath);
+  static UnnuModelDetails inspect(String modelPath) {
+    var metaInfo = LlmMetaInfo.empty();
+    final info = LlamaCpp.modelInfo(modelPath);
+
     metaInfo = metaInfo.copyWith(
-      uri: filePath,
       filePath: modelPath,
-      fileName: modelFileName,
     );
-    final segments = modelFileName.split('-');
-    int idxVersion = -1;
-    int idxSizeLabel = -1;
-    int idxSemVer = -1;
-    int idx = 0;
+
+    final segments = p.basename(modelPath).split('-');
+    var idxVersion = -1;
+    var idxSizeLabel = -1;
+    var idxSemVer = -1;
+    var idx = 0;
     for (var part in segments) {
       if (versionMatcher.hasMatch(part) && idxVersion == -1) {
         idxVersion = idx;
@@ -571,24 +922,25 @@ class LLMProviderController extends JuneState {
     idx = 0;
     final toNameConvention = StringBuffer();
     final versionString =
-        idxVersion == -1
+        info.version ??
+        (idxVersion == -1
             ? idxSemVer != -1
                 ? 'v${segments[idxSemVer]}'
                 : 'v1.0'
-            : segments[idxVersion];
-    ;
-    final sizeLabel = idxSizeLabel == -1 ? '0' : segments[idxSizeLabel];
-    final experts = LlmMetaInfo.countOfExperts(sizeLabel);
+            : segments[idxVersion]);
+    final sizeLabel =
+        info.size_label ?? (idxSizeLabel == -1 ? '0' : segments[idxSizeLabel]);
+    final experts =
+        info.n_experts ??
+        LlmMetaInfo.countOfExperts(info.size_label ?? sizeLabel);
     final sizeParts = sizeLabel.split('x');
     final szLabel =
         experts > 1
-            ? '${sizeParts.first}x${sizeParts.last.toUpperCase()}'
+            ? '${experts}x${sizeParts.last.toUpperCase()}'
             : sizeLabel.toUpperCase();
     metaInfo = metaInfo.copyWith(
-      sizeLabel: szLabel,
+      sizeLabel: info.size_label ?? szLabel,
       version: versionString,
-      parameterCount: LlmMetaInfo.numberOfParmeters(sizeLabel),
-      numberOfExperts: LlmMetaInfo.countOfExperts(sizeLabel),
     );
 
     for (int i = 0; i < idxSizeLabel; i++) {
@@ -599,26 +951,35 @@ class LLMProviderController extends JuneState {
         toNameConvention.write(segments[i]);
       }
     }
-    final baseName = toNameConvention.toString().replaceAll('_', ' ');
-    metaInfo = metaInfo.copyWith(baseName: baseName);
-    toNameConvention.clear();
-    toNameConvention.write(baseName);
-    toNameConvention.write('-');
-    toNameConvention.write(szLabel);
+    toNameConvention
+      ..write('-')
+      ..write(szLabel);
+    final baseName = (info.basename ?? toNameConvention.toString()).replaceAll(
+      '_',
+      ' ',
+    );
+    toNameConvention
+      ..clear()
+      ..write(baseName);
 
     final partialName = toNameConvention.toString();
 
-    for (int i = idxSizeLabel + 1; i < segments.length; i++) {
-      toNameConvention.clear();
-      toNameConvention.write(partialName);
-      for (int j = idxSizeLabel + 1; j < segments.length; j++) {
+    for (var i = idxSizeLabel + 1; i < segments.length; i++) {
+      toNameConvention
+        ..clear()
+        ..write(partialName);
+      for (var j = idxSizeLabel + 1; j < segments.length; j++) {
         if (i == j) {
-          toNameConvention.write('-');
-          toNameConvention.write(versionString);
+          if (versionString.isNotEmpty) {
+            toNameConvention
+              ..write('-')
+              ..write(versionString);
+          }
         }
-        if (j != idxVersion) {
-          toNameConvention.write('-');
-          toNameConvention.write(segments[j]);
+        if (!(j == idxVersion || j == idxSemVer)) {
+          toNameConvention
+            ..write('-')
+            ..write(segments[j]);
         }
       }
       final tempName = toNameConvention.toString();
@@ -626,7 +987,6 @@ class LLMProviderController extends JuneState {
         break;
       }
     }
-
     final nameInConversation = toNameConvention.toString();
 
     if (filenameConvention.hasMatch(nameInConversation)) {
@@ -652,102 +1012,184 @@ class LLMProviderController extends JuneState {
         shard: matches?.namedGroup('Shard'),
       );
     } else {
-      metaInfo = metaInfo.copyWith(nameInNamingConvention: nameInConversation);
+      metaInfo = metaInfo.copyWith(
+        nameInNamingConvention: nameInConversation,
+      );
     }
-    return metaInfo;
+    return UnnuModelDetails(info: metaInfo, specifications: info);
   }
 
-  static LlmMetaInfo asLlMetaInfo(String modelPath, {LlmResource? resource}) {
-    final info = LLMProviderController.parse(
-      modelPath,
-    ).copyWith(location: resource);
-    // register(info);
-    return info;
+  static Future<UnnuModelDetails> load(String path) async {
+    File file = File(path);
+    if (file.existsSync()) {
+      String yaml = await file.readAsString();
+      return UnnuModelDetails.tryParse(yaml) ??
+          UnnuModelDetails(
+            info: LlmMetaInfo.empty(),
+            specifications: LlamaCppModelInfo.empty(),
+          );
+    }
+    return UnnuModelDetails(
+      info: LlmMetaInfo.empty(),
+      specifications: LlamaCppModelInfo.empty(),
+    );
   }
 
-  LlmMetaInfo register(LlmMetaInfo info) {
-    return _modelRegistry[info.nameInNamingConvention] = info;
+  Future<UnnuModelDetails> hydrateModelSettings(
+    UnnuModelSettings settings,
+  ) async {
+    final configurationController = June.getState(
+      ConfigurationController.new,
+    );
+    final uri = Uri.parse(settings.uri);
+    final localPath = switch (uri.scheme) {
+      'appbundle' =>
+        settings.path.isNotEmpty
+            ? settings.path
+            : Platform.isAndroid || Platform.isIOS
+            ? await copyAssetOnMobile(settings.location)
+            : await copyAssetFile(settings.location),
+      'appstore' => '',
+      'playstore' => '',
+      'msstore' => '',
+      'file' => settings.location,
+      'http' => settings.location,
+      'https' => settings.location,
+      _ => '',
+    };
+
+    final details =
+        settings.path.isEmpty ? inspect(localPath) : await load(settings.path);
+    if (settings.path.isEmpty) {
+      final sha = UnnuAux.hashPath(localPath);
+      final yaml = details.toYaml();
+      yaml['id'] = settings.id;
+      yaml['sha'] = sha;
+
+      // Convert jsonValue to YAML
+      final yamlEditor = YamlEditor('');
+      final jsonString = json.encode(yaml);
+      final jsonValue = json.decode(jsonString);
+      yamlEditor.update([], jsonValue);
+      final llmSettingPath = await ConfigurationController.store(
+        uri: Uri.file(
+          p.join('models', '${settings.id}.yml'),
+          windows: Platform.isWindows,
+        ),
+        document: loadYamlDocument(yamlEditor.toString()),
+      );
+      configurationController.config.models[settings.uri] =
+          (configurationController.config.models[settings.uri] ?? settings)
+              .copyWith(
+                path: llmSettingPath,
+                sha: UnnuAux.hashPath(llmSettingPath),
+              );
+    }
+    register(details);
+    return details;
   }
 
-  LlmMetaInfo? unregister(LlmMetaInfo info) {
-    return _modelRegistry.remove(info.nameInNamingConvention);
+  void register(UnnuModelDetails details) {
+    _modelRegistry[details.info.nameInNamingConvention] = details;
   }
 
-  void delist(String modelPath) {
-    LlmMetaInfo info = LLMProviderController.parse(modelPath);
-    unregister(info);
+  void unregister(UnnuModelDetails details) {
+    _modelRegistry.remove(details.info.nameInNamingConvention);
   }
 
   void reset() {
-    activeModel.llm.model.reset();
+    llm.model.reset();
     setState();
   }
 
-  Stream<double> switchModel(LlmMetaInfo info) async* {
+  Stream<double> switchModel(UnnuModelDetails details) async* {
     if (kDebugMode) {
-      print('switchModel(LlmMetaInfo) info = $info');
+      print('switchModel(LlmMetaInfo) info = $details');
     }
-    final fileLocation =
-        info.location == LlmResource.AssetBundle
-            ? info.filePath.isEmpty
-                ? (
-                  Platform.isAndroid || Platform.isIOS
-                      ? await copyAssetOnMobile(info.uri.path)
-                      : await copyAssetFile(info.uri.path),
-                  true,
-                )
-                : (info.filePath, false)
-            : info.location == LlmResource.LocalFile
-            ? (info.filePath, false)
-            : (info.uri.path, false);
 
-    final params = LlamaCppParams.defaultParams().copyWith(
-      modelPath: fileLocation.$1,
-      splitMode: lcpp_split_mode.LCPP_SPLIT_MODE_LAYER,
-      mainGPU: 0,
-      nGpuLayers: 127,
-      useMmap: true,
-      useMlock: true,
-    );
-
-    if (kDebugMode) {
-      print('activeModel oldInfo = $activeModel');
-    }
-    activeModel.llm.close();
-    final newInfo = info.copyWith(filePath: fileLocation.$1);
-    activeModel = activeModel.copyWith(
-      llm: LlamaCppProvider(
-        contextParams: ContextParams.defaultParams().copyWith(nCtx: 16384),
-        lcppParams: params,
-        defaultOptions: LcppOptions(model: newInfo.baseName),
-      ),
-      info: newInfo,
-    );
-    if (fileLocation.$2) {
-      unregister(info);
-    }
-    register(newInfo);
-    setState();
     if (kDebugMode) {
       print('activeModel newInfo = $activeModel');
     }
-    final progress = activeModel.llm.model.reconfigure();
+    if (details.info.filePath.isNotEmpty) {
+      final machInfo = LlamaCpp.machineInfo();
+      final numCtx = details.info.vRamSize(
+        details.specifications.n_ctx ?? details.info.nCtx,
+      );
+      final smallCtx = numCtx.keys.reduce(m.min);
+      final largeCtx = numCtx.entries
+          .where(
+            (element) => element.value <= machInfo.blkmax_vram,
+          )
+          .map(
+            (e) => e.key,
+          )
+          .reduce(m.max);
+      // machInfo.blkmax_vram = 0 implies only iGPU available
+      activeModel = activeModel.copyWith(
+        info: details.info,
+        specifications: details.specifications,
+        contextParams: ContextParams.defaultParams().copyWith(
+          nCtx: machInfo.blkmax_vram > 0.0 ? largeCtx : smallCtx,
+          ropeFrequencyBase: details.specifications.rope_freq_base,
+          ropeFrequencyScale: details.specifications.rope_scaling_factor,
+          ropeScalingType: RopeScalingType.fromString(
+            details.specifications.rope_scaling_type ??
+                RopeScalingType.unspecified.name,
+          ),
+          yarnOriginalContext: details.specifications.rope_orig_ctx,
+        ),
+        lcppParams: LlamaCppParams.defaultParams().copyWith(
+          modelPath: details.info.filePath,
+          nGpuLayers:
+              (details.specifications.n_layers ?? 97) +
+              (details.specifications.n_head ?? 2),
+          splitMode:
+              numCtx[largeCtx]! >= machInfo.blkmax_vram &&
+                      machInfo.blkmax_vram > 0.0
+                  ? lcpp_split_mode.LCPP_SPLIT_MODE_LAYER
+                  : lcpp_split_mode.LCPP_SPLIT_MODE_NONE,
+          mainGPU: 0,
+          useMmap: true,
+          useMlock: true,
+          expertsOffLoad:
+              (numCtx[smallCtx]!.toInt() > machInfo.total_vram) &&
+              machInfo.blkmax_vram > 0,
+        ),
+      );
+      final reasoning = activeModel.lcppParams.reasoning;
+      llm = LlamaCppProvider(
+        contextParams: activeModel.contextParams,
+        lcppParams: activeModel.lcppParams,
+        samplingParams: LlamaCppSamplingParams.defaultParams().copyWith(
+          topK: reasoning.reasoning ? 20 : 40,
+          topP: 0.95,
+          temperature: reasoning.reasoning ? 0.6 : 0.8,
+          minP: reasoning.reasoning ? 0.0 : 0.05,
+          penaltyPresent: reasoning.reasoning ? 1.5 : 0.8,
+        ),
+        defaultOptions: LcppOptions(
+          model: activeModel.info.nameInNamingConvention,
+        ),
+      );
+      setState();
+    }
+    final progress = llm.model.reconfigure();
     yield* progress;
   }
 
   @override
   void dispose() {
-    activeModel.llm.model.destroy();
+    llm.model.destroy();
     super.dispose();
   }
 
-  String get name => activeModel.info.baseName;
+  String get name => activeModel.info.nameInNamingConvention;
 
   String get modelPath => activeModel.info.filePath;
 
   String get description => activeModel.info.nameInNamingConvention;
 
-  String get type => activeModel.llm.modelType;
+  String get type => llm.modelType;
 
-  ReasoningContext get reasoningContext => activeModel.info.reasoningContext;
+  // ReasoningContext get reasoningContext => activeModel.info.;
 }

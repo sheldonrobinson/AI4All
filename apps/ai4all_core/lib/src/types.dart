@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:ai_glow/ai_glow.dart';
 import 'package:asset_cache/asset_cache.dart';
 import 'package:disclosure/disclosure.dart';
+import 'package:feedback_gitlab/feedback_gitlab.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -24,7 +25,6 @@ import 'package:unnu_sap/unnu_tts.dart';
 import 'package:unnu_shared/unnu_shared.dart';
 import 'package:unnu_speech/unnu_speech.dart';
 import 'package:unnu_widgets/unnu_widgets.dart';
-import 'package:feedback_gitlab/feedback_gitlab.dart';
 
 class RAGSettings {
   final String documentsFolder;
@@ -77,24 +77,151 @@ enum AppPrimaryNavigation {
   };
 }
 
-/*
-class EnvironmentConfig {
-  static const FEEDBACK_GITLAB_PROJECT = String.fromEnvironment(
-    'FEEDBACK_GITLAB_PROJECT',
-  );
-  static const FEEDBACK_GITLAB_TOKEN = String.fromEnvironment(
-    'FEEDBACK_GITLAB_TOKEN',
-  );
+class SystemInformation {
+  String appName;
+  String packageName;
+  String version;
+  String buildNumber;
+  String installerStore;
+  int totalPhysicalMemorySize;
+  int totalVirtualMemorySize;
+  SystemInformation({
+    required this.appName,
+    required this.packageName,
+    required this.version,
+    required this.buildNumber,
+    required this.installerStore,
+    required this.totalPhysicalMemorySize,
+    required this.totalVirtualMemorySize,
+  });
+
+  SystemInformation copyWith({
+    String? appName,
+    String? packageName,
+    String? version,
+    String? buildNumber,
+    String? installerStore,
+    int? totalPhysicalMemorySize,
+    int? totalVirtualMemorySize,
+  }) {
+    return SystemInformation(
+      appName: appName ?? this.appName,
+      packageName: packageName ?? this.packageName,
+      version: version ?? this.version,
+      buildNumber: buildNumber ?? this.buildNumber,
+      installerStore: installerStore ?? this.installerStore,
+      totalPhysicalMemorySize:
+          totalPhysicalMemorySize ?? this.totalPhysicalMemorySize,
+      totalVirtualMemorySize:
+          totalVirtualMemorySize ?? this.totalVirtualMemorySize,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    final result = <String, dynamic>{};
+
+    result.addAll({
+      'appName': appName,
+      'packageName': packageName,
+      'version': version,
+      'buildNumber': buildNumber,
+      'installerStore': installerStore,
+      'totalPhysicalMemorySize': totalPhysicalMemorySize,
+      'totalVirtualMemorySize': totalVirtualMemorySize,
+    });
+
+    return result;
+  }
+
+  static SystemInformation empty() {
+    return SystemInformation(
+      appName: '',
+      packageName: '',
+      version: '',
+      buildNumber: '',
+      installerStore: '',
+      totalPhysicalMemorySize: 0,
+      totalVirtualMemorySize: 0,
+    );
+  }
+
+  factory SystemInformation.fromMap(Map<String, dynamic> map) {
+    return SystemInformation(
+      appName: (map['appName'] ?? '') as String,
+      packageName: (map['packageName'] ?? '') as String,
+      version: (map['version'] ?? '') as String,
+      buildNumber: (map['buildNumber'] ?? '') as String,
+      installerStore: (map['installerStore'] ?? '') as String,
+      totalPhysicalMemorySize: (map['totalPhysicalMemorySize'] ?? 0) as int,
+      totalVirtualMemorySize: (map['totalVirtualMemorySize'] ?? 0) as int,
+    );
+  }
+
+  String toJson() => json.encode(toMap());
+
+  factory SystemInformation.fromJson(String source) =>
+      SystemInformation.fromMap(json.decode(source) as Map<String, dynamic>);
+
+  @override
+  String toString() {
+    return 'SystemInformation(appName: $appName, packageName: $packageName, version: $version, buildNumber: $buildNumber, installerStore: $installerStore, totalPhysicalMemorySize: $totalPhysicalMemorySize, totalVirtualMemorySize: $totalVirtualMemorySize)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is SystemInformation &&
+        other.appName == appName &&
+        other.packageName == packageName &&
+        other.version == version &&
+        other.buildNumber == buildNumber &&
+        other.installerStore == installerStore &&
+        other.totalPhysicalMemorySize == totalPhysicalMemorySize &&
+        other.totalVirtualMemorySize == totalVirtualMemorySize;
+  }
+
+  @override
+  int get hashCode {
+    return appName.hashCode ^
+        packageName.hashCode ^
+        version.hashCode ^
+        buildNumber.hashCode ^
+        installerStore.hashCode ^
+        totalPhysicalMemorySize.hashCode ^
+        totalVirtualMemorySize.hashCode;
+  }
 }
-*/
+
+class SystemInformationController extends JuneState {
+  SystemInformation info = SystemInformation.empty();
+
+  void fromPackage(PackageInfo packageInfo) {
+    info = info.copyWith(
+      appName: packageInfo.appName,
+      packageName: packageInfo.packageName,
+      version: packageInfo.version,
+      buildNumber: packageInfo.buildNumber,
+      installerStore: packageInfo.installerStore,
+    );
+    setState();
+  }
+
+  void fromMemoryInfo({int? PhysicalMemory, int? VirtualMemory}) {
+    info = info.copyWith(
+      totalPhysicalMemorySize: PhysicalMemory ?? info.totalPhysicalMemorySize,
+      totalVirtualMemorySize: VirtualMemory ?? info.totalVirtualMemorySize,
+    );
+    setState();
+  }
+}
+
 class ApplicationLayoutModel {
   bool showSecondaryBody;
   bool isSpeaking;
   double bodyRatio;
   ApplicationPanel selectedTabbedPanel;
   String shortLocale;
-  //  LlmMetaInfo llmMetaInfo;
-  PackageInfo packageInfo;
   Map<String, String> localizations;
   Map<String, String> disclosures;
   ApplicationLayoutModel({
@@ -103,8 +230,6 @@ class ApplicationLayoutModel {
     required this.bodyRatio,
     required this.selectedTabbedPanel,
     required this.shortLocale,
-    //    required this.llmMetaInfo,
-    required this.packageInfo,
     required this.localizations,
     required this.disclosures,
   });
@@ -118,15 +243,6 @@ class ApplicationLayoutModel {
       shortLocale: 'en',
       localizations: const <String, String>{},
       disclosures: const <String, String>{},
-      packageInfo: PackageInfo(
-        appName: 'Unknown',
-        packageName: 'Unknown',
-        version: 'Unknown',
-        buildNumber: 'Unknown',
-        buildSignature: 'Unknown',
-        installerStore: 'Unknown',
-      ),
-      //      llmMetaInfo: LlmMetaInfo.empty(),
     );
   }
 
@@ -138,8 +254,6 @@ class ApplicationLayoutModel {
     String? shortLocale,
     Widget? body,
     Widget? secondaryBody,
-    //    LlmMetaInfo? llmMetaInfo,
-    PackageInfo? packageInfo,
     Map<String, String>? localizations,
     Map<String, String>? disclosures,
   }) {
@@ -149,8 +263,6 @@ class ApplicationLayoutModel {
       bodyRatio: bodyRatio ?? this.bodyRatio,
       selectedTabbedPanel: selectedTabbedPanel ?? this.selectedTabbedPanel,
       shortLocale: shortLocale ?? this.shortLocale,
-      //     llmMetaInfo: llmMetaInfo ?? this.llmMetaInfo,
-      packageInfo: packageInfo ?? this.packageInfo,
       localizations: localizations ?? this.localizations,
       disclosures: disclosures ?? this.disclosures,
     );
@@ -174,31 +286,22 @@ class ApplicationLayoutModel {
 
   factory ApplicationLayoutModel.fromMap(Map<String, dynamic> map) {
     return ApplicationLayoutModel(
-      showSecondaryBody: map['showSecondaryBody'] ?? false,
-      isSpeaking: map['isSpeaking'] ?? false,
-      bodyRatio: map['bodyRatio']?.toDouble() ?? 0.0,
+      showSecondaryBody: (map['showSecondaryBody'] ?? false) as bool,
+      isSpeaking: (map['isSpeaking'] ?? false) as bool,
+      bodyRatio: (map['bodyRatio']?.toDouble() ?? 0.0) as double,
       selectedTabbedPanel: ApplicationPanel.fromValue(
-        map['selectedTabbedPanel'],
+        map['selectedTabbedPanel'] as int,
       ),
-      shortLocale: map['shortLocale'] ?? '',
-      //     llmMetaInfo: LlmMetaInfo.fromMap(map['llmMetaInfo']),
-      packageInfo: PackageInfo(
-        appName: 'Unknown',
-        packageName: 'Unknown',
-        version: 'Unknown',
-        buildNumber: 'Unknown',
-        buildSignature: 'Unknown',
-        installerStore: 'Unknown',
-      ),
-      localizations: Map<String, String>.from(map['localizations']),
-      disclosures: Map<String, String>.from(map['disclosures']),
+      shortLocale: (map['shortLocale'] ?? '') as String,
+      localizations: Map<String, String>.from(map['localizations'] as Map<String, String>),
+      disclosures: Map<String, String>.from(map['disclosures'] as Map<String, String>),
     );
   }
 
   String toJson() => json.encode(toMap());
 
   factory ApplicationLayoutModel.fromJson(String source) =>
-      ApplicationLayoutModel.fromMap(json.decode(source));
+      ApplicationLayoutModel.fromMap(json.decode(source) as Map<String, dynamic>);
 
   @override
   String toString() {
@@ -318,11 +421,6 @@ class ApplicationLayoutModelController extends JuneState {
 
   double get bodyRatio => appConfiguration.bodyRatio;
 
-  void onInitPackageInfo() async {
-    final info = await PackageInfo.fromPlatform();
-    appConfiguration = appConfiguration.copyWith(packageInfo: info);
-  }
-
   void onInitDisclosures() async {
     final textAssetList = TextAssetCache(basePath: 'assets/resources/');
 
@@ -423,17 +521,17 @@ class ApplicationLayoutModelController extends JuneState {
     final completer = Completer<void>();
     progress.listen(
       (data) {
-        if (kDebugMode) {
-          print('SwitchModel:_llmController.progress($data)');
+        if (data < 0.0) {
+          llmProviderController.activeModel = llmProviderController.activeModel
+              .copyWith(
+                info: LlmMetaInfo.empty(),
+              );
         }
         if (callback != null) {
           callback.add(data);
         }
       },
       onDone: () async {
-        if (kDebugMode) {
-          print('SwitchModel:_llmController.progress.onDone');
-        }
         final chatSessionController = June.getState(
           () => ChatSessionController(),
         );
@@ -454,7 +552,7 @@ class ApplicationLayoutModelController extends JuneState {
                 .toList();
 
         final aI = UnnuAIModel(
-          model: llmProviderController.activeModel.llm,
+          model: llmProviderController.llm,
           chatMessageHistory: ChatMessageHistory(messages: messages),
           responseSink: tts.sink,
         );
@@ -493,7 +591,7 @@ class ApplicationLayoutModelController extends JuneState {
     if (result != null) {
       // All files
       File file = File(result.files.single.path!);
-      return LLMProviderController.asLlMetaInfo(
+      return LLMProviderController.asLlmMetaInfo(
         file.path,
         resource: LlmResource.LocalFile,
       );
@@ -511,10 +609,6 @@ class ApplicationLayoutModelController extends JuneState {
       chatWidgetController.setState();
     }
 
-    if (kDebugMode) {
-      print('SwitchModel()');
-    }
-
     await configureModel(info);
     setState();
 
@@ -525,10 +619,6 @@ class ApplicationLayoutModelController extends JuneState {
         nonblocking: true,
       );
       chatWidgetController.setState();
-    }
-
-    if (kDebugMode) {
-      print('SwitchModel:>');
     }
   }
 
@@ -562,11 +652,11 @@ class ApplicationLayoutModelController extends JuneState {
         {
           final Map<String, dynamic> config = await jsonAssets.loadAsset(
             'config.json',
-          );
+          ) as Map<String, dynamic>;
           BetterFeedback.of(context).showAndUploadToGitLab(
-            projectId: config['FEEDBACK_GITLAB_PROJECT'] ?? '',
+            projectId: (config['FEEDBACK_GITLAB_PROJECT'] ?? '') as String,
             // Required, use your GitLab project id
-            apiToken: config['FEEDBACK_GITLAB_TOKEN'] ?? '',
+            apiToken: (config['FEEDBACK_GITLAB_TOKEN'] ?? '') as String,
             // Required, use your GitLab API token
             gitlabUrl: 'gitlab.com', // Optional, defaults to 'gitlab.com'
           );
@@ -576,9 +666,6 @@ class ApplicationLayoutModelController extends JuneState {
   }
 
   void onShowTabs(BuildContext context) {
-    if (kDebugMode) {
-      print('onSecondaryNavigation');
-    }
     final toggle = !appConfiguration.showSecondaryBody;
     appConfiguration = appConfiguration.copyWith(
       showSecondaryBody: toggle,
@@ -592,13 +679,6 @@ class ApplicationLayoutModelController extends JuneState {
     setState();
   }
 
-  void _onSwitchModel() async {
-    final info = await loadModelFile();
-    if (info != null) {
-      switchModel(info);
-    }
-  }
-
   final audioInfo = (
     hasMicrophone: UnnuAsr.instance.supported,
     hasSpeaker: UnnuTts.instance.supported,
@@ -610,9 +690,6 @@ class ApplicationLayoutModelController extends JuneState {
   }
 
   void switchMode(InteractiveMode mode) {
-    if (kDebugMode) {
-      print('MyHomePageState::switchMode(${mode.name})');
-    }
     switch (mode) {
       case InteractiveMode.Live:
         UnnuTts.instance.enabled = audioInfo.hasSpeaker;
@@ -630,23 +707,14 @@ class ApplicationLayoutModelController extends JuneState {
         break;
     }
     UnnuAsr.instance.muted = mode != InteractiveMode.Live;
-    if (kDebugMode) {
-      print('MyHomePageState::switchMode:>');
-    }
   }
 
   void onMute(bool isMute) {
-    if (kDebugMode) {
-      print('MyHomePageState::onMute($isMute)');
-    }
     if (!audioInfo.hasMicrophone && audioInfo.hasSpeaker) {
       UnnuTts.instance.enabled = !isMute;
     }
     UnnuTts.instance.muted = isMute;
     UnnuAsr.instance.muted = isMute;
-    if (kDebugMode) {
-      print('MyHomePageState::onMute:>');
-    }
   }
 
   Widget _getBody(BuildContext context) {
@@ -739,9 +807,6 @@ class ApplicationLayoutModelController extends JuneState {
                     ),
                     noise: UnnuAsr.instance.soundEvents,
                     eavesdropping: UnnuAsr.instance.nowListening.tap((value) {
-                      if (kDebugMode) {
-                        print('nowListening.tap($value)');
-                      }
                       final chatWidgetController = June.getState(
                         () => ChatWidgetController(),
                       );
@@ -1039,11 +1104,6 @@ class ApplicationLayoutModelController extends JuneState {
                                         .nameInNamingConvention !=
                                     models[index].nameInNamingConvention,
                                 onTap: () async {
-                                  if (kDebugMode) {
-                                    print(
-                                      'Models.Tab onTap: switch to model ${models[index]}',
-                                    );
-                                  }
                                   final appLayoutController = June.getState(
                                     () => ApplicationLayoutModelController(),
                                   );
@@ -1057,7 +1117,8 @@ class ApplicationLayoutModelController extends JuneState {
                                         .info
                                         .nameInNamingConvention ==
                                     models[index].nameInNamingConvention,
-                                selectedTileColor: ColorScheme.of(context).surfaceDim,
+                                selectedTileColor:
+                                    ColorScheme.of(context).surfaceDim,
                                 title: Text(
                                   models[index].baseName,
                                   style: TextTheme.of(context).titleMedium,
@@ -1097,12 +1158,15 @@ class ApplicationLayoutModelController extends JuneState {
   }
 
   void _showAboutDialog(BuildContext context) {
+    final sysInfo = June.getState(
+      () => SystemInformationController(),
+    );
     final theme = Theme.of(context);
     showAboutDialog(
       context: context,
       applicationName: 'AI4All Core Edition',
       applicationLegalese: '© 2025 Konnek Inc',
-      applicationVersion: appConfiguration.packageInfo.version,
+      applicationVersion: sysInfo.info.version,
       children: [
         DisclosureGroup(
           multiple: false,

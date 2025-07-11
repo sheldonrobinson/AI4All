@@ -12,6 +12,8 @@
 #include "log.h"
 #include "content_type.h"
 #include "decompress_archives.h"
+#include "docx_parser.h"
+#include "pdf_parser.h"
 #include "parsing_chain.h"
 #include "input.h"
 #include "output.h"
@@ -29,13 +31,20 @@ using namespace docwire;
 
 void _input(std::string& text) {
 	if (result_cb != nullptr) {
-		UnnuDxlParseResult_t result;
-		result.type = UNNU_DXL_STRING;
-		result.num_metadata_entries = 0;
-		result.length = text.length();
-		result.buffer = (char*)std::calloc(result.length + 1, sizeof(char));
-		std::memcpy(result.buffer, text.c_str(), result.length + 1);
-
+		UnnuDxlParseResult_t* result = (UnnuDxlParseResult_t*) malloc(sizeof(UnnuDxlParseResult_t));
+		if(!text.empty()){
+            int len = text.length();
+            result->type = UNNU_DXL_STRING;
+            result->num_metadata_entries = 0;
+            result->length = len;
+            result->buffer = (char*) std::calloc(len + 1, sizeof(char));
+            std::memcpy(result->buffer, text.c_str(), len);
+            result->buffer[len] = '\0';
+		} else {
+            result->buffer = NULL;
+		    result->length = 0;
+		    result->num_metadata_entries = 0;
+		}
 		result_cb(result);
 	}
 }
@@ -47,15 +56,35 @@ void unnu_dxl_parse(const char* filepath) {
 	std::ostringstream oss;
 	auto chain = (std::filesystem::path{ filepath } | DecompressArchives());
 	chain |= content_type::detector{};
+    chain |= PDFParser{} | DocxParser{};
 	chain |= PlainTextExporter();
 	chain |= oss;
 	auto result = oss.rdbuf()->str();
-	if (!result.empty()) {
-		_input(result);
-	}
-	
+	_input(result);
 }
 
+void unnu_dxl_free_result(UnnuDxlParseResult_t* result){
+    if(result != nullptr){
+        if(result->buffer != NULL) free(result->buffer);
+        if(result->num_metadata_entries > 0){
+            for(int k = 0, n = result->num_metadata_entries; k < n ; k++){
+                auto entry =  result->metadata[k];
+                free(entry.key);
+                switch(entry.value.type){
+                    case UnnuDxlDataType::UNNU_DXL_STRING:
+                    case UnnuDxlDataType::UNNU_DXL_XML:
+                    case UnnuDxlDataType::UNNU_DXL_JSON:
+                    case UnnuDxlDataType::UNNU_DXL_BINARY:
+                        free(entry.value.data.value);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        free(result);
+    }
+}
 
 void unnu_dxl_set_parse_callback(UnnuDxlResultCallback parse_callback){
 	result_cb = parse_callback;

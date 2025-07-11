@@ -17,10 +17,10 @@
 namespace docwire::content_type
 {
 
-void detect(data_source& data, const by_signature::database& signatures_db_to_use)
+void detect(data_source& data)
 {
     content_type::by_file_extension::detect(data);
-    content_type::by_signature::detect(data, signatures_db_to_use);
+    // content_type::by_signature::detect(data, signatures_db_to_use);
     content_type::html::detect(data);
 }
 

@@ -1,0 +1,46 @@
+name: ultimate
+description: "AI4All Ultimate Edition"
+
+# Prevent accidental publishing to pub.dev.
+publish_to: 'none'
+
+version: 1.0.0+1
+
+resolution: workspace
+
+environment:
+  sdk: '>=3.7.0 < 4.0.0'
+  flutter: '>=3.27.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  llamacpp:
+  unnu_ai_model:
+  unnu_shared:
+  unnu_widgets:
+  unnu_speech:
+  unnu_ragl:
+  unnu_know:
+  unnu_dxl:
+  unnu_sap:
+  unnu_aux:
+  unnu_common:
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  msix: ^3.16.12
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+  very_good_analysis: ^10.0.0
+  
+flutter:
+  generate: true # Add this line
+  uses-material-design: true
+
+  assets:
+    # Add assets from the images directory to the application.
+    - assets/images/

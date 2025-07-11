@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:june/june.dart';
 import 'package:sembast/sembast_io.dart';
@@ -25,28 +24,30 @@ Future<void> registerModels() async {
 
   final String modelRegistry = prefs.getString('model.registry') ?? '';
 
-  final List<dynamic> registryJsonList =
+  final registryJsonList =
   modelRegistry.isNotEmpty
       ? jsonDecode(modelRegistry) as List<dynamic>
       : <dynamic>[];
 
-  final registryJson = registryJsonList.map((element)=> LlmMetaInfo.fromJson(element as String));
+  final registryJson = registryJsonList.map(
+        (element) => LlmMetaInfo.fromJson(element as String),
+  );
 
   final registry = <String, LlmMetaInfo>{};
 
   for (var model in registryJson) {
     registry[model.nameInNamingConvention] = model;
   }
-  final llmProviderController = June.getState(()=>LLMProviderController());
+
+  final llmProviderController = June.getState(() => LLMProviderController());
+
   for (LlmMetaInfo info in registry.values) {
     llmProviderController.register(info);
   }
 
   for (var model in fileResources) {
-    if (kDebugMode) {
-      print('model in rootBundle :=$model');
-    }
-    final info = LLMProviderController.asLlMetaInfo(
+
+    final info = LLMProviderController.asLlmMetaInfo(
       model,
       resource: LlmResource.AssetBundle,
     );
@@ -70,10 +71,25 @@ Future<void> registerModels() async {
         .toList();
     sysModels.sort((a, b) => a.vram.compareTo(b.vram));
     llmProviderController.activeModel = llmProviderController.activeModel
-        .copyWith(info: sysModels.first);
+        .copyWith(
+      info: sysModels.first.copyWith(
+        nCtx: sysModels.first.nCtx > 0 ? sysModels.first.nCtx : 16384,
+      ),
+      lcppParams: llmProviderController.activeModel.lcppParams.copyWith(
+        modelPath: sysModels.first.filePath,
+      ),
+    );
+
   } else {
     llmProviderController.activeModel = llmProviderController.activeModel
-        .copyWith(info: modelInfo);
+        .copyWith(
+      info: modelInfo.copyWith(
+        nCtx: modelInfo.nCtx > 0 ? modelInfo.nCtx : 16384,
+      ),
+      lcppParams: llmProviderController.activeModel.lcppParams.copyWith(
+        modelPath: modelInfo.filePath,
+      ),
+    );
   }
   llmProviderController.setState();
 }
@@ -87,9 +103,7 @@ Future<void> registerChatDatabase(String? dbFileName) async {
       Platform.isMacOS
       ? getDatabaseFactorySqflite(sqflite.databaseFactory)
       : getDatabaseFactorySqflite(sqflite_ffi.databaseFactoryFfi);
-  if (kDebugMode) {
-    print('_initializeDB: $dbFileName');
-  }
+
   String dbUrl = '';
   if (dbFileName != null) {
     final filePath = await absoluteApplicationSupportPath(dbFileName);
@@ -97,14 +111,11 @@ Future<void> registerChatDatabase(String? dbFileName) async {
   } else {
     dbUrl += 'file:chatdb?mode=memory&cache=shared';
   }
-  if (kDebugMode) {
-    print('_initializeDB: $dbUrl');
-  }
+
   final database = await factory.openDatabase(dbUrl);
 
-  final streamingMessageController = June.getState(() => StreamingMessageController());
+  final streamingMessageController = June.getState(
+        () => StreamingMessageController(),
+  );
   streamingMessageController.setChatController(SembastChatController(database));
-  if (kDebugMode) {
-    print('_initializeDB:>');
-  }
 }

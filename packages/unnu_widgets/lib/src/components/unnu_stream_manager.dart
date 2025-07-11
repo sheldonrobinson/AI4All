@@ -141,9 +141,11 @@ class UnnuStreamManager extends ChangeNotifier {
     final currentText = _accumulatedTexts[streamId] ?? '';
 
     if (originalMessage == null) {
-      debugPrint(
-        'UnnuStreamManager: Cannot error stream, missing original message for $streamId',
-      );
+      if(kDebugMode){
+        debugPrint(
+          'UnnuStreamManager: Cannot error stream, missing original message for $streamId',
+        );
+      }
       _cleanupStream(streamId);
       return;
     }
@@ -170,11 +172,12 @@ class UnnuStreamManager extends ChangeNotifier {
     try {
       await _chatController.updateMessage(originalMessage, errorTextMessage);
     } catch (e) {
-      debugPrint(
-        'UnnuStreamManager: Failed to update message $streamId after error: $e',
-      );
+      if(kDebugMode){
+        debugPrint(
+          'UnnuStreamManager: Failed to update message $streamId after error: $e',
+        );
+      }
     }
-
     _cleanupStream(streamId);
   }
 

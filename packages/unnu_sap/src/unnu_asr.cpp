@@ -11,11 +11,6 @@
 #include <cstdlib>
 #include <thread>
 #include <fvad.h>
-#define  THREAD_IMPLEMENTATION
-#include "mgthread.h"
-#include "common.h"
-#include "osaudio.h"
-#include "unnu_asr.h"
 
 #define UNNU_ASR_SAMPLE_FREQUENCY  (0.2f)
 
@@ -24,6 +19,10 @@
 #if defined(__WIN32__) || defined(_WIN32) || defined(WIN32) || defined(__WINDOWS__) || defined(__TOS_WIN__)
 
 #include <windows.h>
+
+#if defined(WIN32_LEAN_AND_MEAN)
+#include <timeapi.h>
+#endif
 
 inline void asr_delay(unsigned long ms)
 {
@@ -40,6 +39,12 @@ inline void asr_delay(unsigned long ms)
 }
 
 #endif
+
+#define  THREAD_IMPLEMENTATION
+#include "mgthread.h"
+#include "common.h"
+#include "osaudio.h"
+#include "unnu_asr.h"
 
 typedef struct maAsrData
 {
@@ -71,6 +76,8 @@ static bool _is_listening{ false };
 static bool _transcribing{ false };
 
 static thread_ptr_t recording_worker = nullptr;
+
+static thread_atomic_int_t record_flag;
 
 static TranscriptCallback transcription_cb = nullptr;
 static VoiceActivityDetectedCallback nowListening_cb = nullptr;
@@ -259,8 +266,8 @@ void unnu_asr_free_bool(UnnuASRBoolStruct_t* ptr) {
 }
 
 void unnu_asr_free_transcript(UnnuASRTextStruct_t* ptr) {
-	if (ptr != nullptr && ptr->text != nullptr) {
-		free(ptr->text);
+	if (ptr != nullptr) {
+		if(ptr->length > 0) free(ptr->text);
 	}
 	free(ptr);
 }
@@ -361,7 +368,7 @@ void unnu_asr_init(SherpaOnnxOnlineRecognizerConfig  config, SherpaOnnxVadModelC
 
 /* This routine is run in a separate thread to write data from the ring buffer into a file (during Recording) */
 
-int recordingCallback(void* data)
+int recordingCallback(void* user_data)
 {
 #if defined(DEBUG) || defined(_DEBUG)
 	fprintf(stderr, "recordingCallback()\n");
@@ -388,7 +395,8 @@ int recordingCallback(void* data)
 		thread_exit(-1);
 		return -1;
 	}
-	while (ma_data->streaming) {
+	thread_atomic_int_t* running_flag = (thread_atomic_int_t*) user_data;
+	while (thread_atomic_int_load( running_flag ) == 0) {
 		float frames[4800] = { 0 };
 		unsigned int frameCount = 4800;
 		int  result = osaudio_read(*capture.get(), frames, 4800);
@@ -510,8 +518,9 @@ bool unnu_asr_start() {
 #if defined(DEBUG) || defined(_DEBUG)
 	fprintf(stderr, "unnu_asr_start()\n");
 #endif
-	if (_supported && !ma_data->streaming) {
-			recording_worker = thread_create(recordingCallback, NULL, THREAD_STACK_SIZE_DEFAULT);
+	if (_supported && thread_atomic_int_load(&record_flag) != 0) {
+			thread_atomic_int_store( &record_flag, 0 );
+			recording_worker = thread_create(recordingCallback, &record_flag, THREAD_STACK_SIZE_DEFAULT);
 			ma_data->streaming = true;
 	}
 #if defined(DEBUG) || defined(_DEBUG)
@@ -526,12 +535,7 @@ bool unnu_asr_stop() {
 #endif
 	if (_supported) {
 		ma_data->streaming = false;
-		if (recording_worker != nullptr) {
-			if (thread_join(recording_worker) == 0) {
-				thread_destroy(recording_worker);
-				recording_worker = nullptr;
-			}
-		}
+		thread_atomic_int_store( &record_flag, 1 );
 	}
 	return !ma_data->streaming;
 }

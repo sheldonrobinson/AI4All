@@ -23,5 +23,6 @@
   "about": "信息",
   "dock": "设置",
   "feedback": "反馈",
-  "thinking": "思维"
+  "thinking": "思维",
+  "requiredmemory": "所需内存"
 }

@@ -1,9 +1,7 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:core';
 import 'dart:ui';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,18 +27,26 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
-  @override
-  void initState() {
-    if (kDebugMode) {
-      print('MyHomePageState::initState()');
-    }
-    super.initState();
-    final appLayoutController = June.getState(
-      () => ApplicationLayoutModelController(),
+
+  void _setup() async {
+    final llmProviderController = June.getState(
+          () => LLMProviderController(),
     );
-    appLayoutController.onInitPackageInfo();
+    final appLayoutController = June.getState(
+          () => ApplicationLayoutModelController(),
+    );
+
     appLayoutController.onInitDisclosures();
 
+    appLayoutController.switchModel(
+      llmProviderController.activeModel.info,
+    );
+  }
+  @override
+  void initState() {
+    super.initState();
+
+    _setup();
     {
       final chatSessionController = June.getState(
         () => ChatSessionController(),
@@ -57,16 +63,10 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
       FlutterNativeSplash.remove();
     });
     WidgetsBinding.instance.addObserver(this);
-    if (kDebugMode) {
-      print('MyHomePageState::initState:>');
-    }
   }
 
   @override
   void dispose() {
-    if (kDebugMode) {
-      print('MyHomePageState::dispose()');
-    }
     WidgetsBinding.instance.removeObserver(this);
     UnnuTts.destroy();
     UnnuAsr.destroy();
@@ -74,16 +74,10 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     streamingMessageController.messagingModel.chatController.dispose();
     streamingMessageController.messagingModel.streamManager.dispose();
     super.dispose();
-    if (kDebugMode) {
-      print('MyHomePageState::dispose:>');
-    }
   }
 
   @override
   Future<AppExitResponse> didRequestAppExit() async {
-    if (kDebugMode) {
-      print('MyHomePageState::didRequestAppExit()');
-    }
     final llmProviderController = June.getState(() => LLMProviderController());
     final SharedPreferences prefs = await SharedPreferences.getInstance();
 
@@ -95,11 +89,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     final listOfModels = jsonEncode(llmProviderController.models);
     prefs.setString('model.registry', listOfModels);
 
-    if (kDebugMode) {
-      print('MyHomePageState::didRequestAppExit:>');
-    }
-    llmProviderController.activeModel.llm.close();
-
+    llmProviderController.llm.close();
     return super.didRequestAppExit();
   }
 
@@ -195,7 +185,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
           appLayoutController.onL10nUpdate(tooltips);
           final destinations = <NavigationDestination>[
             NavigationDestination(
-              icon: const Icon(Icons.chat),
+              icon: const Icon(Icons.add_circle),
               label: tooltips['newChat'] ?? 'New Chat',
             ),
             NavigationDestination(
@@ -207,7 +197,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
               label: tooltips['about'] ?? 'About',
             ),
             NavigationDestination(
-              icon: const Icon(Icons.edit_note),
+              icon: const Icon(Icons.feedback),
               label: tooltips['feedback'] ?? 'Feedback',
             ),
           ];
@@ -270,6 +260,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                                       selectedIndex: null,
                                       backgroundColor:
                                           ColorScheme.of(context).surface,
+                                      extended: false,
                                       onDestinationSelected:
                                           (selected) =>
                                               layout.onPrimaryNavigation(

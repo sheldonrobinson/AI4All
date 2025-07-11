@@ -9,8 +9,8 @@
 /*  SPDX-License-Identifier: GPL-2.0-only OR LicenseRef-DocWire-Commercial                                                                   */
 /*********************************************************************************************************************************************/
 
-#ifndef DOCWIRE_PDF_PARSER_H
-#define DOCWIRE_PDF_PARSER_H
+#ifndef DOCWIRE_DOCX_PARSER_H
+#define DOCWIRE_DOCX_PARSER_H
 
 #include "parser.h"
 #include "core_export.h"

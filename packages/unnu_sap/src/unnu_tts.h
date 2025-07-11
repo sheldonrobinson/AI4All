@@ -8,17 +8,21 @@
 		#define FFI_PLUGIN_EXPORT extern "C" __attribute__((visibility("default"))) __attribute__((used))
 	#endif
 #else
-	#define FFI_PLUGIN_EXPORT extern
+    #ifdef WIN32
+    #define FFI_PLUGIN_EXPORT extern
+    #else
+    #define FFI_PLUGIN_EXPORT extern __attribute__((visibility("default"))) __attribute__((used))
+    #endif
 #endif
 
 #ifdef __cplusplus
 	#include <cstdint>
 	#include <cstdbool>
-	#include "./sherpa-onnx/sherpa-onnx/c-api/c-api.h"
+	#include "c-api.h"
 #else // __cplusplus - Objective-C or other C platform
 	#include <stdint.h>
 	#include <stdbool.h>
-	#include "./sherpa-onnx/sherpa-onnx/c-api/c-api.h"
+	#include "c-api.h"
 #endif
 
 #ifdef __cplusplus

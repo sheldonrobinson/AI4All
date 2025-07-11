@@ -98,5 +98,9 @@
   "thinking": "Thinking",
   "@thinking": {
     "description": "Loading text Thinking"
+  },
+  "requiredmemory": "Required Memory",
+  "@requiredmemory": {
+    "description": "Required Moemory to run model"
   }
 }

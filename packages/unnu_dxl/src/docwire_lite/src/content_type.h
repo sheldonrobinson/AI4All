@@ -13,7 +13,7 @@
 #define DOCWIRE_CONTENT_TYPE_H
 
 #include "chain_element.h"
-#include "content_type_by_signature.h"
+#include "content_type_by_file_extension.h"
 #include "core_export.h"
 #include "ref_or_owned.hpp"
 
@@ -49,7 +49,7 @@ namespace docwire::content_type
  * @see content_type::outlook::detect
  * @see content_type::xlsb::detect
  */
-DOCWIRE_CORE_EXPORT void detect(data_source& data, const by_signature::database& signatures_db_to_use = by_signature::database{});
+DOCWIRE_CORE_EXPORT void detect(data_source& data);
 
 /**
  * @brief Content type detection chain element
@@ -81,16 +81,15 @@ public:
 
     /**
      * @brief Constructs a new detector with the given database of signatures.
-     * 
-     * The detector will use the provided database of signatures for content type detection.
+     * or will use
+     * The detect the provided database of signatures for content type detection.
      * If no database is provided, it will be created and loaded.
      * 
      * @param signatures_db_to_use The database of signatures to be used for content type detection.
      * 
      * @see content_type::by_signature::database
      */
-    detector(ref_or_owned<by_signature::database> signatures_db_to_use = by_signature::database{})
-        : m_signatures_db_to_use(signatures_db_to_use) {}
+    detector(){}
 
     void process(Info& info) override
     {
@@ -100,7 +99,7 @@ public:
 		    return;
 	    }
 	    data_source& data = std::get<data_source>(info.tag);
-        content_type::detect(data, m_signatures_db_to_use.get());
+        content_type::detect(data);
         emit(info);
     }
 
@@ -109,8 +108,7 @@ public:
 		return false;
 	}
 
-private:
-    ref_or_owned<by_signature::database> m_signatures_db_to_use;
+
 };
 
 } // namespace docwire::content_type

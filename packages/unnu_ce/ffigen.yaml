@@ -28,4 +28,4 @@ comments:
   style: any
   length: full
 ffi-native:
-    asset-id: 'package:lib/src/bindings.dart' # (optional)
+    asset-id: 'package:unnu_ce/src/bindings.dart' # (optional)

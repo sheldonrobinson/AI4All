@@ -227,66 +227,85 @@ class _UnnuSpeechWidgetState extends State<UnnuSpeechWidget> {
                         ),
                       ),
                     ),
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(2.0),
+                        alignment: Alignment.bottomCenter,
+                        height: 30,
+                        width: MediaQuery.sizeOf(context).width,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 30,
+                              alignment: Alignment.topLeft,
+                              color: colorScheme.surface,
+                              child: InteractionChoice(
+                                // interactive: widget.settings,
+                                hasMicrophone: widget.settings.hasMicrophone,
+                                tooltips: widget.tooltips,
+                                onChanged: _onModeChanged,
+                                initialMode: _mode,
+                              ),
+                            ),
+                            widget.label != null
+                                ? Expanded(child: widget.label ?? Spacer())
+                                : Spacer(),
+                            Container(
+                              width: 30,
+                              height: 30,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(1),
+                                ),
+                                border: Border.all(width: 1.0),
+                                color: colorScheme.surface,
+                              ),
+                              child: Padding(
+                                padding: EdgeInsets.all(1),
+                                child: Center(
+                                  child: FloatingActionButton(
+                                    onPressed:
+                                        widget.settings.hasSpeaker
+                                            ? () => _toggleMute()
+                                            : null,
+                                    tooltip:
+                                        widget.settings.hasSpeaker
+                                            ? mute
+                                                ? widget.tooltips['unmute'] ??
+                                                    'Unmute'
+                                                : widget.tooltips['mute'] ??
+                                                    'Mute'
+                                            : widget.tooltips['textOnly'] ??
+                                                'Text Only',
+                                    child:
+                                        widget.settings.hasSpeaker
+                                            ? mute
+                                                ? const Icon(
+                                                  Icons.voice_over_off,
+                                                  size: 24,
+                                                )
+                                                : const Icon(
+                                                  Icons.record_voice_over,
+                                                  size: 24,
+                                                )
+                                            : const Icon(
+                                              Icons.voice_over_off,
+                                              size: 24,
+                                            ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  width: 30,
-                  alignment: Alignment.topLeft,
-                  color: colorScheme.surface,
-                  child: InteractionChoice(
-                    // interactive: widget.settings,
-                    hasMicrophone: widget.settings.hasMicrophone,
-                    tooltips: widget.tooltips,
-                    onChanged: _onModeChanged,
-                    initialMode: _mode,
-                  ),
-                ),
-                widget.label != null
-                    ? Expanded(child: widget.label ?? Spacer())
-                    : Spacer(),
-                Container(
-                  width: 30,
-                  height: 30,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.all(Radius.circular(1)),
-                    border: Border.all(width: 1.0),
-                    color: colorScheme.surface,
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.all(1),
-                    child: Center(
-                      child: FloatingActionButton(
-                        onPressed:
-                            widget.settings.hasSpeaker
-                                ? () => _toggleMute()
-                                : null,
-                        tooltip:
-                            widget.settings.hasSpeaker
-                                ? mute
-                                    ? widget.tooltips['unmute'] ?? 'Unmute'
-                                    : widget.tooltips['mute'] ?? 'Mute'
-                                : widget.tooltips['textOnly'] ?? 'Text Only',
-                        child:
-                            widget.settings.hasSpeaker
-                                ? mute
-                                    ? const Icon(Icons.voice_over_off, size: 24)
-                                    : const Icon(
-                                      Icons.record_voice_over,
-                                      size: 24,
-                                    )
-                                : const Icon(Icons.voice_over_off, size: 24),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
             ),
           ],
         )

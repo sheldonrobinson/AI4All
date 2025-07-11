@@ -17,10 +17,12 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
 
-version: 1.0.0
+version: 1.1.0+1
 
 environment:
-  sdk: '>=3.7.2 <4.0.0'
+  sdk: '>=3.7.0 < 4.0.0'
+  flutter: '>=3.27.0'
+  
 dependencies:
   flutter:
     sdk: flutter
@@ -28,12 +30,12 @@ dependencies:
     sdk: flutter
   intl: ^0.20.2
   unnu_ai_model: ^0.0.1
-  langchain: ^0.7.8
+  langchain: ^0.8.0+1
   unnu_shared: ^0.0.1
   unnu_widgets: ^0.0.1
   unnu_speech: ^0.0.1
   unnu_sap: ^0.0.1
-  flutter_chat_core: ^2.6.2
+  flutter_chat_core: ^2.8.0
   permission_handler: ^12.0.1
   llamacpp: ^1.0.0
   sqflite: ^2.4.2
@@ -46,7 +48,7 @@ dependencies:
   stream_transform: ^2.1.1
   shared_preferences: ^2.5.3
   june: ^1.0.0+1
-  file_picker: ^10.2.0
+  file_picker: ^10.3.3
   path: ^1.9.1
   path_provider: ^2.1.5
   si_accordion: ^0.1.0
@@ -54,21 +56,24 @@ dependencies:
   feedback_gitlab: ^3.0.0
   asset_cache: ^2.2.0
   readmore_expandable_text: ^0.0.3
-  flutter_native_splash: ^2.4.6
+  flutter_native_splash: ^2.4.7
   timeago: ^3.7.1
   quiver: ^3.2.2
   large_file_handler: ^0.3.1
   flutter_adaptive_scaffold: ^0.3.3+1
-  package_info_plus: ^8.3.0
+  package_info_plus: ^9.0.0
   disclosure: ^2.2.0
-  gpt_markdown: ^1.1.2
-  byte_converter: ^2.0.0
+  gpt_markdown: ^1.1.4
+  byte_converter: ^2.2.0
+  flutter_memory_info: ^0.0.3
+  motion_toast: ^2.14.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
+  very_good_analysis: ^10.0.0
       
 flutter:
   generate: true # Add this line

@@ -2,17 +2,20 @@
 # installed. You should not increase this version, as doing so will cause
 # the plugin to fail to compile for some customers of the plugin.
 cmake_minimum_required(VERSION 3.10)
+
 project(unnu_sap VERSION 0.0.1 LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+cmake_policy(SET CMP0079 NEW)
+
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
- 	set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "Needed to avoid cmake_install.cmake build issues." FORCE) 
-# 	if(NOT DEFINED CMAKE_INSTALL_BINDIR)
-# 		set(CMAKE_INSTALL_BINDIR ${CMAKE_BINARY_DIR}/runner/$<CONFIG>)
-# 	endif()
+	set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "Needed to avoid cmake_install.cmake build issues." FORCE) 
+	if(NOT DEFINED CMAKE_INSTALL_BINDIR)
+		set(CMAKE_INSTALL_BINDIR ${CMAKE_BINARY_DIR}/runner/$<CONFIG>)
+	endif()
 endif()
 
 find_package(OpenMP REQUIRED)
@@ -21,8 +24,16 @@ find_package(Threads REQUIRED)
 include(gitversion/cmake.cmake)
 
 ################# libfvad
+FetchContent_Declare(
+  libfvad
+  GIT_REPOSITORY https://github.com/dpirch/libfvad.git
+  GIT_TAG        532ab666c20d3cfda38bca63abbb0f152706c369
+  GIT_SHALLOW    TRUE
+  
+  EXCLUDE_FROM_ALL
+)
 set(ENABLE_EXAMPLES OFF CACHE BOOL "build the fvadwav example program; requires libsndfile" FORCE)
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/fvad" "${CMAKE_CURRENT_BINARY_DIR}/fvad" EXCLUDE_FROM_ALL)
+FetchContent_MakeAvailable(libfvad)
 
 ######################### miniaudio
 # Options
@@ -60,6 +71,7 @@ target_include_directories(unnu_asr INTERFACE
 
 set_target_properties(unnu_asr PROPERTIES
   BUILD_WITH_INSTALL_RPATH TRUE
+  LINKER_LANGUAGE CXX
   PUBLIC_HEADER unnu_asr.h
   OUTPUT_NAME "unnu_asr"
   POSITION_INDEPENDENT_CODE True
@@ -78,6 +90,7 @@ target_include_directories(unnu_tts INTERFACE
 
 set_target_properties(unnu_tts PROPERTIES
   BUILD_WITH_INSTALL_RPATH TRUE
+  LINKER_LANGUAGE CXX
   PUBLIC_HEADER unnu_tts.h
   OUTPUT_NAME "unnu_tts"
   POSITION_INDEPENDENT_CODE True
@@ -85,6 +98,13 @@ set_target_properties(unnu_tts PROPERTIES
 
 target_compile_definitions(unnu_asr PUBLIC DART_SHARED_LIB)
 target_compile_definitions(unnu_tts PUBLIC DART_SHARED_LIB)
+
+if(MSVC)
+	set_property(TARGET unnu_asr PROPERTY
+		MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+	set_property(TARGET unnu_tts PROPERTY
+		MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+endif()
 
 set(LIBRARY_DEPS osaudio sherpa-onnx-c-api)
 

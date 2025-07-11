@@ -26,8 +26,6 @@ final DynamicLibrary _dylib = () {
   throw UnsupportedError('Unknown platform: ${Platform.operatingSystem}');
 }();
 
-// final UnnuTtsBindings unnuTtsBindings = UnnuTtsBindings(_dylib);
-
 class UnnuTts {
   static DynamicLibrary? _lib;
 
@@ -41,6 +39,8 @@ class UnnuTts {
   /// - On macOS or iOS, it loads `unnu_tts.framework/unnu_tts`.
   ///
   /// Throws a [Exception] if the platform is unsupported.
+
+ // static final UnnuTtsBindings unnutts = UnnuTtsBindings(_lib ??= _dylib);
 
   static void init() {
     _lib ??= _dylib;
@@ -82,17 +82,12 @@ class UnnuTts {
 
   static Future<void> configure(
       OfflineTtsConfig config) async {
-    if (kDebugMode) {
-      print('UnnuTts.configure()');
-    }
     init();
     return await Isolate.run(()=>_configure(config));
   }
 
   static void _configure(
       OfflineTtsConfig config){
-
-
 
     final c = ffi.calloc<SherpaOnnxOfflineTtsConfig>();
     c.ref.model.vits.model =
@@ -148,13 +143,8 @@ class UnnuTts {
     c.ref.max_num_sentences = config.maxNumSenetences;
     c.ref.rule_fars = config.ruleFars.toNativeUtf8().cast<Char>();
     c.ref.silence_scale = config.silenceScale;
-    if(kDebugMode){
-      print('UnnuTts.configure -> unnu_tts_init');
-    }
+
     unnu_tts_init(c.ref);
-    if(kDebugMode){
-      print('UnnuTts.configure <- unnu_tts_init');
-    }
 
     ffi.calloc.free(c.ref.rule_fars);
     ffi.calloc.free(c.ref.rule_fsts);
@@ -180,15 +170,9 @@ class UnnuTts {
     ffi.calloc.free(c.ref.model.vits.tokens);
     ffi.calloc.free(c.ref.model.vits.lexicon);
     ffi.calloc.free(c.ref.model.vits.model);
-    if(kDebugMode){
-      print('UnnuTts.configure:>');
-    }
   }
 
   void speak(String text, int sid, double speed) {
-    if (kDebugMode) {
-      print('UnnuTts.speak: sid: $sid, speed: $speed, text: $text');
-    }
     final words = text.toNativeUtf8().cast<Char>();
     try {
       unnu_tts(words, sid, speed);
@@ -201,19 +185,13 @@ class UnnuTts {
     try {
       _speakingEventController.add(speaking.ref.value);
     } on Error catch (e, s) {
-      if (kDebugMode) {
-        print("Failed on speaking: ${e.toString()}");
         debugPrintStack(stackTrace: s);
-      }
     } finally {
       unnu_tts_free_bool(speaking);
     }
   }
 
   static void _set_speaking_event_callback() {
-    if (kDebugMode) {
-      print('_set_speaking_event_callback()');
-    }
     if (_nativeSpeakingEventCallable == null) {
       _nativeSpeakingEventCallable =
           NativeCallable<SpeakingActivityCallbackFunction>.listener(
@@ -224,9 +202,6 @@ class UnnuTts {
 
       unnu_tts_set_speaking_callback(
           _nativeSpeakingEventCallable!.nativeFunction);
-    }
-    if (kDebugMode) {
-      print('_set_speaking_event_callback:>');
     }
   }
 
@@ -249,16 +224,10 @@ class UnnuTts {
   bool get speaking => unnu_tts_is_speaking();
 
   static void destroy() {
-    if (kDebugMode) {
-      print('UnnuTts.destroy()');
-    }
     if (_nativeSpeakingEventCallable != null) {
       _nativeSpeakingEventCallable!.close();
       _nativeSpeakingEventCallable = null;
     }
     unnu_tts_destroy();
-    if (kDebugMode) {
-      print('UnnuTts.destroy:>');
-    }
   }
 }

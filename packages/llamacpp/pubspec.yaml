@@ -1,0 +1,46 @@
+name: llamacpp
+description: "llamacpp is a dart implementation of llama.cpp. It is a revision of lcpp from mobiile artificial intelligence distribution (maid)."
+version: 1.1.0
+homepage: "https://github.com/sheldonrobinson/llamacpp"
+
+topics:
+  - ai
+  - nlp
+  - llm
+
+resolution: workspace
+
+environment:
+  sdk: '>=3.7.0 < 4.0.0'
+  flutter: '>=3.27.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  ffi: ^2.1.4
+  path: ^1.9.1
+  langchain_core: ^0.4.0+1
+
+dev_dependencies:
+  ffigen: ^19.1.0
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  very_good_analysis: ^10.0.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        ffiPlugin: true
+      linux:
+        ffiPlugin: true
+      windows:
+        ffiPlugin: true
+      macos:
+        ffiPlugin: true
+      ios:
+        ffiPlugin: true
+
+false_secrets:
+  - 'src/llamacpp/**'

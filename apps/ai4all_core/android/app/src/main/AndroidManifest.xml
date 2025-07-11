@@ -9,7 +9,7 @@
     <!-- Permissions options for the `manage external storage` group -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <application
-        android:label="mobile"
+        android:label="AI4All Core"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <activity

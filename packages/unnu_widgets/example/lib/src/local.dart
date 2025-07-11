@@ -1,3 +1,4 @@
+
 import 'dart:math';
 
 import 'package:dio/dio.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_chat_core/flutter_chat_core.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
+import 'package:flutter_link_previewer/flutter_link_previewer.dart';
 import 'package:flyer_chat_file_message/flyer_chat_file_message.dart';
 import 'package:flyer_chat_image_message/flyer_chat_image_message.dart';
 import 'package:flyer_chat_system_message/flyer_chat_system_message.dart';
@@ -82,8 +84,7 @@ class LocalState extends State<Local> {
               vertical: 10,
             ),
             decoration: BoxDecoration(
-              color:
-              theme.brightness == Brightness.dark
+              color: theme.brightness == Brightness.dark
                   ? ChatColors.dark().surfaceContainer
                   : ChatColors.light().surfaceContainer,
               borderRadius: const BorderRadius.all(Radius.circular(12)),
@@ -106,8 +107,7 @@ class LocalState extends State<Local> {
             required bool isSentByMe,
             MessageGroupStatus? groupStatus,
           }) => FlyerChatSystemMessage(message: message, index: index),
-          composerBuilder:
-              (context) => Composer(
+          composerBuilder: (context) => Composer(
             topWidget: ComposerActionBar(
               buttons: [
                 ComposerActionButton(
@@ -129,6 +129,25 @@ class LocalState extends State<Local> {
               ],
             ),
           ),
+          linkPreviewBuilder: (context, message, isSentByMe) {
+            // It's up to you to (optionally) implement the logic to avoid every
+            // message to refetch the preview data
+            //
+            // For example, you can use a metadata to indicate if the preview
+            // was already fetched (or null).
+            //
+            // Additionally, you can cache the data to avoid re-fetching across app restarts.
+            return LinkPreview(
+              text: message.text,
+              linkPreviewData: message.linkPreviewData,
+              onLinkPreviewDataFetched: (linkPreviewData) {
+                _chatController.updateMessage(
+                  message,
+                  message.copyWith(linkPreviewData: linkPreviewData),
+                );
+              },
+            );
+          },
           textMessageBuilder:
               (
               context,
@@ -145,16 +164,17 @@ class LocalState extends State<Local> {
             required bool isSentByMe,
             MessageGroupStatus? groupStatus,
           }) => FlyerChatFileMessage(message: message, index: index),
-          chatMessageBuilder: (
+          chatMessageBuilder:
+              (
               context,
               message,
               index,
               animation,
               child, {
-                bool? isRemoved,
-                required bool isSentByMe,
-                MessageGroupStatus? groupStatus,
-              }) {
+            bool? isRemoved,
+            required bool isSentByMe,
+            MessageGroupStatus? groupStatus,
+          }) {
             final isSystemMessage = message.authorId == 'system';
             final isFirstInGroup = groupStatus?.isFirst ?? true;
             final isLastInGroup = groupStatus?.isLast ?? true;
@@ -183,8 +203,7 @@ class LocalState extends State<Local> {
               animation: animation,
               isRemoved: isRemoved,
               groupStatus: groupStatus,
-              topWidget:
-              shouldShowUsername
+              topWidget: shouldShowUsername
                   ? Padding(
                 padding: EdgeInsets.only(
                   bottom: 4,
@@ -194,14 +213,12 @@ class LocalState extends State<Local> {
                 child: Username(userId: message.authorId),
               )
                   : null,
-              leadingWidget:
-              !isCurrentUser
+              leadingWidget: !isCurrentUser
                   ? avatar
                   : isSystemMessage
                   ? null
                   : const SizedBox(width: 40),
-              trailingWidget:
-              isCurrentUser
+              trailingWidget: isCurrentUser
                   ? avatar
                   : isSystemMessage
                   ? null
@@ -210,8 +227,7 @@ class LocalState extends State<Local> {
               (message is SystemMessage)
                   ? Alignment.center
                   : Alignment.centerLeft,
-              receivedMessageAlignment:
-              (message is SystemMessage)
+              receivedMessageAlignment: (message is SystemMessage)
                   ? AlignmentDirectional.center
                   : AlignmentDirectional.centerStart,
               horizontalPadding: (message is SystemMessage) ? 0 : 8,
@@ -222,8 +238,7 @@ class LocalState extends State<Local> {
         chatController: _chatController,
         currentUserId: _currentUser.id,
         decoration: BoxDecoration(
-          color:
-          theme.brightness == Brightness.dark
+          color: theme.brightness == Brightness.dark
               ? ChatColors.dark().surface
               : ChatColors.light().surface,
           image: DecorationImage(
@@ -240,15 +255,13 @@ class LocalState extends State<Local> {
         onAttachmentTap: _handleAttachmentTap,
         onMessageLongPress: _handleMessageLongPress,
         onMessageSend: _addItem,
-        resolveUser:
-            (id) => Future.value(switch (id) {
+        resolveUser: (id) => Future.value(switch (id) {
           'me' => _currentUser,
           'recipient' => _recipient,
           'system' => _systemUser,
           _ => null,
         }),
-        theme:
-        theme.brightness == Brightness.dark
+        theme: theme.brightness == Brightness.dark
             ? ChatTheme.dark()
             : ChatTheme.light(),
       ),
@@ -256,6 +269,7 @@ class LocalState extends State<Local> {
   }
 
   void _handleMessageLongPress(
+      BuildContext context,
       Message message, {
         int? index,
         LongPressStartDetails? details,
@@ -427,8 +441,7 @@ class LocalState extends State<Local> {
                       source: filePath,
                       name: fileName,
                       size: fileSize,
-                      mimeType:
-                      file.extension != null
+                      mimeType: file.extension != null
                           ? 'application/${file.extension}'
                           : null,
                     );

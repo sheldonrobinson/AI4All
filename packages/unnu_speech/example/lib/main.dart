@@ -9,7 +9,7 @@ import 'package:unnu_sap/unnu_asr.dart';
 import 'package:unnu_sap/unnu_tts.dart';
 
 Future<void> initializeTTS() async {
-  UnnuTts.configure(await getOfflineTtsConfig(), 3000, 100);
+  UnnuTts.configure(await getOfflineTtsConfig());
 }
 
 Future<void> initializeASR() async {
@@ -18,7 +18,7 @@ Future<void> initializeASR() async {
   UnnuAsr.configure(
     getOnlineRecognizerConfig(config),
     await getVadModelConfig(),
-    OnlinePunctuationConfig(cdesc: punctCfg),
+    OnlinePunctuationConfig(model: punctCfg),
   );
 }
 
@@ -99,7 +99,7 @@ class _MyHomePageState extends State<MyHomePage> {
           children: [
             SizedBox(height: 110, child: UnnuSpeechWidget(
               noise: UnnuAsr.instance.soundEvents,
-              eavesdropping: UnnuAsr.instance.nowListening,
+              eavesdropping: UnnuAsr.instance.nowListening, settings: (hasMicrophone: false, hasSpeaker: false), tooltips: {},
             )),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -107,25 +107,13 @@ class _MyHomePageState extends State<MyHomePage> {
               children: [
                 OutlinedButton(
                   onPressed: () {
-                    UnnuAsr.onStartStream();
-                  },
-                  child: const Text('Resume'),
-                ),
-                OutlinedButton(
-                  onPressed: () {
-                    UnnuAsr.stop();
-                  },
-                  child: const Text('Pause'),
-                ),
-                OutlinedButton(
-                  onPressed: () {
-                    UnnuTts.speak(
+                    UnnuTts.instance.speak(
                       'Hello I am Deep Thought, a supercomputer created by a race of hyper-intelligent pan-dimensional beings that was programmed to calculate the answer to the Ultimate Question of Life, the Universe, and Everything.',
                       0,
                       1.0,
                     );
                     sleep(const Duration(milliseconds: 1));
-                    UnnuTts.speak(
+                    UnnuTts.instance.speak(
                       '42 (or forty-two) is the Answer to the Ultimate Question of Life, the Universe and Everything.',
                       1,
                       1.0,

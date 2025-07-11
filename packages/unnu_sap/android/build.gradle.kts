@@ -12,7 +12,7 @@ buildscript {
 
     dependencies {
         // The Android Gradle Plugin knows how to build native code with the NDK.
-        classpath("com.android.tools.build:gradle:8.9.0")
+        classpath("com.android.tools.build:gradle:8.11.1")
     }
 }
 
@@ -33,7 +33,7 @@ android {
     
     // Bumping the plugin compileSdk version requires all clients of this plugin
     // to bump the version in their app.
-    compileSdk = 35
+    compileSdk =  android.compileSdk ?: 35
 
     // Use the NDK version
     // declared in /android/app/build.gradle file of the Flutter project.
@@ -88,10 +88,13 @@ android {
 
     defaultConfig {
 	    ndk {
+
             abiFilters += listOf("arm64-v8a")
         }
+
+
 	
         minSdk = 32
-	targetSdk = 35
+	    targetSdk = 35
     }
 }

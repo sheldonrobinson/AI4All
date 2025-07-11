@@ -7,18 +7,195 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_core/flutter_chat_core.dart' as chat_core;
 import 'package:flutter_chat_ui/flutter_chat_ui.dart' as chat_ui;
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:flyer_chat_file_message/flyer_chat_file_message.dart';
 import 'package:flyer_chat_image_message/flyer_chat_image_message.dart';
 import 'package:flyer_chat_system_message/flyer_chat_system_message.dart';
 import 'package:flyer_chat_text_message/flyer_chat_text_message.dart';
 import 'package:flyer_chat_text_stream_message/flyer_chat_text_stream_message.dart';
+import 'package:flutter_popup_card/flutter_popup_card.dart';
+import 'package:google_nav_bar/google_nav_bar.dart';
+import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:june/june.dart';
+import 'package:langchain/langchain.dart';
 import 'package:langchain_core/chat_models.dart' as cm;
+import 'package:motion_toast/motion_toast.dart';
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:super_clipboard/super_clipboard.dart';
+import 'package:unnu_ai_model/unnu_ai_model.dart';
 import 'package:unnu_shared/unnu_shared.dart';
 
 import '../common/config.dart';
 import '../common/types.dart';
 import '../components/unnu_stream_manager.dart';
+import '../components/message_action_bar.dart';
+
+class SendIcon extends StatelessWidget {
+  const SendIcon({
+    super.key,
+    required this.state,
+    required this.nonblocking,
+    required this.tooltips,
+  });
+  final SendIconState state;
+  final bool nonblocking;
+  final Map<String, String> tooltips;
+  @override
+  Widget build(BuildContext context) {
+    return state != SendIconState.idle
+        ? Container(
+          width: 44,
+          height: 44,
+          alignment: Alignment.center,
+          child: Tooltip(
+            message: switch (state) {
+              SendIconState.idle => tooltips['send'] ?? 'Send',
+              SendIconState.busy => tooltips['cancel'] ?? 'Cancel',
+              SendIconState.loading => tooltips['busy'] ?? 'Busy',
+              SendIconState.transcribing => tooltips['send'] ?? 'Send',
+            },
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SpinKitDualRing(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                Icon(
+                  switch (state) {
+                    SendIconState.idle => Icons.send,
+                    SendIconState.busy => Icons.stop_circle,
+                    SendIconState.loading => Icons.hourglass_empty,
+                    SendIconState.transcribing => Icons.chat,
+                  },
+                  color: nonblocking ? Colors.red : Colors.grey,
+                  size: 32,
+                ),
+              ],
+            ),
+          ),
+        )
+        : Tooltip(
+          message: tooltips['send'] ?? 'Send',
+          child: Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: BoxBorder.all(style: BorderStyle.none),
+            ),
+            child: const Icon(Icons.send),
+          ),
+        );
+  }
+}
+
+class UnnuActionBar extends StatelessWidget {
+  UnnuActionBar({super.key, required this.tooltips});
+  final Map<String, String> tooltips;
+  final ChatSessionController _chatSessionController = June.getState(
+    ChatSessionController.new,
+  );
+  final ChatWidgetController _widgetController = June.getState(
+    ChatWidgetController.new,
+  );
+  @override
+  Widget build(BuildContext context) {
+    return MessageActionBar(
+      buttons: <MessageActionButton>[
+        MessageActionButton(
+          icon: Icons.cleaning_services, //Icons.delete_sweep,
+          title: tooltips['clearAll'] ?? 'Clear All',
+          onPressed: () {
+            final chatSessionController = June.getState(
+              ChatSessionController.new,
+            );
+            final streamingMessageController = June.getState(
+              StreamingMessageController.new,
+            );
+            chatSessionController.clearMessages();
+            streamingMessageController.clearMessages();
+          },
+          destructive: true,
+          nature: ButtonNature.Holdable,
+          variant: ButtonVariant.Filled,
+        ),
+        MessageActionButton(
+          icon: Icons.copy_all, //Icons.delete_sweep,
+          title: tooltips['copy'] ?? 'Copy',
+          onPressed: () async {
+            final clipboard = SystemClipboard.instance;
+            if (clipboard != null) {
+              final chatSessionController = June.getState(
+                ChatSessionController.new,
+              );
+              final messages = await chatSessionController.asMarkdown();
+              final item = DataWriterItem()..add(Formats.plainText(messages));
+              await clipboard.write([item]);
+              if (context.mounted) {
+                MotionToast.success(
+                  description: Text(tooltips['copied'] ?? 'Copied'),
+                ).show(context);
+              }
+            }
+          },
+          type: ButtonType.IconOnly,
+          variant: ButtonVariant.Outlined,
+        ),
+        MessageActionButton(
+          icon: Icons.share, //Icons.delete_sweep,
+          title: tooltips['share'] ?? 'Share',
+          onPressed: () async {
+            final chatSessionController = June.getState(
+              ChatSessionController.new,
+            );
+            final messages = await chatSessionController.asMarkdown();
+            if (messages.isNotEmpty) {
+              final params = ShareParams(
+                text: messages,
+                downloadFallbackEnabled: false,
+              );
+              final result = await SharePlus.instance.share(params);
+              if (context.mounted) {
+                if (result.status == ShareResultStatus.success) {
+                  MotionToast.success(
+                    description: Text(tooltips['shared'] ?? 'Shared'),
+                  ).show(context);
+                }
+              }
+            }
+          },
+          type: ButtonType.IconOnly,
+          variant: ButtonVariant.Outlined,
+        ),
+        if (_widgetController.changeNotifier.search)
+          MessageActionButton(
+            enabled: _chatSessionController.chatSessionVM.webSearch,
+            nature: ButtonNature.Action,
+            icon: Icons.apps,
+            secondaryIcon: Icons.apps_outage,
+            title: tooltips['Search'] ?? 'Search',
+            onPressed: () {
+              final chatSessionController = June.getState(
+                ChatSessionController.new,
+              );
+              final chatWidgetController = June.getState(
+                ChatWidgetController.new,
+              );
+              chatSessionController.chatSessionVM = chatSessionController
+                  .chatSessionVM
+                  .copyWith(
+                    webSearch: !chatSessionController.chatSessionVM.webSearch,
+                  );
+              chatWidgetController.setState();
+            },
+          ),
+      ],
+    );
+  }
+}
 
 class UnnuChatWidget extends StatefulWidget {
   const UnnuChatWidget({
@@ -26,55 +203,266 @@ class UnnuChatWidget extends StatefulWidget {
     required this.AssistantTheme,
     this.transcriptions,
     required this.tooltips,
-    required this.onCancelModelResponse,
+    this.onCancelModelResponse,
+    this.onRetrieve,
+    required this.mimetypes,
   });
 
   final Stream<StreamingTranscript>? transcriptions;
   final Map<String, String> tooltips;
 
   final TextTheme AssistantTheme;
-  final void Function() onCancelModelResponse;
+  final void Function()? onCancelModelResponse;
+  final Future<List<Document>> Function(String)? onRetrieve;
+  final List<String> mimetypes;
 
   @override
   State<UnnuChatWidget> createState() => _UnnuChatWidgetState();
 }
 
 const Duration _kChunkAnimationDuration = Durations.medium1;
+typedef AttachmentSubscription =
+    ({bool subscribed, StreamSubscription<AttachmentUpdate> subscription});
 
 class _UnnuChatWidgetState extends State<UnnuChatWidget> {
   final _aiMsgId = IdTracker();
   final _strmTextMsgId = IdTracker();
   final _textMsgId = IdTracker();
   final _crossCache = CrossCache();
+  final _userCache = chat_core.UserCache();
   final _scrollController = ScrollController();
 
   final _streamIdToMessageFragments = <String, List<StreamingTranscript>>{};
+
+  final StreamingMessageController streamingMessageController = June.getState(
+    StreamingMessageController.new,
+  );
+  final ChatWidgetController widgetController = June.getState(
+    ChatWidgetController.new,
+  );
+  final ChatSessionController sessionController = June.getState(
+    ChatSessionController.new,
+  );
+  final ChatSettingsController settingsController = June.getState(
+    ChatSettingsController.new,
+  );
 
   // Store scroll state per stream ID
   final Map<String, double> _initialScrollExtents = {};
   final Map<String, bool> _reachedTargetScroll = {};
 
   final avatars = <String, String>{};
-  void _loadAvatars() async {
+  Future<void> _loadAvatars() async {
     avatars[Avatars.User.id] = await copyAssetFile(Avatars.User.imageSource);
     avatars[Avatars.Assistant.id] = await copyAssetFile(
       Avatars.Assistant.imageSource,
     );
   }
 
+  final currentUser = chat_core.User(
+    id: Avatars.User.id,
+    imageSource: Avatars.User.imageSource,
+    name: Avatars.User.name,
+  );
+  final assistant = chat_core.User(
+    id: Avatars.Assistant.id,
+    imageSource: Avatars.Assistant.imageSource,
+    name: Avatars.Assistant.name,
+  );
+
+  final List<AttachmentSubscription> _attachments = <AttachmentSubscription>[];
 
   @override
   void initState() {
     super.initState();
+    _loadAvatars().then((value) {
+      if (kDebugMode) {
+        print('avatars[Avatars.User.id] = ${avatars[Avatars.User.id]}');
+        print(
+          'avatars[Avatars.Assistant.id] = ${avatars[Avatars.Assistant.id]}',
+        );
+      }
 
-    _loadAvatars();
-    final streamManager = June.getState(() => StreamingMessageController());
-    streamManager.resubscribe();
+      _userCache.updateUser(
+        Avatars.User.id,
+        chat_core.User(
+          id: Avatars.User.id,
+          imageSource:
+              (avatars[Avatars.User.id] ?? '').isNotEmpty
+                  ? Uri.file(
+                    avatars[Avatars.User.id]!,
+                    windows: Platform.isWindows,
+                  ).toString()
+                  : null,
+          name: Avatars.User.Name,
+        ),
+      );
+
+      _userCache.updateUser(
+        Avatars.Assistant.id,
+        chat_core.User(
+          id: Avatars.Assistant.id,
+          imageSource:
+              (avatars[Avatars.Assistant.id] ?? '').isNotEmpty
+                  ? Uri.file(
+                    avatars[Avatars.Assistant.id]!,
+                    windows: Platform.isWindows,
+                  ).toString()
+                  : null,
+          name: Avatars.Assistant.Name,
+        ),
+      );
+      _userCache.updateUser(
+        'system',
+        chat_core.User(id: 'system', name: 'System'),
+      );
+      _userCache.updateUser(
+        'application',
+        chat_core.User(id: 'application', name: 'Application'),
+      );
+    });
+
+    streamingMessageController.resubscribe();
 
     if (widget.transcriptions != null) {
-      widget.transcriptions!.listen((data) {
-        _handleStreamingTranscript(data);
-      });
+      widget.transcriptions!.listen(_handleStreamingTranscript);
+    }
+
+    if (widget.mimetypes.isNotEmpty &&
+        !_attachments.any(
+          (element) => element.subscribed,
+        )) {
+      _attachments.add((
+        subscribed: true,
+        subscription: AttachmentsMonitor.updates.listen(
+          (event) async {
+            switch (event.status) {
+              case AttachmentStatus.NEW:
+                if (context.mounted) {
+                  MotionToast.success(
+                    description: const Text('Adding ...'),
+                  ).show(context);
+                }
+                widgetController.update(
+                  status: SendIconState.loading,
+                  nonblocking: false,
+                );
+              case AttachmentStatus.PARSE:
+                if (context.mounted) {
+                  MotionToast.success(
+                    description: const Text('Parsing ...'),
+                  ).show(context);
+                }
+              case AttachmentStatus.EMBED:
+                if (context.mounted) {
+                  MotionToast.success(
+                    description: const Text('Embedding ...'),
+                  ).show(context);
+                }
+              case AttachmentStatus.PROCESSED:
+                final file = File(
+                  event.attachment.uri.toFilePath(
+                    windows: Platform.isWindows,
+                  ),
+                );
+                if (file.existsSync()) {
+                  await streamingMessageController.messagingModel.chatController
+                      .insertMessage(
+                        chat_core.Message.file(
+                          source: event.attachment.uri.toString(),
+                          name: p.basename(
+                            event.attachment.uri.toFilePath(
+                              windows: Platform.isWindows,
+                            ),
+                          ),
+                          id: ChatSettingsController.uuid.v7(),
+                          createdAt: DateTime.now().toUtc(),
+                          size: file.lengthSync(),
+                          authorId: 'application',
+                          metadata: <String, dynamic>{
+                            'session.id': event.attachment.sessionId,
+                            'status': event.status.name,
+                          },
+                        ),
+                      );
+                }
+                if (context.mounted) {
+                  MotionToast.success(
+                    description: const Text('Done'),
+                  ).show(context);
+                }
+                widgetController.update(
+                  status: SendIconState.idle,
+                  nonblocking: false,
+                );
+              case AttachmentStatus.COMPLETED:
+                if (context.mounted) {
+                  MotionToast.success(
+                    description: const Text('Completed'),
+                  ).show(context);
+                }
+                widgetController.update(
+                  status: SendIconState.idle,
+                  nonblocking: false,
+                );
+              case AttachmentStatus.REMOVE:
+                final fileName = event.attachment.uri.toFilePath(
+                  windows: Platform.isWindows,
+                );
+                await streamingMessageController.messagingModel.chatController
+                    .insertMessage(
+                      chat_core.Message.system(
+                        id: ChatSettingsController.uuid.v7(),
+                        createdAt: DateTime.now().toUtc(),
+                        authorId: 'application',
+                        metadata: <String, dynamic>{
+                          'session.id': event.attachment.sessionId,
+                          'status': event.status.name,
+                        },
+                        text: 'Removed $fileName',
+                      ),
+                    );
+                if (context.mounted) {
+                  MotionToast.success(
+                    toastDuration: const Duration(seconds: 15),
+                    description: const Text('Removed'),
+                  ).show(context);
+                }
+              case AttachmentStatus.NOT_FOUND:
+                if (context.mounted) {
+                  MotionToast.error(
+                    description: const Text('Not found'),
+                  ).show(context);
+                }
+              case AttachmentStatus.OPERATION_NOT_ALLOWED:
+                if (context.mounted) {
+                  MotionToast.error(
+                    description: const Text('Operation not allowed'),
+                  ).show(context);
+                }
+                widgetController.update(
+                  status: SendIconState.idle,
+                  nonblocking: false,
+                );
+              case AttachmentStatus.EXCEEDS_QUOTA:
+                if (context.mounted) {
+                  MotionToast.error(
+                    description: const Text('Exceeded quota'),
+                  ).show(context);
+                }
+                widgetController.update(
+                  status: SendIconState.idle,
+                  nonblocking: false,
+                );
+              case AttachmentStatus.NOOP:
+                widgetController.update(
+                  status: SendIconState.idle,
+                  nonblocking: false,
+                );
+            }
+          },
+        ),
+      ));
     }
 
     if (kDebugMode) {
@@ -84,196 +472,256 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (kDebugMode) {
-      print('avatars[Avatars.User.id] = ${avatars[Avatars.User.id]}');
-      print('avatars[Avatars.Assistant.id] = ${avatars[Avatars.Assistant.id]}');
-    }
+    final theme = Theme.of(context);
 
-    final currentUser = chat_core.User(
-      id: Avatars.User.id,
-      imageSource:
-          avatars[Avatars.User.id] != null
-              ? Uri.file(
-                avatars[Avatars.User.id]!,
-                windows: Platform.isWindows,
-              ).toString()
-              : Avatars.User.imageSource,
-      name: Avatars.User.name,
-    );
-    final assistant = chat_core.User(
-      id: Avatars.Assistant.id,
-      imageSource:
-          avatars[Avatars.Assistant.id] != null
-              ? Uri.file(
-                avatars[Avatars.Assistant.id]!,
-                windows: Platform.isWindows,
-              ).toString()
-              : Avatars.Assistant.imageSource,
-      name: Avatars.Assistant.name,
-    );
+    return ChangeNotifierProvider.value(
+      value: streamingMessageController.messagingModel.streamManager,
 
-    return JuneBuilder(
-      () => StreamingMessageController(),
-      builder: (streamingMessageController) {
-        final chatController =
-            streamingMessageController.messagingModel.chatController;
-        final theme = Theme.of(context);
-        return ChangeNotifierProvider.value(
-          value: streamingMessageController.messagingModel.streamManager,
-          child: chat_ui.Chat(
-            builders: chat_core.Builders(
-              chatAnimatedListBuilder:
-                  (context, itemBuilder) => chat_ui.ChatAnimatedList(
-                    scrollController: _scrollController,
-                    itemBuilder: itemBuilder,
-                    shouldScrollToEndWhenAtBottom: false,
-                    reversed: true,
-                  ),
-              composerBuilder:
-                  (context) => JuneBuilder(
-                    () => ChatWidgetController(),
-                    builder:
-                        (controller) => chat_ui.Composer(
-                          topWidget: controller.actionBar(widget.tooltips),
-                          hintText:
-                              widget.tooltips['chatHint'] ??
-                              'Type a message ...',
-                          sendIcon: controller.sendIcon(
-                            context,
-                            widget.tooltips,
-                          ),
-                          sendButtonDisabled: !controller.viewModel.nonblocking,
-                          sendButtonVisibilityMode:
-                              chat_ui.SendButtonVisibilityMode.always,
+      builder: (context, child) {
+        return chat_ui.Chat(
+          builders: chat_core.Builders(
+            chatAnimatedListBuilder:
+                (context, itemBuilder) => chat_ui.ChatAnimatedList(
+                  scrollController: _scrollController,
+                  itemBuilder: itemBuilder,
+                  shouldScrollToEndWhenAtBottom: false,
+                  reversed: true,
+                ),
+            composerBuilder:
+                (context) => JuneBuilder(
+                  ChatWidgetController.new,
+                  builder:
+                      (controller) => chat_ui.Composer(
+                        topWidget: UnnuActionBar(
+                          tooltips: widget.tooltips,
                         ),
-                  ),
-              imageMessageBuilder:
-                  (
-                    context,
-                    message,
-                    index, {
-                    groupStatus,
-                    required isSentByMe,
-                  }) => FlyerChatImageMessage(
-                    message: message,
-                    index: index,
-                    showTime: false,
-                    showStatus: false,
-                  ),
-              systemMessageBuilder:
-                  (
-                    context,
-                    message,
-                    index, {
-                    groupStatus,
-                    required isSentByMe,
-                  }) => FlyerChatSystemMessage(message: message, index: index),
-              textMessageBuilder:
-                  (
-                    context,
-                    message,
-                    index, {
-                    groupStatus,
-                    required isSentByMe,
-                  }) =>
-                      message.metadata != null &&
-                              (message.metadata!.containsKey('thinking') ||
-                                  message.metadata!.containsKey(
-                                    'reasoning_context',
-                                  ))
-                          ? Tooltip(
-                            message:
-                                message.metadata?['reasoning_context'] ??
-                                message.metadata?['thinking']!,
-                            textStyle: widget.AssistantTheme.bodySmall,
-                            triggerMode: TooltipTriggerMode.tap,
-                            enableTapToDismiss: true,
-                            child: FlyerChatTextMessage(
-                              message: message,
-                              index: index,
-                              showTime: false,
-                              showStatus: false,
-                              receivedBackgroundColor:
-                                  theme.scaffoldBackgroundColor,
-                              sentBackgroundColor: theme.highlightColor,
-                              sentTextStyle: theme.textTheme.bodyMedium,
-                              receivedTextStyle:
-                                  widget.AssistantTheme.bodyMedium,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              borderRadius: BorderRadius.all(
-                                Radius.circular(2.0),
-                              ),
-                            ),
-                          )
-                          : FlyerChatTextMessage(
-                            message: message,
-                            index: index,
-                            showTime: false,
-                            showStatus: false,
-                            receivedBackgroundColor: theme.highlightColor,
-                            sentBackgroundColor: theme.highlightColor,
-                            sentTextStyle: theme.textTheme.bodyMedium,
-                            receivedTextStyle: widget.AssistantTheme.bodyMedium,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 10,
-                            ),
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(2.0),
-                            ),
-                          ),
-              textStreamMessageBuilder: (
-                context,
-                message,
-                index, {
-                groupStatus,
-                required isSentByMe,
-              }) {
-                // Watch the manager for state updates
-                final streamState = context.watch<UnnuStreamManager>().getState(
-                  message.streamId,
-                );
-                // Return the stream message widget, passing the state
-                return FlyerChatTextStreamMessage(
+                        hintText:
+                            widget.tooltips['chatHint'] ?? 'Type a message ...',
+                        sendIcon: SendIcon(
+                          state: controller.changeNotifier.status,
+                          nonblocking: controller.changeNotifier.nonblocking,
+                          tooltips: widget.tooltips,
+                        ),
+                        sendButtonDisabled:
+                            controller.changeNotifier.status ==
+                                SendIconState.busy &&
+                            !controller.changeNotifier.nonblocking,
+                        sendButtonVisibilityMode:
+                            chat_ui.SendButtonVisibilityMode.always,
+                      ),
+                ),
+            imageMessageBuilder:
+                (
+                  context,
+                  message,
+                  index, {
+                  required isSentByMe,
+                  groupStatus,
+                }) => FlyerChatImageMessage(
                   message: message,
                   index: index,
-                  streamState: streamState,
-                  chunkAnimationDuration: _kChunkAnimationDuration,
                   showTime: false,
                   showStatus: false,
-                  receivedBackgroundColor: theme.highlightColor,
-                  sentBackgroundColor: theme.highlightColor,
-                  sentTextStyle: theme.textTheme.bodyMedium,
-                  receivedTextStyle: widget.AssistantTheme.bodyMedium,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  borderRadius: BorderRadius.all(Radius.circular(2.0)),
-                  mode: TextStreamMessageMode.instantMarkdown,
-                  loadingText: widget.tooltips['thinking'] ?? 'Thinking',
-                );
-              },
-              emptyChatListBuilder:
-                  (context) => chat_ui.EmptyChatList(
-                    text: widget.tooltips['noMessages'] ?? 'No messages yet',
-                  ),
-            ),
-            chatController: chatController,
-            crossCache: _crossCache,
-            onMessageSend: _onSendPressed,
-            currentUserId: Avatars.User.id,
-            resolveUser:
-                (id) => Future.value(switch (id) {
+                ),
+            systemMessageBuilder:
+                (
+                  context,
+                  message,
+                  index, {
+                  required isSentByMe,
+                  groupStatus,
+                }) => FlyerChatSystemMessage(message: message, index: index),
+            textMessageBuilder: (
+              context,
+              message,
+              index, {
+              required isSentByMe,
+              groupStatus,
+            }) {
+              return FlyerChatTextMessage(
+                message: message,
+                index: index,
+                showTime: false,
+                showStatus: false,
+                topWidget:
+                    message.text.isNotEmpty
+                        ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment:
+                              isSentByMe
+                                  ? MainAxisAlignment.end
+                                  : MainAxisAlignment.start,
+                          children: [
+                            GNav(
+                              iconSize: 12,
+                              gap: 2,
+                              padding: const EdgeInsets.all(4),
+                              tabs: [
+                                GButton(
+                                  icon: Icons.copy,
+                                  active: message.text.isNotEmpty,
+                                  onPressed: () async {
+                                    final clipboard = SystemClipboard.instance;
+                                    if (clipboard != null) {
+                                      final text =
+                                          '\n> ##### ${isSentByMe ? 'User' : 'Assisant'}\n---\n\n${message.text}\n';
+                                      final item =
+                                          DataWriterItem()..add(
+                                            Formats.plainText(text),
+                                          );
+                                      await clipboard.write([item]);
+                                      MotionToast.success(
+                                        description: Text(
+                                          widget.tooltips['copied'] ?? 'Copied',
+                                        ),
+                                      );
+                                    }
+                                  },
+                                ),
+                                GButton(
+                                  icon: Icons.share,
+                                  active: message.text.isNotEmpty,
+                                  onPressed: () async {
+                                    final params = ShareParams(
+                                      // text: md.markdownToHtml(messages,
+                                      //   extensionSet: md.ExtensionSet.gitHubWeb
+                                      // ),
+                                      text:
+                                          '\n> ##### ${isSentByMe ? 'User' : 'Assisant'}\n---\n\n${message.text}\n',
+                                      downloadFallbackEnabled: false,
+                                    );
+                                    final result = await SharePlus.instance
+                                        .share(params);
+                                    if (result.status ==
+                                        ShareResultStatus.success) {
+                                      MotionToast.success(
+                                        description: Text(
+                                          widget.tooltips['shared'] ?? 'Shared',
+                                        ),
+                                      );
+                                    }
+                                  },
+                                ),
+                                if (!isSentByMe &&
+                                    message.metadata != null &&
+                                    message.metadata!['reasoning_content'] !=
+                                        null)
+                                  GButton(
+                                    icon: Icons.lightbulb,
+                                    active:
+                                        message.metadata != null &&
+                                        message.metadata!['reasoning_content'] !=
+                                            null,
+                                    onPressed: () async {
+                                      if (message.metadata != null &&
+                                          message.metadata!['reasoning_content'] !=
+                                              null) {
+                                        final text =
+                                            message.metadata!['reasoning_content']
+                                                as String;
+                                        await showPopupCard<String>(
+                                          context: context,
+                                          builder: (context) {
+                                            return PopupCard(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(8.0),
+                                                side: BorderSide(
+                                                  color:
+                                                      Theme.of(context)
+                                                          .colorScheme
+                                                          .outlineVariant,
+                                                ),
+                                              ),
+                                              child: GptMarkdown(text),
+                                            );
+                                          },
+                                        );
+                                      }
+                                    },
+                                  ),
+                              ],
+                            ),
+                          ],
+                        )
+                        : null,
+                receivedBackgroundColor: theme.highlightColor,
+                sentBackgroundColor: theme.highlightColor,
+                sentTextStyle: theme.textTheme.bodyMedium,
+                receivedTextStyle: widget.AssistantTheme.bodyMedium,
+                borderRadius: const BorderRadius.all(
+                  Radius.circular(2),
+                ),
+              );
+            },
+            textStreamMessageBuilder: (
+              context,
+              message,
+              index, {
+              required isSentByMe,
+              groupStatus,
+            }) {
+              // Watch the manager for state updates
+              final streamState = context.watch<UnnuStreamManager>().getState(
+                message.streamId,
+              );
+              // Return the stream message widget, passing the state
+              return FlyerChatTextStreamMessage(
+                message: message,
+                index: index,
+                streamState: streamState,
+                chunkAnimationDuration: _kChunkAnimationDuration,
+                showTime: false,
+                showStatus: false,
+                receivedBackgroundColor: theme.highlightColor,
+                sentBackgroundColor: theme.highlightColor,
+                sentTextStyle: theme.textTheme.bodyMedium,
+                receivedTextStyle: widget.AssistantTheme.bodyMedium,
+                borderRadius: const BorderRadius.all(Radius.circular(2)),
+                mode: TextStreamMessageMode.instantMarkdown,
+                loadingText: widget.tooltips['thinking'] ?? 'Thinking',
+              );
+            },
+            fileMessageBuilder:
+                (
+                  context,
+                  fileMessage,
+                  index, {
+                  required isSentByMe,
+                  groupStatus,
+                }) =>
+                    streamingMessageController.sessionId ==
+                            (fileMessage.metadata?['session.id'] ?? '')
+                        ? FlyerChatFileMessage(
+                          message: fileMessage,
+                          index: index,
+                        )
+                        : const SizedBox.shrink(),
+            emptyChatListBuilder:
+                (context) => chat_ui.EmptyChatList(
+                  text: widget.tooltips['noMessages'] ?? 'No messages yet',
+                ),
+          ),
+          chatController:
+              streamingMessageController.messagingModel.chatController,
+          crossCache: _crossCache,
+          onMessageSend: _onSendPressed,
+          onAttachmentTap:
+              widget.mimetypes.isNotEmpty
+                  ? () => _handleAttachmentTap(context)
+                  : null,
+          currentUserId: Avatars.User.id,
+          userCache: _userCache,
+          resolveUser:
+              (id) async => _userCache.getOrResolve(
+                id,
+                (id) async => switch (id) {
                   'user' => currentUser,
                   'assistant' => assistant,
                   _ => null,
-                }),
-            theme: chat_core.ChatTheme.fromThemeData(theme),
-          ),
+                },
+              ),
+          theme: chat_core.ChatTheme.fromThemeData(theme),
         );
       },
     );
@@ -284,19 +732,36 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
     if (kDebugMode) {
       print('UnnuChatWidget::dispose()');
     }
-    // _streamManager.dispose();
-    // _scrollController.dispose();
-    // _crossCache.dispose();
+
     super.dispose();
     if (kDebugMode) {
       print('UnnuChatWidget::dispose:>');
     }
   }
 
+  Future<void> _onSendPressed(String text) async {
+    if (kDebugMode) {
+      print('_onSendPressed: $text');
+    }
+    switch (widgetController.changeNotifier.status) {
+      case SendIconState.idle:
+        if (text.isNotEmpty) {
+          await _handleMessageSend(text);
+        }
+      case SendIconState.busy:
+        await _cancelResponse();
+      case SendIconState.transcribing:
+        await _sendTranscribedMessage();
+      case SendIconState.loading:
+        break;
+    }
+  }
+
   Future<void> _handleMessageSend(String text) async {
-    final streamManager = June.getState(() => StreamingMessageController());
     final timeNow = DateTime.now().toUtc();
-    final metadata = <String, dynamic>{'session.id': streamManager.sessionId};
+    final metadata = <String, dynamic>{
+      'session.id': streamingMessageController.sessionId,
+    };
     if (chat_core.isOnlyEmoji(text)) {
       metadata['isOnlyEmoji'] = true;
     }
@@ -309,7 +774,7 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
       text: text,
       metadata: metadata,
     );
-    await streamManager.insert(message);
+    await streamingMessageController.insert(message);
     if (kDebugMode) {
       print('_handleMessageSend -> _sndmsg: $message');
     }
@@ -320,10 +785,8 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
   }
 
   Future<void> _sendTranscribedMessage() async {
-    final streamManager = June.getState(() => StreamingMessageController());
-    final widgetController = June.getState(() => ChatWidgetController());
-    await streamManager.onComplete(_strmTextMsgId.currentId);
-    final msg = streamManager.findById(_strmTextMsgId.currentId);
+    await streamingMessageController.onComplete(_strmTextMsgId.currentId);
+    final msg = streamingMessageController.findById(_strmTextMsgId.currentId);
     if (msg == null) {
       final _msg = chat_core.TextStreamMessage(
         id: _strmTextMsgId.currentId,
@@ -331,12 +794,14 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
         createdAt: DateTime.now().toUtc(),
         streamId: _strmTextMsgId.currentId,
       );
-      streamManager.messagingModel.chatController.removeMessage(_msg);
+      streamingMessageController.messagingModel.chatController.removeMessage(
+        _msg,
+      );
       {
-        widgetController.viewModel = widgetController.viewModel.copyWith(
+        widgetController.update(
           status: SendIconState.idle,
+          nonblocking: false,
         );
-        widgetController.setState();
       }
     } else {
       switch (msg) {
@@ -345,10 +810,12 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
             if (msg.text.isNotEmpty) {
               await _sendMessage(msg);
             } else {
-              streamManager.messagingModel.chatController.removeMessage(msg);
+              await streamingMessageController.messagingModel.chatController
+                  .removeMessage(
+                    msg,
+                  );
             }
           }
-          break;
         case chat_core.TextStreamMessage():
         case chat_core.ImageMessage():
         case chat_core.FileMessage():
@@ -363,34 +830,32 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
   }
 
   Future<void> _startStreamingTranscript(StreamingTranscript transcript) async {
-    final widgetController = June.getState(() => ChatWidgetController());
-    final streamManager = June.getState(() => StreamingMessageController());
     {
-      widgetController.viewModel = widgetController.viewModel.copyWith(
+      widgetController.update(
         status: SendIconState.transcribing,
+        nonblocking: false,
       );
-      widgetController.setState();
     }
-    final msg = streamManager.findById(_strmTextMsgId.currentId);
+    final msg = streamingMessageController.findById(_strmTextMsgId.currentId);
 
     if (msg != null) {
       switch (msg) {
         case chat_core.TextMessage():
           {
-            final _strmId = _strmTextMsgId.nextId();
-            Map<String, dynamic> metadata =
+            final strmId = _strmTextMsgId.nextId();
+            var metadata =
                 msg.metadata ??
                 {
                   'message.id': _strmTextMsgId.currentId,
-                  'session.id': streamManager.sessionId,
+                  'session.id': streamingMessageController.sessionId,
                 };
             metadata['stream_status'] = transcript.type.name;
             metadata['allow.updates'] = true;
             final streamMessage = chat_core.TextStreamMessage(
-              id: _strmId,
+              id: strmId,
               authorId: msg.authorId,
               createdAt: msg.createdAt,
-              streamId: _strmId,
+              streamId: strmId,
               metadata: metadata,
               replyToMessageId: msg.replyToMessageId,
               seenAt: msg.seenAt,
@@ -398,22 +863,28 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
               reactions: msg.reactions,
             );
             final text = msg.text;
-            await streamManager.messagingModel.chatController.removeMessage(
-              msg,
+            await streamingMessageController.messagingModel.chatController
+                .removeMessage(
+                  msg,
+                );
+            await streamingMessageController.onStartStream(
+              strmId,
+              streamMessage,
             );
-            await streamManager.onStartStream(_strmId, streamMessage);
-            streamManager.addChunk(_strmId, text);
+            streamingMessageController.addChunk(strmId, text);
           }
-          break;
         case chat_core.SystemMessage():
           {
-            streamManager.addChunk(_strmTextMsgId.currentId, msg.text);
+            streamingMessageController.addChunk(
+              _strmTextMsgId.currentId,
+              msg.text,
+            );
           }
-          break;
         case chat_core.TextStreamMessage():
           {
             switch (transcript.type) {
               case TranscriptionFragmentType.start:
+                break;
               case TranscriptionFragmentType.chunk:
                 break;
               case TranscriptionFragmentType.partial:
@@ -422,14 +893,12 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
                       _streamIdToMessageFragments[_strmTextMsgId.currentId] ??
                       List<StreamingTranscript>.empty(growable: true);
                 }
-                break;
               case TranscriptionFragmentType.complete:
                 {
                   _streamIdToMessageFragments[_strmTextMsgId.currentId] =
                       _streamIdToMessageFragments[_strmTextMsgId.currentId] ??
                       List<StreamingTranscript>.empty(growable: true);
                 }
-                break;
               case TranscriptionFragmentType.end:
                 break;
             }
@@ -452,12 +921,12 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
         streamId: _strmTextMsgId.currentId,
         metadata: {
           'message.id': msgId as String,
-          'session.id': streamManager.sessionId,
+          'session.id': streamingMessageController.sessionId,
           'stream_status': transcript.type.name,
           'allow.updates': true,
         },
       );
-      await streamManager.onStartStream(
+      await streamingMessageController.onStartStream(
         _strmTextMsgId.currentId,
         streamMessage,
       );
@@ -469,7 +938,6 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
   Future<void> _handleStreamingTranscript(
     StreamingTranscript transcript,
   ) async {
-    final streamManager = June.getState(() => StreamingMessageController());
     switch (transcript.type) {
       case TranscriptionFragmentType.start:
         {
@@ -479,10 +947,12 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
             )) {
               await _startStreamingTranscript(transcript);
             }
-            streamManager.addChunk(_strmTextMsgId.currentId, transcript.text);
+            streamingMessageController.addChunk(
+              _strmTextMsgId.currentId,
+              transcript.text,
+            );
           }
         }
-        break;
       case TranscriptionFragmentType.chunk:
         {
           if (transcript.text.isNotEmpty) {
@@ -491,10 +961,12 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
             )) {
               await _startStreamingTranscript(transcript);
             }
-            streamManager.addChunk(_strmTextMsgId.currentId, transcript.text);
+            streamingMessageController.addChunk(
+              _strmTextMsgId.currentId,
+              transcript.text,
+            );
           }
         }
-        break;
       case TranscriptionFragmentType.partial:
         {
           if (transcript.text.isNotEmpty) {
@@ -508,8 +980,6 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
             );
           }
         }
-        break;
-
       case TranscriptionFragmentType.complete:
         {
           if (transcript.text.isNotEmpty) {
@@ -522,74 +992,165 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
           _streamIdToMessageFragments[_strmTextMsgId.currentId]?.add(
             transcript,
           );
-          await streamManager.onComplete(_strmTextMsgId.currentId);
-          _sendTranscribedMessage();
+          await streamingMessageController.onComplete(_strmTextMsgId.currentId);
+          await _sendTranscribedMessage();
         }
-        break;
       case TranscriptionFragmentType.end:
         {
           if (_streamIdToMessageFragments.containsKey(
             _strmTextMsgId.currentId,
           )) {
-            await streamManager.onComplete(_strmTextMsgId.currentId);
-            _sendTranscribedMessage();
+            await streamingMessageController.onComplete(
+              _strmTextMsgId.currentId,
+            );
+            await _sendTranscribedMessage();
           }
         }
-        break;
+    }
+  }
+
+  Future<void> _handleAttachmentTap(BuildContext context) async {
+    if (kDebugMode) {
+      print('_handleAttachmentTap()');
+    }
+    switch (widgetController.changeNotifier.status) {
+      case SendIconState.idle:
+        await settingsController.handleAttach(
+          streamingMessageController.sessionId,
+          widget.mimetypes,
+        );
+      case SendIconState.busy:
+      case SendIconState.loading:
+      case SendIconState.transcribing:
+        if (context.mounted) {
+          MotionToast.warning(
+            toastDuration: const Duration(seconds: 5),
+            description: Text(
+              widget.tooltips['busy'] ?? 'Busy',
+            ),
+          ).show(context);
+        }
     }
   }
 
   Future<void> _cancelResponse() async {
-    final streamManager = June.getState(() => StreamingMessageController());
-    final widgetController = June.getState(() => ChatWidgetController());
     {
-      widgetController.viewModel = widgetController.viewModel.copyWith(
-        nonblocking: true,
+      widgetController.update(
+        nonblocking: false,
       );
-      widgetController.setState();
     }
-    widget.onCancelModelResponse();
-    streamManager.onStopStream(streamManager.messagingModel.sessionId);
-    final aiMsg = streamManager.findById(_aiMsgId.currentId);
+
+    widget.onCancelModelResponse?.call();
+
+    await streamingMessageController.onStopStream(
+      streamingMessageController.messagingModel.sessionId,
+    );
+    final aiMsg = streamingMessageController.findById(_aiMsgId.currentId);
     if (aiMsg != null) {
-      final usrMsg = streamManager.findById(aiMsg.replyToMessageId!);
-      streamManager.messagingModel.chatController.removeMessage(aiMsg);
-      streamManager.messagingModel.chatController.removeMessage(usrMsg!);
+      final usrMsg = streamingMessageController.findById(
+        aiMsg.replyToMessageId!,
+      );
+      await streamingMessageController.messagingModel.chatController
+          .removeMessage(
+            aiMsg,
+          );
+      await streamingMessageController.messagingModel.chatController
+          .removeMessage(
+            usrMsg!,
+          );
 
       _initialScrollExtents.remove(aiMsg.id);
       _reachedTargetScroll.remove(aiMsg.id);
     }
     {
-      widgetController.viewModel = widgetController.viewModel.copyWith(
+      widgetController.update(
         status: SendIconState.idle,
         nonblocking: false,
       );
-      widgetController.setState();
     }
   }
 
   Future<void> _sendMessage(chat_core.Message message) async {
-    final widgetController = June.getState(() => ChatWidgetController());
     {
-      widgetController.viewModel = widgetController.viewModel.copyWith(
+      widgetController.update(
         status: SendIconState.busy,
+        nonblocking: true,
       );
-      widgetController.setState();
     }
 
-    final sessionId = message.metadata!['session.id'];
+    final sessionId = message.metadata!['session.id'] as String;
 
     final streamId = _aiMsgId.nextId();
     chat_core.TextStreamMessage? streamMessage;
-    final streamManager = June.getState(() => StreamingMessageController());
-    final sessionController = June.getState(() => ChatSessionController());
+
     try {
       var isFirstChunk = true;
       _reachedTargetScroll[streamId] = false;
+
+      final ragEnabled = settingsController.getSetting(sessionId).enableSearch;
+      final meta = switch (message) {
+        chat_core.TextMessage() =>
+          (ragEnabled && widget.onRetrieve != null)
+              ? {
+                'rag.enabled': ragEnabled,
+                'rag.data': {
+                  UnnuQueryFragmentType.USER_QUERY.name: message.text,
+                  UnnuQueryFragmentType.CURRENT_INFO.name: (await widget
+                          .onRetrieve!(message.text))
+                      .map(
+                        (e) => e.pageContent,
+                      )
+                      .map(
+                        (e) => e.trim(),
+                      )
+                      .where(
+                        (element) => element.isNotEmpty,
+                      )
+                      .join('\n'),
+                },
+              }
+              : const <String, dynamic>{},
+        chat_core.TextStreamMessage() => const <String, dynamic>{},
+
+        chat_core.ImageMessage() => const <String, dynamic>{},
+
+        chat_core.FileMessage() => const <String, dynamic>{},
+
+        chat_core.VideoMessage() => const <String, dynamic>{},
+
+        chat_core.AudioMessage() => const <String, dynamic>{},
+
+        chat_core.SystemMessage() =>
+          (ragEnabled && widget.onRetrieve != null)
+              ? {
+                'rag.enabled': ragEnabled,
+                'rag.data': {
+                  UnnuQueryFragmentType.USER_QUERY.name: message.text,
+                  UnnuQueryFragmentType.CURRENT_INFO.name: (await widget
+                          .onRetrieve!(message.text))
+                      .map(
+                        (e) => e.pageContent,
+                      )
+                      .map(
+                        (e) => e.trim(),
+                      )
+                      .where(
+                        (element) => element.isNotEmpty,
+                      )
+                      .join('\n'),
+                },
+              }
+              : const <String, dynamic>{},
+        chat_core.CustomMessage() => const <String, dynamic>{},
+        chat_core.UnsupportedMessage() => const <String, dynamic>{},
+      };
+
       final chatMessage =
           message is chat_core.TextMessage
               ? message.authorId == Avatars.User.id
-                  ? cm.ChatMessage.humanText(message.text)
+                  ? cm.ChatMessage.humanText(
+                    message.text,
+                  )
                   : message.authorId == Avatars.Assistant.id
                   ? cm.ChatMessage.ai(message.text)
                   : cm.ChatMessage.custom(message.text, role: message.authorId)
@@ -606,23 +1167,25 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
         print('_sndmsg: $chatMessage');
       }
       final response = sessionController.chatSessionVM.activeSession
-          .sendMessageStream(chatMessage);
+          .sendMessageStream(
+            chatMessage,
+            metadata: meta,
+          );
 
       // This implements a scrolling behavior where we stop auto-scrolling once the
       // generated message reaches the top of the viewport. For this to work properly,
       // make sure to set `shouldScrollToEndWhenAtBottom` to false in `ChatAnimatedList`.
-      streamManager.messagingModel.subscriptions[streamId] = response.listen(
+      streamingMessageController
+          .messagingModel
+          .subscriptions[streamId] = response.listen(
         (chunk) async {
           final textChunk = chunk.output;
           if (textChunk.isNotEmpty) {
-            // if (textChunk.isEmpty) continue; // Skip empty chunks
-
-            //if (chunk.output.isNotEmpty) {
-            // Store the initial scroll position when user inserts the message.
-            // The chat will auto-scroll here since `shouldScrollToEndWhenSendingMessage`
-            // is enabled by default.
-
             if (isFirstChunk) {
+              // On the first valid chunk, ensure the message is inserted.
+              // This handles both non-thinking models and thinking models where
+              // the response arrives before the timer.
+
               isFirstChunk = false;
               // Create and insert the message ON the first chunk
               final createdWhen = DateTime.now().toUtc();
@@ -643,17 +1206,31 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
                 replyToMessageId: message.id,
                 metadata: metainfo,
               );
-              if (kDebugMode) {
-                print('_sendMessage: 1st $streamMessage');
-              }
-              await streamManager.onStartStream(streamId, streamMessage!);
+              await streamingMessageController.onStartStream(
+                streamId,
+                streamMessage!,
+              );
+
+              // This is needed because we use shouldScrollToEndWhenAtBottom: false,
+              // due to custom scroll logic below, so we must also scroll to the
+              // thinking label manually.
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                if (!_scrollController.hasClients || !mounted) return;
+                _initialScrollExtents[streamId] =
+                    _scrollController.position.maxScrollExtent;
+                await _scrollController.animateTo(
+                  _scrollController.position.maxScrollExtent,
+                  duration: Durations.short4,
+                  curve: Curves.linearToEaseOut,
+                );
+              });
             }
 
             // Ensure stream message exists before adding chunk
             if (streamMessage != null &&
-                streamMessage?.metadata!['message.type'] == 'token') {
+                chunk.metadata['message.type'] == 'token') {
               // Send chunk to the manager - this triggers notifyListeners
-              streamManager.addChunk(streamId, textChunk);
+              streamingMessageController.addChunk(streamId, textChunk);
             }
 
             // Only attempt scrolling if:
@@ -663,8 +1240,7 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
             // That would require measuring content height instead of maxScrollExtent.
             // Please suggest how to do this if possible.
 
-            // if (!hasReachedTargetScroll && initialMaxScrollExtent > 0) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
+            WidgetsBinding.instance.addPostFrameCallback((_) async {
               if (!_scrollController.hasClients || !mounted) return;
 
               // Retrieve state for this specific stream
@@ -688,18 +1264,18 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
                     168; // height of the composer + height of the app bar + visual buffer of 8
 
                 if (_scrollController.position.maxScrollExtent > targetScroll) {
-                  _scrollController.animateTo(
+                  await _scrollController.animateTo(
                     targetScroll,
-                    duration: const Duration(milliseconds: 250),
+                    duration: Durations.short4,
                     curve: Curves.linearToEaseOut,
                   );
                   // Mark that we've reached the target for this stream
                   _reachedTargetScroll[streamId] = true;
                 } else {
                   // If we haven't reached target position yet, scroll to bottom
-                  _scrollController.animateTo(
+                  await _scrollController.animateTo(
                     _scrollController.position.maxScrollExtent,
-                    duration: const Duration(milliseconds: 250),
+                    duration: Durations.short4,
                     curve: Curves.linearToEaseOut,
                   );
                 }
@@ -710,30 +1286,34 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
         onDone: () async {
           // Stream completed successfully (only if message was created)
           if (streamMessage != null) {
-            await streamManager.onComplete(streamId);
+            await streamingMessageController.onComplete(streamId);
           }
           {
-            widgetController.viewModel = widgetController.viewModel.copyWith(
+            widgetController.update(
               status: SendIconState.idle,
+              nonblocking: true,
             );
-            widgetController.setState();
-            // updateSendIcon();
           }
+          // Clean up scroll state for this stream ID
+          _initialScrollExtents.remove(streamId);
+          _reachedTargetScroll.remove(streamId);
         },
-        onError: (error) async {
-          await streamManager.onError(streamId, error);
+        onError: (err, stacktrace) async {
+          await streamingMessageController.onError(streamId, err.toString());
           {
-            widgetController.viewModel = widgetController.viewModel.copyWith(
+            widgetController.update(
               status: SendIconState.idle,
+              nonblocking: true,
             );
-            widgetController.setState();
-            // updateSendIcon();
           }
+          // Clean up scroll state for this stream ID when done/errored
+          _initialScrollExtents.remove(streamId);
+          _reachedTargetScroll.remove(streamId);
         },
       );
-    } catch (error) {
+    } on Exception catch (err) {
       // Catch other potential errors during stream processing
-      await streamManager.onError(streamId, error);
+      await streamingMessageController.onError(streamId, err);
     } finally {
       // Clean up scroll state for this stream ID when done/errored
       _initialScrollExtents.remove(streamId);
@@ -746,28 +1326,6 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
 
     if (kDebugMode) {
       print('_sndmsg:>');
-    }
-  }
-
-  Future<void> _onSendPressed(String text) async {
-    if (kDebugMode) {
-      print('_onSendPressed: $text');
-    }
-    final widgetController = June.getState(() => ChatWidgetController());
-    switch (widgetController.viewModel.status) {
-      case SendIconState.idle:
-        if (text.isNotEmpty) {
-          _handleMessageSend(text);
-        }
-        break;
-      case SendIconState.busy:
-        _cancelResponse();
-        break;
-      case SendIconState.transcribing:
-        await _sendTranscribedMessage();
-        break;
-      case SendIconState.loading:
-        break;
     }
   }
 }

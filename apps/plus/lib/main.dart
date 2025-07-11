@@ -1,0 +1,176 @@
+import 'dart:async';
+import 'dart:developer' as dev;
+import 'dart:io';
+import 'dart:math' as math;
+
+import 'package:asset_cache/asset_cache.dart';
+import 'package:feedback/feedback.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_memory_info/flutter_memory_info.dart';
+import 'package:flutter_platform_alert/flutter_platform_alert.dart';
+import 'package:intl/intl.dart';
+import 'package:june/june.dart';
+import 'package:llamacpp/llamacpp.dart';
+import 'package:native_splash_screen/native_splash_screen.dart' as nss;
+import 'package:nativeapi/nativeapi.dart' as native;
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:unnu_ai_model/unnu_ai_model.dart';
+import 'package:unnu_aux/unnu_aux.dart';
+import 'package:unnu_dxl/unnu_dxl.dart';
+import 'package:unnu_ragl/unnu_ragl.dart';
+import 'package:unnu_sap/unnu_asr.dart';
+import 'package:unnu_sap/unnu_tts.dart';
+import 'package:unnu_speech/unnu_speech.dart';
+import 'package:window_manager/window_manager.dart';
+
+import 'initialize/initialize.dart';
+import 'src/app.dart';
+import 'src/types.dart';
+
+void log(
+  Object? message, {
+  DateTime? time,
+  int? sequenceNumber,
+  int level = 0,
+  String name = '',
+  Zone? zone,
+  Object? error,
+  StackTrace? stackTrace,
+}) {
+  dev.log(
+    message?.toString() ?? '',
+    time: time,
+    sequenceNumber: sequenceNumber,
+    level: level,
+    name: name,
+    zone: zone,
+    error: error,
+    stackTrace: stackTrace,
+  );
+}
+
+final _jsonAssets = JsonAssetCache(
+  assetBundle: rootBundle,
+  basePath: 'assets/json/',
+);
+
+Future<void> main() async {
+  FlutterError.onError = (FlutterErrorDetails details) {
+    if (kDebugMode) {
+      // In development mode, simply print to console.
+      FlutterError.dumpErrorToConsole(details);
+    } else {
+      // In production mode, report to the application zone to report to sentry.
+      Zone.current.handleUncaughtError(details.exception, details.stack!);
+    }
+  };
+
+  /// Captures errors reported by the native environment, including native iOS
+  /// and Android code.
+
+  runZonedGuarded<void>(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+      UnnuAux.init();
+      final totalMem = (await MemoryInfo.getTotalPhysicalMemorySize()) ?? 0;
+      final _check =
+          totalMem >= 12884901888 && UnnuAux.checkMinimumHw() == 0 ? 0 : -1;
+      switch (_check) {
+        case 0:
+          {
+            await windowManager.ensureInitialized();
+
+            final mainMonitor = native.DisplayManager.instance.getPrimary();
+            final sz = mainMonitor?.size ?? const Size(1280, 800);
+            if (kDebugMode) {
+              print(
+                'Display\n\tname: ${mainMonitor?.name}\n\tid: ${mainMonitor?.id}\n\tprimary: ${mainMonitor?.isPrimary}\n\size: ${mainMonitor?.size}\n\tscaleFactor: ${mainMonitor?.scaleFactor}\n\tposition: ${mainMonitor?.position}\n\trefreshRate: ${mainMonitor?.refreshRate}\nSize: ${sz}',
+              );
+            }
+            final windowOptions = WindowOptions(
+              size: Size(
+                math.max((sz.width * 0.75).roundToDouble(), 800.0),
+                math.max(
+                  (sz.height * 0.75).roundToDouble(),
+                  600.0,
+                ),
+              ),
+              center: true,
+              backgroundColor: Colors.transparent,
+              skipTaskbar: false,
+              titleBarStyle: TitleBarStyle.normal,
+              title: 'AI For All - Plus Edition',
+              maximumSize: sz,
+              minimumSize: const Size(360, 480),
+              windowButtonVisibility: true,
+            );
+            LlamaCpp.init();
+            UnnuTts.init();
+            UnnuAsr.init();
+            UnnuDxl.init();
+            RagLite.init();
+
+            await _jsonAssets.preload(['config.json']);
+            if (kDebugMode) {
+              print('main:loadConfiguration()');
+            }
+            await loadConfiguration();
+            if (kDebugMode) {
+              print('main:registerModels()');
+            }
+            await registerModels();
+            await registerEmbedding('kbase.db');
+
+            await UnnuTts.configure(await getOfflineTtsConfig());
+            await UnnuAsr.configure(
+              getOnlineRecognizerConfig(await getOnlineModelConfig()),
+              await getVadModelConfig(),
+              OnlinePunctuationConfig(
+                model: await getOnlinePunctuationModelConfig(),
+              ),
+            );
+
+            await registerChatDatabase('chat.db');
+            await windowManager.waitUntilReadyToShow(
+              windowOptions,
+              () async {
+                await nss.close(animation: nss.CloseAnimation.fade);
+                await windowManager.show();
+                await windowManager.focus();
+              },
+            );
+            runApp(
+              const BetterFeedback(
+                child: MyApp(),
+              ),
+            );
+          }
+        default:
+          {
+            await nss.close(animation: nss.CloseAnimation.fade);
+            final _ = await FlutterPlatformAlert.showAlert(
+              windowTitle: 'Unsupported Hardware',
+              text: 'System does not meet minimum hardware requirements ',
+              iconStyle: IconStyle.error,
+            );
+            exit(0);
+          }
+      }
+    },
+    (Object error, StackTrace stackTrace) {},
+    zoneValues: {},
+  );
+}
+
+/// The main application widget for this example.
+class MyApp extends StatelessWidget {
+  /// Creates a const main application widget.
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MyHomePage();
+  }
+}

@@ -19,7 +19,6 @@ final class ChatSession {
   GenerateContentStream;
 
   final _mutex = Mutex();
-
   final List<cm.ChatMessage> _history;
   final LLMOptions? _generationConfig;
 
@@ -44,8 +43,8 @@ final class ChatSession {
     try {
       _history.clear();
       _history.addAll(messages);
-    }finally{
-      if(lock != null){
+    } finally {
+      if (lock != null) {
         lock.release();
       }
     }
@@ -64,26 +63,20 @@ final class ChatSession {
   /// Successful messages and responses for ongoing or pending requests will
   /// be reflected in the history sent for this message.
   Future<LLMResult> sendMessage(cm.ChatMessage message) async {
-    if (kDebugMode) {
-      print('ChatSession::sndMsg($message)');
-    }
     final lock = await _mutex.acquire();
     try {
       final response = await GenerateContent(
         ChatPromptValue(_history.followedBy([message]).toList(growable: false)),
         generationConfig: _generationConfig,
       );
-      _history.add(message);
-      _history.add(cm.ChatMessage.ai(response.output));
-      if (kDebugMode) {
-        print('ChatSession::sndMsg:=> $response');
-      }
+      _history
+        ..add(message)
+        ..add(cm.ChatMessage.ai(response.output));
       return response;
     } finally {
-      if(lock != null){
+      if (lock != null) {
         lock.release();
       }
-
     }
   }
 
@@ -104,23 +97,55 @@ final class ChatSession {
   ///
   /// Waits to read the entire streamed response before recording the message
   /// and response and allowing pending messages to be sent.
-  Stream<LLMResult> sendMessageStream(cm.ChatMessage message) async* {
-    if (kDebugMode) {
-      print('ChatSession::sendMessageStream()');
-    }
+  Stream<LLMResult> sendMessageStream(
+    cm.ChatMessage message, {
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) async* {
     try {
-      final responses = GenerateContentStream(
-        ChatPromptValue(_history.followedBy([message]).toList(growable: false)),
-        generationConfig: _generationConfig,
-      );
-      LLMResult fullResponse = LLMResult(
+      fmt.format('{h} {w}', {'h': 'hello', 'w': 'world'});
+      final prompt = switch (message) {
+        SystemChatMessage() =>
+          (metadata['rag.enabled'] ?? false) as bool &&
+                  ((metadata['rag.data'] ?? <String, dynamic>{})
+                          as Map<String, dynamic>)
+                      .isNotEmpty
+              ? ChatMessage.system(
+                fmt.format(
+                  UNNU_RAG_SYSTEM_PROMPT,
+                  metadata['rag.data'] as Map<String, Object>,
+                ),
+              )
+              : message,
+        HumanChatMessage() =>
+          (metadata['rag.enabled'] ?? false) as bool &&
+                  ((metadata['rag.data'] ?? <String, Object>{})
+                          as Map<String, Object>)
+                      .isNotEmpty
+              ? ChatMessage.humanText(
+                fmt.format(
+                  UNNU_RAG_COT_PROMPT,
+                  metadata['rag.data'] as Map<String, Object>,
+                ),
+              )
+              : message,
+        AIChatMessage() => message,
+        ToolChatMessage() => message,
+        CustomChatMessage() => message,
+      };
+      var fullResponse = const LLMResult(
         id: '',
         output: '',
         finishReason: FinishReason.unspecified,
         metadata: {},
         usage: LanguageModelUsage(),
       );
-      yield* responses.map((response) {
+      final promptValue = ChatPromptValue(
+        _history.followedBy([prompt]).toList(growable: false),
+      );
+      yield* GenerateContentStream(
+        promptValue,
+        generationConfig: _generationConfig,
+      ).map((response) {
         if (response.finishReason == FinishReason.stop ||
             response.finishReason == FinishReason.toolCalls) {
           fullResponse = response;
@@ -129,12 +154,13 @@ final class ChatSession {
       });
 
       _history.add(message);
-      List<cm.AIChatMessageToolCall> tools =
-          List<cm.AIChatMessageToolCall>.empty(growable: false);
+      var tools = List<cm.AIChatMessageToolCall>.empty(growable: false);
       if (fullResponse.metadata['tool_calls'] != null) {
-        List<Map<String, String>> toolCalls = JsonDecoder().convert(
-          fullResponse.metadata['tool_calls'],
-        );
+        final toolCalls =
+            const JsonDecoder().convert(
+                  (fullResponse.metadata['tool_calls']) as String,
+                )
+                as List<Map<String, String>>;
         tools =
             toolCalls
                 .map<cm.AIChatMessageToolCall>(
@@ -143,8 +169,11 @@ final class ChatSession {
                     name: value['name'] ?? '<unspecified>',
                     arguments:
                         value['arguments'] != null
-                            ? JsonDecoder().convert(value['arguments']!)
-                            : {},
+                            ? JsonDecoder().convert(
+                                  value['arguments']!,
+                                )
+                                as Map<String, dynamic>
+                            : <String, dynamic>{},
                     argumentsRaw: value['arguments'] ?? '',
                   ),
                 )
@@ -157,12 +186,8 @@ final class ChatSession {
       _history.add(aiMessage);
     } catch (e, s) {
       if (kDebugMode) {
-        print("Error: $e");
         debugPrintStack(stackTrace: s);
       }
-    }
-    if (kDebugMode) {
-      print('ChatSession::sendMessageStream:=>');
     }
   }
 
@@ -228,12 +253,17 @@ final class UnnuAIModel with ChangeNotifier {
   final BaseLLM model;
   final StreamSink<String>? responseSink;
 
+  static RegExp thinking = RegExp(
+    '^<think>(.*)</think>',
+    multiLine: true,
+    dotAll: true,
+  );
+
   UnnuAIModel({
     required this.model,
     BaseChatMessageHistory? chatMessageHistory,
     this.responseSink,
-
-  }) : this.chatMessageHistory =
+  }) : chatMessageHistory =
            chatMessageHistory ??
            ChatMessageHistory(
              messages: List<cm.ChatMessage>.empty(growable: true),
@@ -263,7 +293,7 @@ final class UnnuAIModel with ChangeNotifier {
     String response = '';
     final stream =
         ((options ??
-                    LcppOptions(
+                    const LcppOptions(
                       defaultIsStreaming: true,
                       concurrencyLimit: 1000,
                     ))
@@ -292,28 +322,20 @@ final class UnnuAIModel with ChangeNotifier {
     }
 
     responseSink?.add(''); //send empty string to flush Dialoguizer
-    cm.ChatMessage llmMessage = cm.ChatMessage.ai(response);
-    if (kDebugMode) {
-      print('prompt:response $llmMessage');
-    }
+    cm.ChatMessage llmMessage = cm.ChatMessage.ai(
+      response.replaceFirst(thinking, ''),
+    );
 
     for (final message in request) {
       await chatMessageHistory.addChatMessage(message);
     }
     await chatMessageHistory.addChatMessage(llmMessage);
-
-    if (kDebugMode) {
-      print('UnnuAIModel::prompt:>');
-    }
   }
 
   ChatSession getChatSession({
     List<cm.ChatMessage>? history,
     LLMOptions? generationConfig,
   }) {
-    if (kDebugMode) {
-      print('UnnuAIModel::getChatSession()');
-    }
     return _startChat(
       _content,
       _streaming,
@@ -326,9 +348,6 @@ final class UnnuAIModel with ChangeNotifier {
     PromptValue contents, {
     LLMOptions? generationConfig,
   }) async {
-    if (kDebugMode) {
-      print('UnnuAIModel::_transcription()');
-    }
     LcppOptions options = LcppOptions(
       model: model.modelType,
       concurrencyLimit:
@@ -351,10 +370,6 @@ final class UnnuAIModel with ChangeNotifier {
     PromptValue contents, {
     LLMOptions? generationConfig,
   }) async* {
-    if (kDebugMode) {
-      print('UnnuAIModel::_streaming()');
-    }
-
     LcppOptions options = LcppOptions(
       model: model.modelType,
       concurrencyLimit:
@@ -364,10 +379,6 @@ final class UnnuAIModel with ChangeNotifier {
     );
 
     yield* prompt(contents.toChatMessages(), options: options);
-
-    if (kDebugMode) {
-      print('UnnuAIModel::_streaming:>');
-    }
   }
 
   set history(List<cm.ChatMessage> messages) {

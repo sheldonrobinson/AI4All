@@ -267,7 +267,6 @@ class OfflineTtsController extends JuneState {
         ruleFsts: config.ruleFst,
       ),
     );
-
     setState();
   }
 

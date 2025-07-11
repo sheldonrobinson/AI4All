@@ -15,6 +15,7 @@ preamble: |
   // ignore_for_file: always_specify_types
   // ignore_for_file: camel_case_types
   // ignore_for_file: non_constant_identifier_names
+  // ignore_for_file: unused_import
 comments:
   style: any
   length: full
@@ -23,5 +24,5 @@ include-unused-typedefs: true
 silence-enum-warning: true
 
 ffi-native:
-    asset-id: 'package:lib/src/bindings.dart' # (optional)
+    asset-id: 'package:unnu_ragl/src/bindings.dart' # (optional)
 
