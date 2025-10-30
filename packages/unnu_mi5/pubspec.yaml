@@ -1,0 +1,32 @@
+name: unnu_mi5
+description: "Unnu local agent package"
+version: 0.0.1
+homepage:
+
+resolution: workspace
+
+environment:
+  sdk: '>=3.7.0 < 4.0.0'
+  flutter: '>=3.27.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  collection: ^1.19.1
+  math_expressions: ^3.1.0
+  mcp_dart:
+      git:
+        url: https://github.com/sheldonrobinson/mcp_dart.git
+  june: ^1.0.0+1
+  json_schema: ^5.2.2
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  very_good_analysis: ^10.0.0
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+

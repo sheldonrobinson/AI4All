@@ -59,7 +59,7 @@ final class UnnuKnow {
 
   int limit = 4;
 
-  StreamSubscription<AttachmentUpdate>? subscription;
+  StreamSubscription<StatusUpdate>? subscription;
 
   UnnuKnow._();
 
@@ -67,31 +67,31 @@ final class UnnuKnow {
 
   static UnnuKnow get instance => _singleton;
 
-  final StreamController<AttachmentUpdate> listener =
-      StreamController<AttachmentUpdate>(sync: true);
+  final StreamController<StatusUpdate> listener =
+      StreamController<StatusUpdate>(sync: true);
 
   void init() {
     subscription ??= listener.stream.listen(
       (event) async {
-        if (event.status == AttachmentStatus.NEW) {
+        if (event.status == StatusEventCode.NEW) {
           await addDocument(event);
-        } else if (event.status == AttachmentStatus.REMOVE) {
+        } else if (event.status == StatusEventCode.REMOVE) {
           delete(event);
         }
       },
     );
   }
 
-  Future<void> addDocument(AttachmentUpdate update) async {
+  Future<void> addDocument(StatusUpdate update) async {
     if (!corpusController.settings.uri.contains(update.attachment.uri)) {
       final filePath = update.attachment.uri.toFilePath(windows: Platform.isWindows);
       final result = await corpusController.load(
         File(filePath),
       );
       // RagLite.instance.enableParagraphChunking(p.extension(filePath) == '.docx');
-      AttachmentsMonitor.sendStatus((
-        status: AttachmentStatus.PARSE,
-        attachment: ChatAttachmentView(
+      StatusMonitor.sendStatus((
+        status: StatusEventCode.PARSE,
+        attachment: EventAttributes(
           uri: update.attachment.uri,
           sessionId: update.attachment.sessionId,
           id: {ChatSettingsController.uuid.v7()},
@@ -151,17 +151,17 @@ final class UnnuKnow {
       );
       corpusController.setState();
 
-      AttachmentsMonitor.sendStatus((
-        status: AttachmentStatus.PROCESSED,
-        attachment: ChatAttachmentView(
+      StatusMonitor.sendStatus((
+        status: StatusEventCode.PROCESSED,
+        attachment: EventAttributes(
           uri: update.attachment.uri,
           sessionId: update.attachment.sessionId,
           id: listIds.toSet(),
         ),
       ));
     } else {
-      AttachmentsMonitor.sendStatus((
-      status: AttachmentStatus.COMPLETED,
+      StatusMonitor.sendStatus((
+      status: StatusEventCode.COMPLETED,
       attachment: update.attachment,
       ));
     }
@@ -174,14 +174,14 @@ final class UnnuKnow {
     );
   }
 
-  static void delete(AttachmentUpdate update) {
+  static void delete(StatusUpdate update) {
     final uri = update.attachment.uri.toString();
     for (final id in update.attachment.id) {
       RagLite.instance.deleteEmbedding(uri, id);
     }
-    AttachmentsMonitor.sendStatus((
-      status: AttachmentStatus.COMPLETED,
-      attachment: ChatAttachmentView(
+    StatusMonitor.sendStatus((
+      status: StatusEventCode.COMPLETED,
+      attachment: EventAttributes(
         uri: update.attachment.uri,
         sessionId: update.attachment.sessionId,
         id: update.attachment.id,

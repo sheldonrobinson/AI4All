@@ -1,24 +1,6 @@
-#ifndef _LLAMACPP_H
-#define _LLAMACPP_H
+#pragma once
 
-#ifdef __cplusplus
-#ifdef WIN32
-#define FFI_PLUGIN_EXPORT extern "C" __declspec(dllexport)
-#else
-#define FFI_PLUGIN_EXPORT extern "C" __attribute__((visibility("default"))) __attribute__((used))
-#endif // WIN32
-#include <cstdint>
-#include <cstdbool>
-
-#else // __cplusplus - Objective-C or other C platform
-#ifdef WIN32
-#define FFI_PLUGIN_EXPORT extern
-#else
-#define FFI_PLUGIN_EXPORT extern __attribute__((visibility("default"))) __attribute__((used))
-#endif
-#include <stdint.h>
-#include <stdbool.h>
-#endif
+#include "llamacpp_common.h"
 
 #include "llama.h"
 
@@ -26,20 +8,47 @@
 extern "C" {
 #endif
 
-	typedef struct common_chat_msg common_chat_msg_t;
-
 	typedef struct lcpp_data_pvalue {
 		char* value;
 		int32_t length;
 		bool found;
 
 	} lcpp_data_pvalue_t;
+
+	typedef enum lcpp_numa_strategy : uint8_t {
+		LCPP_NUMA_STRATEGY_DISABLED = 0,
+		LCPP_NUMA_STRATEGY_DISTRIBUTE = 1,
+		LCPP_NUMA_STRATEGY_ISOLATE = 2,
+		LCPP_NUMA_STRATEGY_NUMACTL = 3,
+		LCPP_NUMA_STRATEGY_MIRROR = 4,
+	} lcpp_numa_strategy_t;
 	
 	typedef enum lcpp_split_mode : uint8_t {
         LCPP_SPLIT_MODE_NONE  = 0, // single GPU
         LCPP_SPLIT_MODE_LAYER = 1, // split layers and KV across GPUs
         LCPP_SPLIT_MODE_ROW   = 2, // split layers and KV across GPUs, use tensor parallelism if supported
     } lcpp_split_mode_t;
+
+	typedef enum lcpp_finish_reason : uint8_t {
+		LCPP_FINISH_REASON_STOP = 0, // normal completed
+		LCPP_FINISH_REASON_LENGTH = 1, // exceeded max length
+		LCPP_FINISH_REASON_EOS = 2, // generated EOS token
+		LCPP_FINISH_REASON_CANCELLED = 3, // generation cancelled
+		LCPP_FINISH_REASON_ABORTED = 4, // generation aborted due to error
+		LCPP_FINISH_REASON_TOOL_CALLS = 5, // generation stopped due to tool call
+		LCPP_FINISH_REASON_CONTENT_FILTER = 6, // generation stopped due for content filter reasons
+		LCPP_FINISH_REASON_RECITATION = 7, // generation stopped due to recitation stopping criteria
+		LCPP_FINISH_REASON_ERROR_TOKENIZE = 8, // generation stopped due to tokenization error
+		LCPP_FINISH_REASON_ERROR_DETOKENIZE = 9, // generation stopped due to tokenization error
+		LCPP_FINISH_REASON_ERROR_DECODE = 10, // generation stopped due to decoding error
+		LCPP_FINISH_REASON_ERROR_ENCODE = 11, // generation stopped due to encoding error
+		LCPP_FINISH_REASON_TIMEOUT = 13, // generation stopped due to timeout
+		LCPP_FINISH_REASON_NO_KV_SLOT_AVAILABLE = 13, // generation stopped could not find a KV slot for the batch (try reducing the size of the batch or increase the context)
+		LCPP_FINISH_REASON_INVALID_BATCH_INPUT = 14, // generation stopped invalid input batch
+		LCPP_FINISH_REASON_UNHANDLED_EXCEPTION = 32, // generation stopped due to encoding error
+		LCPP_FINISH_REASON_FATAL_ERROR = 64, // generation stopped due to encoding error
+		LCPP_FINISH_REASON_UNSPECIFIED = 127, // unspecified reason
+	} lcpp_finish_reason_t;
 
 
 	typedef enum lcpp_mirostat_type : uint8_t {
@@ -59,7 +68,13 @@ extern "C" {
 		LCPP_MODEL_FAMILY_MISTRAL = 6,
 		LCPP_MODEL_FAMILY_GPT_OSS = 7,
 		LCPP_MODEL_FAMILY_SEED_OSS = 8,
-		LCPP_MODEL_FAMILY_GENERIC = 16,
+		LCPP_MODEL_FAMILY_APERTUS = 9,
+		LCPP_MODEL_FAMILY_NEMOTRON = 10,
+		LCPP_MODEL_FAMILY_LIQUID = 11,
+		LCPP_MODEL_FAMILY_GLM = 12,
+		LCPP_MODEL_FAMILY_MINIMAX = 13,
+		LCPP_MODEL_FAMILY_COHERE = 14,
+		LCPP_MODEL_FAMILY_GENERIC = 29,
 		LCPP_MODEL_FAMILY_COUNT,
 		LCPP_MODEL_FAMILY_UNSPECIFIED = 30,
 		LCPP_MODEL_FAMILY_UNKNOWN = 31
@@ -79,7 +94,7 @@ extern "C" {
 		LCPP_COMMON_SAMPLER_TYPE_INFILL = 9,
 		LCPP_COMMON_SAMPLER_TYPE_PENALTIES = 10,
 		LCPP_COMMON_SAMPLER_TYPE_TOP_N_SIGMA = 11,
-	} lcpp_common_sampler_type_t, plcpp_common_sampler_type_t;
+	} lcpp_common_sampler_type_t;
 
 
 	typedef struct lcpp_sampling_params {
@@ -133,6 +148,7 @@ extern "C" {
 		int32_t n_model_path_length;
 		lcpp_model_family_t model_family; // model family e.g. deepseek phi
 		lcpp_split_mode_t split_mode; // how to split the model across multiple GPUs
+		lcpp_numa_strategy_t numa; // NUMA strategy for multi-CPU systems
 		
 		// Keep the booleans together to avoid misalignment during copy-by-value.
         bool vocab_only;    // only load the vocabulary, no weights
@@ -161,7 +177,7 @@ extern "C" {
 		char* text;
 		uint32_t n_type;
 		uint32_t n_text;
-	} lcpp_common_chat_msg_content_part_t, *plcpp_common_chat_msg_content_part_t;
+	} lcpp_common_chat_msg_content_part_t;
 
 	typedef struct lcpp_common_chat_msg {
 		char* role;
@@ -179,177 +195,20 @@ extern "C" {
 		char* tool_call_id;
 		uint32_t n_tool_call_id;
 	} lcpp_common_chat_msg_t;
-	
-	
-	typedef struct lcpp_model_info {
-		// required
-		char* architecture;
-		uint32_t n_architecture;
-		uint32_t quantization_version;
-		uint32_t alignment;
-		uint32_t gguf_version;
-		int32_t file_type;
 
-		// metadata
+	typedef struct lcpp_common_chat_tool {
 		char* name;
-		uint32_t n_name;
-		char* author;
-		uint32_t n_author;
-		char* version;
-		uint32_t n_version;
-		char* organization;
-		uint32_t n_organization;
-		char* basename;
-		uint32_t n_basename;
-		char* finetune;
-		uint32_t n_finetune;
 		char* description;
+		char* paramaeters_schema;
+		uint32_t n_name;
 		uint32_t n_description;
-		char* size_label;
-		uint32_t n_size_label;
-		char* license;
-		uint32_t n_license;
-		char* license_link;
-		uint32_t n_license_link;
-		char* url;
-		uint32_t n_url;
-		char* doi;
-		uint32_t n_doi;
-		char* uuid;
-		uint32_t n_uuid;
-		char* repo_url;
-		uint32_t n_repo_url;
-		
-		// LLM
-		uint64_t context_length; // n_ctx
-		uint64_t embedding_length; // n_embd
-		uint64_t block_count;  // n_gpu_layers
-		uint64_t feed_forward_length; // n_ff
-		uint8_t use_parallel_residual;
-		uint32_t expert_count;
-		uint32_t expert_used_count; 
-		
-		// Attention
-		uint64_t attention_head_count; //n_head
-		uint64_t attention_head_count_kv; // set equal to n_head if model does not use GQA
-		double attention_max_alibi_bias;
-		double attention_clamp_kqv;
-		double attention_layer_norm_epsilon;
-		double attention_layer_norm_rms_epsilon;
-		uint32_t attention_key_length;
-		uint32_t attention_value_length;
-		
-		// ROPE
-		uint64_t rope_dimension_count;
-		double rope_freq_base;
-		char* rope_scaling_type;
-		uint32_t n_rope_scaling_type;
-		double rope_scaling_factor;
-		uint32_t rope_original_context_length;
-		uint8_t rope_scaling_finetuned;
-
-
-		// Split
-		uint64_t split_count;
-		uint64_t split_tensor_count;
-	} lcpp_model_info_t;
-
-	typedef enum lcpp_cpu_endianess : uint8_t {
-		LCPP_CPU_ENDIANESS_UNSPECIFIED = 0,
-		LCPP_CPU_ENDIANESS_BIG = 1,
-		LCPP_CPU_ENDIANESS_LITTLE = 2,
-		LCPP_CPU_ENDIANESS_UNKNOWN = 3
-	} lcpp_cpu_endianess_t;
-
-
-	typedef struct lcpp_cpu_info {
-		char* vendor_id;
-		int32_t n_vendor_id;
-		char* processor_name;
-		int32_t n_processor_name;
-		char* chipset_vendor;
-		int32_t n_chipset_vendor;
-		char* uarch;
-		int32_t n_uarch;
-		lcpp_cpu_endianess_t endianess;
-		uint64_t frequency;
-		uint32_t num_cores;
-		uint32_t num_processors;
-		uint32_t num_clusters;
-
-	} lcpp_cpu_info_t;
-
-	typedef struct lcpp_memory_info {
-		uint64_t physical_mem;
-		uint64_t virtual_mem;
-
-	} lcpp_memory_info_t;
-
-	typedef struct lcpp_gpu_info {
-		char* vendor;
-		int32_t n_vendor;
-		char* device_name;
-		int32_t n_device_name;
-		uint64_t memory;
-		int32_t frequency;
-	} lcpp_gpu_info_t;
-
-	typedef struct lcpp_system_info {
-		char* os_name;
-		int32_t n_os_name;
-		char* os_version;
-		int32_t n_os_version;
-		char* full_name;
-		int32_t n_full_name;
-	} lcpp_system_info_t;
-
-	typedef struct lcpp_machine_info {
-		lcpp_system_info_t* sysinfo;
-		lcpp_cpu_info_t* cpuinfo;
-		lcpp_memory_info_t* meminfo;
-		lcpp_gpu_info_t** gpuinfo;
-		int32_t n_gpuinfo;
-		uint64_t total_vram;
-		uint64_t blkmax_vram;
-	} lcpp_machine_info_t;
-
+		uint32_t n_paramaeters_schema;
+	} lcpp_common_chat_tool_t;
+	
 	typedef struct LcppTextStruct {
     	char* text;
     	int32_t length;
     } LcppTextStruct_t;
-	
-	typedef struct LcppFloatStruct {
-		float value;
-	} LcppFloatStruct_t;
-
-	typedef struct lcpp_model_filepath {
-		char* directory;
-		int32_t n_directory;
-		char* basename;
-		int32_t n_basename;
-		char* file_ext;
-		int32_t n_file_ext;
-		uint8_t is_sharded;
-		int32_t n_shards;
-
-	} lcpp_model_filepath_t;
-
-	typedef struct lcpp_model_mem {
-		size_t mem_model;
-		size_t tensor_mem;
-		size_t mem_experts;
-		size_t mem_context;
-		size_t mem_attention;
-		size_t mem_kv_cache;
-	} lcpp_model_mem_t;
-
-	typedef struct lcpp_model_rt {
-		lcpp_model_mem_t* memory;
-		lcpp_model_info_t* info;
-	} lcpp_model_rt_t;
-	
-
-	typedef struct llama_model_params llama_model_params_t;
 
 	typedef struct llama_context_params llama_context_params_t;
 
@@ -357,35 +216,22 @@ extern "C" {
 
 	typedef void (*LppChatMessageCallback)(lcpp_common_chat_msg_t*);
 	
-	typedef void (*LppProgressCallback)(LcppFloatStruct_t*);
+	typedef void (*LppProgressCallback)(double);
+
+	typedef void (*LcppOnCancelCallback)(int32_t);
+	typedef void (*LcppOnAbortCallback)(int32_t);
 
 #ifdef __cplusplus
 }
 #endif
 
-FFI_PLUGIN_EXPORT int lcpp_prompt(const lcpp_sampling_params_t sampling_params, lcpp_common_chat_msg_t** messages, int n_messages);
+FFI_PLUGIN_EXPORT int lcpp_prompt(const lcpp_sampling_params_t sampling_params, lcpp_common_chat_msg_t** messages, int n_messages, lcpp_common_chat_tool_t** tools, int n_tools);
 
 FFI_PLUGIN_EXPORT lcpp_params_t lcpp_params_defaults();
 
 FFI_PLUGIN_EXPORT lcpp_sampling_params_t lcpp_sampling_params_defaults();
 
 FFI_PLUGIN_EXPORT void lcpp_reconfigure(const llama_context_params_t context_params, const lcpp_params_t lcpp_params);
-
-FFI_PLUGIN_EXPORT lcpp_machine_info_t* lcpp_get_machine_info();
-
-FFI_PLUGIN_EXPORT void lcpp_free_machine_info(lcpp_machine_info_t* mach_info);
-
-FFI_PLUGIN_EXPORT lcpp_model_rt_t* lcpp_model_details(const char* model_path);
-
-// FFI_PLUGIN_EXPORT void lcpp_free_model_filepath(lcpp_model_filepath_t* model_path);
-
-FFI_PLUGIN_EXPORT void lcpp_free_model_mem(lcpp_model_mem_t* model_mem);
-
-FFI_PLUGIN_EXPORT void lcpp_free_model_rt(lcpp_model_rt_t* model_rt);
-
-FFI_PLUGIN_EXPORT lcpp_model_info_t* lcpp_get_model_info(const char* model_file);
-
-FFI_PLUGIN_EXPORT void lcpp_free_model_info(lcpp_model_info_t* model_info);
 
 FFI_PLUGIN_EXPORT void lcpp_set_token_stream_callback(LppTokenStreamCallback newtoken_callback);
 
@@ -395,6 +241,14 @@ FFI_PLUGIN_EXPORT void lcpp_set_chat_message_callback(LppChatMessageCallback cha
 
 FFI_PLUGIN_EXPORT void lcpp_unset_chat_message_callback();
 
+FFI_PLUGIN_EXPORT void lcpp_set_on_cancel_callback(LcppOnCancelCallback on_cancel_callback);
+
+FFI_PLUGIN_EXPORT void lcpp_unset_on_cancel_callback();
+
+FFI_PLUGIN_EXPORT void lcpp_set_on_abort_callback(LcppOnAbortCallback on_abort_callback);
+
+FFI_PLUGIN_EXPORT void lcpp_unset_on_abort_callback();
+
 FFI_PLUGIN_EXPORT void lcpp_set_model_load_progress_callback(LppProgressCallback model_loading_callback);
 
 FFI_PLUGIN_EXPORT void lcpp_unset_model_load_progress_callback();
@@ -402,31 +256,18 @@ FFI_PLUGIN_EXPORT void lcpp_unset_model_load_progress_callback();
 FFI_PLUGIN_EXPORT int32_t lcpp_tokenize(const char* text, int n_text, bool add_special,
 	bool parse_special, llama_token** tokens);
 
-FFI_PLUGIN_EXPORT void lcpp_detokenize(int* tokens, int n_tokens, bool special, lcpp_data_pvalue_t* text);
-
-// FFI_PLUGIN_EXPORT void lcpp_model_description(lcpp_data_pvalue_t* pvalue);
-
-// FFI_PLUGIN_EXPORT void lcpp_model_architecture(lcpp_data_pvalue_t* pvalue);
-
 FFI_PLUGIN_EXPORT void lcpp_send_abort_signal(bool abort);
 
 FFI_PLUGIN_EXPORT void lcpp_send_cancel_signal(bool cancel);
 
-FFI_PLUGIN_EXPORT void lcpp_native_free(void* ptr);
-
 FFI_PLUGIN_EXPORT void lcpp_free_common_chat_msg(lcpp_common_chat_msg_t* msg);
-
-FFI_PLUGIN_EXPORT void lcpp_free_float(LcppFloatStruct_t* ptr);
 
 FFI_PLUGIN_EXPORT void lcpp_free_text(LcppTextStruct_t* ptr);
 
 FFI_PLUGIN_EXPORT void lcpp_reset();
 
-
 FFI_PLUGIN_EXPORT void lcpp_unload();
-
-// FFI_PLUGIN_EXPORT void lcpp_clear_token_stream_responses();
 
 FFI_PLUGIN_EXPORT void lcpp_destroy();
 
-#endif // _LLAMACPP_H
+FFI_PLUGIN_EXPORT void lcpp_initialize();

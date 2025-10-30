@@ -23,16 +23,16 @@ Future<OfflineTtsConfig> getOfflineTtsConfig() async {
 
   // Example 8
   // https://k2-fsa.github.io/sherpa/onnx/tts/pretrained_models/kokoro.html#kokoro-en-v0-19-english-11-speakers
-  final modelDir = 'packages/unnu_sap/assets/models/tts/kokoro-int8-multi-lang-v1_1';
+  const modelDir = 'packages/unnu_sap/assets/models/tts/kokoro-multi-lang-v1_1';
   final dst = p.joinAll([
     directory.path,
     'unnu_sap',
     'assets',
     'models',
     'tts',
-    'kokoro-int8-multi-lang-v1_1',
+    'kokoro-multi-lang-v1_1',
   ]);
-  final modelFile = 'model.onnx';
+  const modelFile = 'model.onnx';
   voices = 'voices.bin';
   dataDir = 'espeak-ng-data';
   ruleFsts = 'date-zh.fst,number-zh.fst,phone-zh.fst';
@@ -206,7 +206,7 @@ Future<VadModelConfig> getVadModelConfig() async {
     'asr',
     'silero-vad',
   ]);
-  final modelDir = 'packages/unnu_sap/assets/models/asr/silero-vad';
+  const modelDir = 'packages/unnu_sap/assets/models/asr/silero-vad';
   final sileroVadConfig = SileroVadModelConfig(
     model: await copyAssetFile('$modelDir/silero_vad.onnx', dst),
     minSilenceDuration: 0.5,
@@ -230,7 +230,7 @@ Future<OnlinePunctuationModelConfig> getOnlinePunctuationModelConfig() async {
     'asr',
     'sherpa-onnx-online-punct-en-2024-08-06',
   ]);
-  final modelDir =
+  const modelDir =
       'packages/unnu_sap/assets/models/asr/sherpa-onnx-online-punct-en-2024-08-06';
   return OnlinePunctuationModelConfig(
     cnnBiLstm: await copyAssetFile('$modelDir/model.int8.onnx', dst),

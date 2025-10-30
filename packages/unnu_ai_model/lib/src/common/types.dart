@@ -12,6 +12,7 @@ import 'package:june/june.dart';
 import 'package:langchain/langchain.dart';
 import 'package:llamacpp/llamacpp.dart';
 import 'package:path/path.dart' as p;
+import 'package:stream_channel/stream_channel.dart';
 import 'package:unnu_aux/unnu_aux.dart';
 import 'package:unnu_shared/unnu_shared.dart';
 import 'package:yaml/yaml.dart';
@@ -19,12 +20,7 @@ import 'package:yaml_edit/yaml_edit.dart';
 
 import '../../unnu_ai_model.dart';
 
-enum UnnuQueryFragmentType {
-  CHAT_HISTORY,
-  CURRENT_INFO,
-  USER_QUERY,
-  OTHER;
-}
+enum UnnuQueryFragmentType { CHAT_HISTORY, CURRENT_INFO, USER_QUERY, OTHER }
 
 enum ModelFamily {
   Llama(
@@ -97,6 +93,20 @@ enum ModelFamily {
     weight: FontWeight.normal,
     text: 'Noto Sans',
   ),
+  Apertus(
+    familyName: 'Apertus ',
+    logo: 'Noto Serif',
+    style: FontStyle.normal,
+    weight: FontWeight.normal,
+    text: 'Noto Sans',
+  ),
+  Nemotron(
+    familyName: 'Nemotron',
+    logo: 'Noto Serif',
+    style: FontStyle.normal,
+    weight: FontWeight.normal,
+    text: 'Noto Sans',
+  ),
   Other(
     familyName: 'Other',
     logo: 'Noto Serif',
@@ -122,15 +132,17 @@ enum ModelFamily {
     final modelFilename = name.toLowerCase();
     if (modelFilename.startsWith(RegExp('llama', caseSensitive: false))) {
       return ModelFamily.Llama;
-    } else if (modelFilename.startsWith(RegExp('phi|microsoft', caseSensitive: false))) {
+    } else if (modelFilename.startsWith(
+      RegExp('phi|microsoft', caseSensitive: false),
+    )) {
       return ModelFamily.Phi;
     } else if (modelFilename.startsWith(
       RegExp('gemma', caseSensitive: false),
     )) {
       return ModelFamily.Gemma;
     } else if (modelFilename.startsWith(
-          RegExp('qwen|qwq', caseSensitive: false),
-        ) ) {
+      RegExp('qwen|qwq', caseSensitive: false),
+    )) {
       return ModelFamily.Qwen;
     } else if (modelFilename.startsWith(
       RegExp('granite', caseSensitive: false),
@@ -156,6 +168,14 @@ enum ModelFamily {
       RegExp('seed', caseSensitive: false),
     )) {
       return ModelFamily.Seed;
+    } else if (modelFilename.startsWith(
+      RegExp('apertus', caseSensitive: false),
+    )) {
+      return ModelFamily.Apertus;
+    } else if (modelFilename.contains(
+      RegExp('nemotron', caseSensitive: false),
+    )) {
+      return ModelFamily.Nemotron;
     } else {
       return ModelFamily.Other;
     }
@@ -189,8 +209,7 @@ class LlmMetaInfo {
        _numberOfExperts = LlmMetaInfo.countOfExperts(sizeLabel),
        _modelFamily = ModelFamily.modelFamilyFromName(nameInNamingConvention);
 
-  Map<int, double> get vram =>
-      vRamSize(nCtx, inferenceScheme: encoding.isNotEmpty ? encoding : 'Q8');
+  Map<int, double> get vram => vRamSize(nCtx, scheme: encoding);
 
   int get numberOfExperts => _numberOfExperts;
 
@@ -281,14 +300,14 @@ class LlmMetaInfo {
     return 1.0;
   }
 
-  Map<int, double> vRamSize(int n_Ctx, {String inferenceScheme = 'Q8'}) {
+  Map<int, double> vRamSize(int nCtx, {String scheme = 'Q8'}) {
     final mappings = <int, double>{};
-    final last = (m.max(m.log(n_Ctx) / m.ln2, 11) + 1).toInt();
+    final last = (m.max(m.log(nCtx) / m.ln2, 11) + 1).toInt();
     const alpha_2048 = 0.2;
     const overHead = 1.1;
     final totalParams = _numberOfExperts * _parameterCount;
     final kvFactor = kvCacheQuantFactor(encoding);
-    final kvInference = kvCacheQuantFactor(inferenceScheme);
+    final kvInference = kvCacheQuantFactor(scheme);
     for (var i = 11; i < last; i++) {
       final idx = m.pow(2, i) as int;
       final kvScale = (idx / 2048) * 1.1 * kvInference;
@@ -296,42 +315,14 @@ class LlmMetaInfo {
           overHead * totalParams * (kvFactor + alpha_2048 * kvScale);
       mappings[idx] = requiredMem;
     }
-
+    {
+      final kvScale = (nCtx / 2048) * 1.1 * kvInference;
+      final requiredMem =
+          overHead * totalParams * (kvFactor + alpha_2048 * kvScale);
+      mappings[nCtx] = requiredMem;
+    }
     return mappings;
   }
-
-  // ReasoningContext _reasoningContextFromInfo() {
-  //   final name = nameInNamingConvention.toLowerCase();
-  //   switch (modelFamily) {
-  //     case ModelFamily.Llama:
-  //       return (reasoning: false, startTag: null, endTag: null);
-  //     case ModelFamily.Gemma:
-  //       return (reasoning: false, startTag: null, endTag: null);
-  //     case ModelFamily.Phi:
-  //       return name.contains(RegExp('reasoning', caseSensitive: false))
-  //           ? (reasoning: true, startTag: '<think>', endTag: '</think>')
-  //           : (reasoning: false, startTag: null, endTag: null);
-  //     case ModelFamily.Qwen:
-  //       return name.startsWith(RegExp(r'qwen3', caseSensitive: false)) ||
-  //               name.startsWith(RegExp('qwq', caseSensitive: false))
-  //           ? (reasoning: true, startTag: '<think>', endTag: '</think>')
-  //           : (reasoning: false, startTag: null, endTag: null);
-  //     case ModelFamily.Granite:
-  //       return (reasoning: true, startTag: '<think>', endTag: "</think>");
-  //     case ModelFamily.Ernie:
-  //       return (reasoning: false, startTag: '<think>', endTag: '</think>');
-  //     case ModelFamily.DeepSeek:
-  //       return (reasoning: true, startTag: '<think>', endTag: "</think>");
-  //     case ModelFamily.Mistral:
-  //       return (reasoning: false, startTag: null, endTag: null);
-  //     case ModelFamily.GPT:
-  //       return (reasoning: false, startTag: null, endTag: null);
-  //     case ModelFamily.Seed:
-  //       return (reasoning: true, startTag: '<think>', endTag: "</think>");
-  //     case ModelFamily.Other:
-  //       return (reasoning: false, startTag: null, endTag: null);
-  //   }
-  // }
 
   LlmMetaInfo copyWith({
     String? filePath,
@@ -402,7 +393,17 @@ class LlmMetaInfo {
 
   @override
   String toString() {
-    return 'LlmMetaInfo(filePath: $filePath, nameInNamingConvention: $nameInNamingConvention, version: $version, sizeLabel: $sizeLabel, encoding: $encoding, type: $type, shard: $shard, nCtx: $nCtx)';
+    return '''
+    LlmMetaInfo:
+    \tfilePath: $filePath
+    \tnameInNamingConvention: $nameInNamingConvention
+    \tversion: $version
+    \tsizeLabel: $sizeLabel
+    \tencoding: $encoding
+    \ttype: $type
+    \tshard: $shard
+    \tnCtx: $nCtx
+    ''';
   }
 
   @override
@@ -432,61 +433,219 @@ class LlmMetaInfo {
   }
 }
 
+enum BackendDevice {
+  CPU(0),
+  IGPU(1),
+  SingleGPU(2),
+  MultiGPU(3),
+  MultiProcessor(4),
+  UNKNOWN(5);
+
+  final int value;
+  const BackendDevice(this.value);
+
+  static BackendDevice fromValue(int dev) {
+    return switch (dev) {
+      0 => CPU,
+      1 => IGPU,
+      2 => SingleGPU,
+      3 => MultiGPU,
+      4 => MultiProcessor,
+      5 => UNKNOWN,
+      _ => CPU,
+    };
+  }
+}
+
 @immutable
-class LLMProviderVM {
+class ContextWindowSetting {
+  const ContextWindowSetting({
+    required this.device,
+    required this.minimum,
+    required this.maximum,
+    required this.current,
+    required this.offloadExperts,
+    required this.recommended,
+    required this.split,
+    required this.type,
+  });
+
+  final int minimum;
+  final int maximum;
+  final int current;
+  final int recommended;
+  final BackendDevice device;
+  final bool offloadExperts;
+  final bool split;
+  final GgmlType type;
+
+  static ContextWindowSetting defaults() {
+    return ContextWindowSetting(
+      device: BackendDevice.CPU,
+      minimum: 0,
+      current: 0,
+      maximum: 0,
+      recommended: 0,
+      type: GgmlType.f32,
+      split: false,
+      offloadExperts: false,
+    );
+  }
+
+  ContextWindowSetting copyWith({
+    BackendDevice? device,
+    int? minimum,
+    int? maximum,
+    int? current,
+    int? recommended,
+    GgmlType? type,
+    bool? split,
+    bool? offloadExperts,
+  }) {
+    return ContextWindowSetting(
+      device: device ?? this.device,
+      minimum: minimum ?? this.minimum,
+      maximum: maximum ?? this.maximum,
+      current: current ?? this.current,
+      recommended: recommended ?? this.recommended,
+      type: type ?? this.type,
+      offloadExperts: offloadExperts ?? this.offloadExperts,
+      split: split ?? this.offloadExperts,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    final result = <String, dynamic>{};
+    result.addAll({'device': device.value});
+    result.addAll({'minimum': minimum});
+    result.addAll({'maximum': maximum});
+    result.addAll({'current': current});
+    result.addAll({'recommended': recommended});
+    result.addAll({'type': type.value});
+    result.addAll({'offloadExperts': offloadExperts});
+    result.addAll({'split': split});
+
+    return result;
+  }
+
+  factory ContextWindowSetting.fromMap(Map<String, dynamic> map) {
+    return ContextWindowSetting(
+      device: BackendDevice.fromValue((map['device'] ?? 0) as int),
+      minimum: (map['minimum'] ?? 0) as int,
+      maximum: (map['maximum'] ?? 0) as int,
+      current: (map['current'] ?? 0) as int,
+      recommended: (map['recommended'] ?? 0) as int,
+      type: GgmlType.fromValue((map['type'] ?? 0) as int),
+      split: (map['split'] ?? false) as bool,
+      offloadExperts: (map['offloadExperts'] ?? false) as bool,
+    );
+  }
+
+  String toJson() => json.encode(toMap());
+
+  factory ContextWindowSetting.fromJson(String source) =>
+      ContextWindowSetting.fromMap(json.decode(source) as Map<String, dynamic>);
+
+  @override
+  String toString() =>
+      'ContextWindowSetting(device: $device, minimum: $minimum, maximum: $maximum, current: $current, offloadExperts: $offloadExperts))';
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is ContextWindowSetting &&
+        other.device == device &&
+        other.minimum == minimum &&
+        other.maximum == maximum &&
+        other.current == current &&
+        other.recommended == recommended &&
+        other.type == type &&
+        other.split == split &&
+        other.offloadExperts == offloadExperts;
+  }
+
+  @override
+  int get hashCode =>
+      device.hashCode ^
+      minimum.hashCode ^
+      maximum.hashCode ^
+      current.hashCode ^
+      recommended.hashCode ^
+      type.hashCode ^
+      split.hashCode ^
+      offloadExperts.hashCode;
+}
+
+@immutable
+class LLMConfigurationParameters {
   final ContextParams contextParams;
   final LlamaCppParams lcppParams;
   final LlmMetaInfo info;
   final LlamaCppModelInfo specifications;
+  final ContextWindowSetting contextsize;
   final String uri;
-  LLMProviderVM({
+  LLMConfigurationParameters({
     required this.uri,
     required this.contextParams,
     required this.lcppParams,
     required this.info,
     required this.specifications,
+    required this.contextsize,
   });
 
-  LLMProviderVM copyWith({
+  LLMConfigurationParameters copyWith({
     String? uri,
     ContextParams? contextParams,
     LlamaCppParams? lcppParams,
     LlmMetaInfo? info,
     LlamaCppModelInfo? specifications,
+    ContextWindowSetting? contextsize,
   }) {
-    return LLMProviderVM(
+    return LLMConfigurationParameters(
       uri: uri ?? this.uri,
       contextParams: contextParams ?? this.contextParams,
       lcppParams: lcppParams ?? this.lcppParams,
       info: info ?? this.info,
       specifications: specifications ?? this.specifications,
+      contextsize: contextsize ?? this.contextsize,
     );
   }
 
-  static LLMProviderVM getDefaults() {
-    return LLMProviderVM(
+  static LLMConfigurationParameters getDefaults() {
+    return LLMConfigurationParameters(
       uri: '',
       info: LlmMetaInfo.empty(),
       specifications: LlamaCppModelInfo.empty(),
       contextParams: ContextParams.defaultParams(),
       lcppParams: LlamaCppParams.defaultParams(),
+      contextsize: ContextWindowSetting.defaults(),
     );
   }
 
   @override
   String toString() {
-    return 'LLMProviderVM(uri: $uri, contextParams: $contextParams, lcppParams: $lcppParams, info: $info, specifications: $specifications)';
+    return '''
+    LLMProviderVM:
+    \turi: $uri
+    \tcontextParams: $contextParams
+    \tlcppParams: $lcppParams
+    \tinfo: $info
+    \tspecifications: $specifications
+    \tcontextsize: $contextsize
+    ''';
   }
 
   @override
-  bool operator ==(covariant LLMProviderVM other) {
+  bool operator ==(covariant LLMConfigurationParameters other) {
     if (identical(this, other)) return true;
 
     return other.uri == uri &&
         other.contextParams == contextParams &&
         other.lcppParams == lcppParams &&
         other.info == info &&
-        other.specifications == specifications;
+        other.specifications == specifications &&
+        other.contextsize == contextsize;
   }
 
   @override
@@ -495,7 +654,8 @@ class LLMProviderVM {
         contextParams.hashCode ^
         lcppParams.hashCode ^
         info.hashCode ^
-        specifications.hashCode;
+        specifications.hashCode ^
+        contextsize.hashCode;
   }
 
   Map<String, dynamic> toMap() {
@@ -505,11 +665,12 @@ class LLMProviderVM {
       'lcppParams': lcppParams.toMap(),
       'info': info.toMap(),
       'specifications': specifications.toMap(),
+      'contextsize': contextsize.toMap(),
     };
   }
 
-  factory LLMProviderVM.fromMap(Map<String, dynamic> map) {
-    return LLMProviderVM(
+  factory LLMConfigurationParameters.fromMap(Map<String, dynamic> map) {
+    return LLMConfigurationParameters(
       uri: (map['uri'] ?? '') as String,
       contextParams: ContextParams.fromMap(
         map['contextParams'] as Map<String, dynamic>,
@@ -521,13 +682,18 @@ class LLMProviderVM {
       specifications: LlamaCppModelInfo.fromMap(
         map['specifications'] as Map<String, dynamic>,
       ),
+      contextsize: ContextWindowSetting.fromMap(
+        map['contextsize'] as Map<String, dynamic>,
+      ),
     );
   }
 
   String toJson() => json.encode(toMap());
 
-  factory LLMProviderVM.fromJson(String source) =>
-      LLMProviderVM.fromMap(json.decode(source) as Map<String, dynamic>);
+  factory LLMConfigurationParameters.fromJson(String source) =>
+      LLMConfigurationParameters.fromMap(
+        json.decode(source) as Map<String, dynamic>,
+      );
 }
 
 @immutable
@@ -865,14 +1031,15 @@ class LLMProviderController extends JuneState {
 
   static final semVerMatcher = RegExp(r'^[1-9]+\.[1-9]\d*$', unicode: false);
 
-  LLMProviderVM activeModel = LLMProviderVM.getDefaults();
+  LLMConfigurationParameters activeModel =
+      LLMConfigurationParameters.getDefaults();
 
-  String currentSettings = '';
-
-  LlamaCppProvider llm = LlamaCppProvider(
+  LlamaCppProvider _llm = LlamaCppProvider(
     contextParams: ContextParams(),
     lcppParams: const LlamaCppParams(),
   );
+
+  LlamaCppProvider get provider => _llm;
 
   final Map<String, UnnuModelDetails> _modelRegistry =
       <String, UnnuModelDetails>{};
@@ -881,14 +1048,14 @@ class LLMProviderController extends JuneState {
     _modelRegistry.values.where((value) => value.info.filePath.isNotEmpty),
   );
 
-  Stream<LLMResult> get responses => llm.model.responses;
+  Stream<ChatResult> get responses => _llm.responses;
 
-  void stop() {
-    llm.model.stop();
-  }
+  static Stream<int> get cancelEvents => LlamaCpp.cancelEvents;
+
+  static Stream<int> get abortEvents => LlamaCpp.abortEvents;
 
   void cancel() {
-    llm.model.cancel();
+    _llm.cancel();
   }
 
   static UnnuModelDetails inspect(String modelPath) {
@@ -897,6 +1064,7 @@ class LLMProviderController extends JuneState {
 
     metaInfo = metaInfo.copyWith(
       filePath: modelPath,
+      nCtx: info.n_ctx ?? 1024,
     );
 
     final segments = p.basename(modelPath).split('-');
@@ -943,7 +1111,7 @@ class LLMProviderController extends JuneState {
       version: versionString,
     );
 
-    for (int i = 0; i < idxSizeLabel; i++) {
+    for (var i = 0; i < idxSizeLabel; i++) {
       if (!(i == idxVersion || i == idxSemVer)) {
         if (i != 0) {
           toNameConvention.write(' ');
@@ -1098,88 +1266,174 @@ class LLMProviderController extends JuneState {
   }
 
   void reset() {
-    llm.model.reset();
+    _llm.reset();
     setState();
+  }
+
+  void resizeContextWindow(UnnuModelDetails details) {
+    final machInfo = LlamaCpp.machineInfo();
+    // machInfo.blkmax_vram <= 0 implies only iGPU available
+    final dGPUs =
+        machInfo.gpus
+            .where(
+              (element) =>
+                  element.memory >= machInfo.blkmax_vram && element.type != 0,
+            )
+            .indexed;
+    final device =
+        dGPUs.isNotEmpty
+            ? dGPUs.length > 1
+                ? BackendDevice.MultiGPU
+                : BackendDevice.SingleGPU
+            : machInfo.gpus.isNotEmpty
+            ? BackendDevice.IGPU
+            : machInfo.num_clusters > 1
+            ? BackendDevice.MultiProcessor
+            : BackendDevice.CPU;
+    final recommended =
+        dGPUs.isNotEmpty
+            ? dGPUs
+                .reduce(
+                  (max, element) =>
+                      max.$2.memory > element.$2.memory ? max : element,
+                )
+                .$1
+            : 0;
+    final kvCacheType = GgmlFileType.fromValue(
+      device == BackendDevice.SingleGPU || device == BackendDevice.MultiGPU
+          ? details.specifications.file_type ??
+              GgmlFileType.from(
+                GgmlType.fromString(details.info.encoding.toLowerCase()),
+              ).value
+          : GgmlFileType.ALL_F32.cache().value,
+    );
+    final suggestCtxSz = details.specifications.n_ctx ?? details.info.nCtx;
+    if (kDebugMode) {
+      print(
+        'KvCacheType: ${kvCacheType.name}, scheme:${kvCacheType.scheme()}, kv: ${kvCacheType.cache()}',
+      );
+    }
+    final type = kvCacheType.cache();
+    final numCtx = details.info.vRamSize(
+      suggestCtxSz,
+      scheme: type.name.toUpperCase(),
+    )..removeWhere((key, value) => value > machInfo.total_vram);
+    final largeCtx = numCtx.isNotEmpty ? numCtx.keys.reduce(m.max) : suggestCtxSz;
+    final newCtxSz = m.min(activeModel.contextsize.current, largeCtx);
+    final offloadExperts =
+        numCtx.keys
+            .where(
+              (element) => element >= newCtxSz,
+            )
+            .isEmpty;
+    numCtx.removeWhere(
+      (key, value) => value > machInfo.blkmax_vram,
+    );
+    final split =
+        numCtx.keys
+            .where(
+              (element) => element >= newCtxSz,
+            )
+            .isEmpty;
+
+    final ctxWnd = activeModel.contextsize.copyWith(
+      device: device,
+      minimum: 0,
+      maximum: m.max(largeCtx,suggestCtxSz),
+      current: newCtxSz,
+      offloadExperts: offloadExperts && (device == BackendDevice.MultiGPU || device == BackendDevice.MultiGPU),
+      recommended: recommended,
+      split: split && device == BackendDevice.MultiGPU,
+      type: type,
+    );
+    activeModel = activeModel.copyWith(contextsize: ctxWnd);
   }
 
   Stream<double> switchModel(UnnuModelDetails details) async* {
     if (kDebugMode) {
-      print('switchModel(LlmMetaInfo) info = $details');
+      print('switchModel(details)\n$details');
     }
 
-    if (kDebugMode) {
-      print('activeModel newInfo = $activeModel');
-    }
     if (details.info.filePath.isNotEmpty) {
-      final machInfo = LlamaCpp.machineInfo();
-      final numCtx = details.info.vRamSize(
-        details.specifications.n_ctx ?? details.info.nCtx,
-      );
-      final smallCtx = numCtx.keys.reduce(m.min);
-      final largeCtx = numCtx.entries
-          .where(
-            (element) => element.value <= machInfo.blkmax_vram,
-          )
-          .map(
-            (e) => e.key,
-          )
-          .reduce(m.max);
-      // machInfo.blkmax_vram = 0 implies only iGPU available
+      resizeContextWindow(details);
+
       activeModel = activeModel.copyWith(
         info: details.info,
         specifications: details.specifications,
         contextParams: ContextParams.defaultParams().copyWith(
-          nCtx: machInfo.blkmax_vram > 0.0 ? largeCtx : smallCtx,
+          nCtx: activeModel.contextsize.current,
           ropeFrequencyBase: details.specifications.rope_freq_base,
           ropeFrequencyScale: details.specifications.rope_scaling_factor,
           ropeScalingType: RopeScalingType.fromString(
             details.specifications.rope_scaling_type ??
                 RopeScalingType.unspecified.name,
           ),
+          typeK: activeModel.contextsize.type,
+          typeV: activeModel.contextsize.type,
           yarnOriginalContext: details.specifications.rope_orig_ctx,
         ),
         lcppParams: LlamaCppParams.defaultParams().copyWith(
           modelPath: details.info.filePath,
           nGpuLayers:
-              (details.specifications.n_layers ?? 97) +
-              (details.specifications.n_head ?? 2),
+              activeModel.contextsize.device == BackendDevice.MultiGPU ||
+                      activeModel.contextsize.device == BackendDevice.SingleGPU
+                  ? (details.specifications.n_layers ?? 32) +
+                      (details.specifications.n_head ?? 2) +
+                      2
+                  : 0,
           splitMode:
-              numCtx[largeCtx]! >= machInfo.blkmax_vram &&
-                      machInfo.blkmax_vram > 0.0
-                  ? lcpp_split_mode.LCPP_SPLIT_MODE_LAYER
+              activeModel.contextsize.device == BackendDevice.MultiGPU &&
+                      activeModel.contextsize.split
+                  ? lcpp_split_mode.LCPP_SPLIT_MODE_ROW
                   : lcpp_split_mode.LCPP_SPLIT_MODE_NONE,
-          mainGPU: 0,
-          useMmap: true,
-          useMlock: true,
-          expertsOffLoad:
-              (numCtx[smallCtx]!.toInt() > machInfo.total_vram) &&
-              machInfo.blkmax_vram > 0,
+          numa:
+              !Platform.isWindows
+                  ? activeModel.contextsize.device ==
+                          BackendDevice.MultiProcessor
+                      ? !Platform.isLinux
+                          ? lcpp_numa_strategy.LCPP_NUMA_STRATEGY_NUMACTL
+                          : lcpp_numa_strategy.LCPP_NUMA_STRATEGY_MIRROR
+                      : lcpp_numa_strategy.LCPP_NUMA_STRATEGY_DISABLED
+                  : lcpp_numa_strategy.LCPP_NUMA_STRATEGY_DISABLED,
+          mainGPU:
+              activeModel.contextsize.device == BackendDevice.MultiGPU
+                  ? activeModel.contextsize.recommended
+                  : activeModel.contextsize.device == BackendDevice.SingleGPU
+                  ? 0
+                  : 0,
+          useMmap:
+              activeModel.contextsize.device == BackendDevice.SingleGPU ||
+              activeModel.contextsize.device == BackendDevice.MultiGPU,
+          useMlock:
+              activeModel.contextsize.device == BackendDevice.SingleGPU ||
+              activeModel.contextsize.device == BackendDevice.MultiGPU,
+          expertsOffLoad: activeModel.contextsize.offloadExperts,
         ),
       );
-      final reasoning = activeModel.lcppParams.reasoning;
-      llm = LlamaCppProvider(
+      final _ = June.getState(
+        SamplerChainSettingsController.new,
+      )
+
+        ..update(contextSize: activeModel.contextsize.current);
+      _llm = LlamaCppProvider(
         contextParams: activeModel.contextParams,
         lcppParams: activeModel.lcppParams,
-        samplingParams: LlamaCppSamplingParams.defaultParams().copyWith(
-          topK: reasoning.reasoning ? 20 : 40,
-          topP: 0.95,
-          temperature: reasoning.reasoning ? 0.6 : 0.8,
-          minP: reasoning.reasoning ? 0.0 : 0.05,
-          penaltyPresent: reasoning.reasoning ? 1.5 : 0.8,
-        ),
         defaultOptions: LcppOptions(
           model: activeModel.info.nameInNamingConvention,
         ),
       );
+      if (kDebugMode) {
+        print('activeModel.new\n$activeModel');
+      }
       setState();
     }
-    final progress = llm.model.reconfigure();
-    yield* progress;
+
+    yield* _llm.reconfigure();
   }
 
   @override
   void dispose() {
-    llm.model.destroy();
+    _llm.destroy();
     super.dispose();
   }
 
@@ -1189,7 +1443,5 @@ class LLMProviderController extends JuneState {
 
   String get description => activeModel.info.nameInNamingConvention;
 
-  String get type => llm.modelType;
-
-  // ReasoningContext get reasoningContext => activeModel.info.;
+  String get type => _llm.modelType;
 }

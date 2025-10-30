@@ -1,14 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as m;
 
 import 'package:ai_glow/ai_glow.dart';
 import 'package:asset_cache/asset_cache.dart';
+import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:disclosure/disclosure.dart';
 import 'package:feedback_gitlab/feedback_gitlab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_adaptive_scaffold/flutter_adaptive_scaffold.dart';
 import 'package:flutter_chat_core/flutter_chat_core.dart';
+import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:june/june.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -19,6 +23,7 @@ import 'package:unnu_ai_model/unnu_ai_model.dart';
 import 'package:unnu_common/unnu_common.dart';
 import 'package:unnu_sap/unnu_asr.dart';
 import 'package:unnu_sap/unnu_tts.dart';
+import 'package:unnu_shared/unnu_shared.dart';
 import 'package:unnu_speech/unnu_speech.dart';
 import 'package:unnu_widgets/unnu_widgets.dart';
 
@@ -35,43 +40,6 @@ final _disclosureKeys = [
   ('disclosure-privacy_policy', 'Privacy Policy'),
   ('disclosure-disclaimer', 'Disclaimer'),
 ];
-
-enum ApplicationPanel {
-  history(0, Icons.history),
-  models(1, Icons.functions);
-
-  final int value;
-  final IconData icondata;
-
-  const ApplicationPanel(this.value, this.icondata);
-
-  static ApplicationPanel fromValue(int value) => switch (value) {
-    0 => history,
-    1 => models,
-    _ => throw ArgumentError('Unknown value for ApplicationPanel: $value'),
-  };
-}
-
-enum AppPrimaryNavigation {
-  NewChat(0, Icons.chat),
-  SwitchModel(1, Icons.file_open),
-  About(2, Icons.info),
-  Feedback(3, Icons.edit_note);
-
-  final IconData icondata;
-  final int value;
-  const AppPrimaryNavigation(this.value, this.icondata);
-
-  IconData get icon => icondata;
-
-  static AppPrimaryNavigation fromValue(int value) => switch (value) {
-    0 => NewChat,
-    1 => SwitchModel,
-    2 => About,
-    3 => Feedback,
-    _ => throw ArgumentError('Unknown value for AppPrimaryNavigation: $value'),
-  };
-}
 
 class SystemInformation {
   String appName;
@@ -481,6 +449,7 @@ class ApplicationLayoutModelController extends JuneState {
 
     appConfiguration = appConfiguration.copyWith(shortLocale: shortLocale);
   }
+
   final _jsonAssets = JsonAssetCache(
     assetBundle: rootBundle,
     basePath: 'assets/json/',
@@ -518,9 +487,7 @@ class ApplicationLayoutModelController extends JuneState {
       case AppPrimaryNavigation.Feedback:
         {
           final config =
-              await _jsonAssets.loadAsset(
-                    'config.json',
-                  )
+              await _jsonAssets.loadAsset('config.json')
                   as Map<String, dynamic>;
           if (context.mounted) {
             BetterFeedback.of(context).showAndUploadToGitLab(
@@ -555,7 +522,7 @@ class ApplicationLayoutModelController extends JuneState {
   );
 
   void _onCancelModelResponse() {
-    final _ = June.getState(LLMProviderController.new)..stop();
+    final _ = June.getState(LLMProviderController.new)..provider.stop();
   }
 
   void switchMode(InteractiveMode mode) {
@@ -682,9 +649,7 @@ class ApplicationLayoutModelController extends JuneState {
                         );
                       } else if (chatWidgetController.changeNotifier.status ==
                           SendIconState.transcribing) {
-                        chatWidgetController.update(
-                          status: SendIconState.idle,
-                        );
+                        chatWidgetController.update(status: SendIconState.idle);
                       }
                     }),
                     onModeChange: switchMode,
@@ -748,6 +713,14 @@ class ApplicationLayoutModelController extends JuneState {
                               style: theme.textTheme.titleSmall,
                             ),
                           ),
+                          Tab(
+                            icon: Icon(ApplicationPanel.settings.icondata),
+                            child: Text(
+                              appConfiguration.localizations['settings'] ??
+                                  'Settings',
+                              style: theme.textTheme.titleSmall,
+                            ),
+                          ),
                         ],
                       ),
                     )
@@ -774,35 +747,45 @@ class ApplicationLayoutModelController extends JuneState {
                               style: theme.textTheme.titleSmall,
                             ),
                           ),
+                          Tab(
+                            icon: Icon(ApplicationPanel.settings.icondata),
+                            child: Text(
+                              appConfiguration.localizations['settings'] ??
+                                  'Settings',
+                              style: theme.textTheme.titleSmall,
+                            ),
+                          ),
                         ],
                       )
                       : null,
             ),
             body: TabBarView(
               children: [
-                JuneBuilder(
-                  StreamingMessageController.new,
-                  builder: (controller) {
-                    final layout = June.getState(
-                      ApplicationLayoutModelController.new,
-                    );
-                    layout.appConfiguration = layout.appConfiguration.copyWith(
-                      selectedTabbedPanel: ApplicationPanel.history,
-                    );
-                    final chats = controller.chats.entries;
-                    return Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.zero,
-                        border: const BoxBorder.symmetric(
-                          vertical: BorderSide(width: 0.5),
-                        ),
-                        color: theme.colorScheme.surface,
-                      ),
-                      constraints: const BoxConstraints(minWidth: 100),
-                      padding: EdgeInsets.zero,
-                      height: MediaQuery.sizeOf(context).height,
-                      width: MediaQuery.sizeOf(context).width,
-                      child: ListView.builder(
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.zero,
+                    border: BoxBorder.all(width: 0.5),
+                    color: theme.colorScheme.surface,
+                  ),
+                  constraints: BoxConstraints(
+                    minWidth: MediaQuery.sizeOf(context).width,
+                    minHeight: MediaQuery.sizeOf(context).height,
+                  ),
+                  padding: EdgeInsets.zero,
+                  height: MediaQuery.sizeOf(context).height,
+                  width: MediaQuery.sizeOf(context).width,
+                  child: JuneBuilder(
+                    StreamingMessageController.new,
+                    builder: (controller) {
+                      final layout = June.getState(
+                        ApplicationLayoutModelController.new,
+                      );
+                      layout.appConfiguration = layout.appConfiguration
+                          .copyWith(
+                            selectedTabbedPanel: ApplicationPanel.history,
+                          );
+                      final chats = controller.chats.entries;
+                      return ListView.builder(
                         itemCount: chats.length,
                         prototypeItem: ListTile(
                           onTap: () {},
@@ -821,7 +804,10 @@ class ApplicationLayoutModelController extends JuneState {
                           ),
                           subtitle: ReadMoreExpandableText(
                             text:
-                                'Lorem ipsum dolor sit amet, consectetur adipiscing elit.\nSed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\nUt enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
+                                '''Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n
+                            Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\n
+                            Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut 
+                            aliquip ex ea commodo consequat.''',
                             collapseText: '-',
                             expandText: '+',
                             collapseIcon: Icons.arrow_drop_up,
@@ -873,7 +859,7 @@ class ApplicationLayoutModelController extends JuneState {
                                 sessionId ==
                                 controller.messagingModel.sessionId,
                             title: Badge.count(
-                              count: (messageCount / 2).toInt(),
+                              count: messageCount ~/ 2,
                               child: Text(
                                 timeago.format(
                                   createdAt!,
@@ -892,33 +878,37 @@ class ApplicationLayoutModelController extends JuneState {
                             ),
                           );
                         },
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
-                JuneBuilder(
-                  LLMProviderController.new,
-                  builder: (controller) {
-                    final models = controller.models;
-                    final layout = June.getState(
-                      ApplicationLayoutModelController.new,
-                    );
-                    layout.appConfiguration = layout.appConfiguration.copyWith(
-                      selectedTabbedPanel: ApplicationPanel.models,
-                    );
-                    return Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.zero,
-                        border: const BoxBorder.symmetric(
-                          vertical: BorderSide(width: 0.5),
-                        ),
-                        color: theme.colorScheme.surface,
-                      ),
-                      constraints: const BoxConstraints(minWidth: 100),
-                      padding: EdgeInsets.zero,
-                      height: MediaQuery.sizeOf(context).height,
-                      width: MediaQuery.sizeOf(context).width,
-                      child: ListView.builder(
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.zero,
+                    border: const BoxBorder.symmetric(
+                      vertical: BorderSide(width: 0.5),
+                    ),
+                    color: theme.colorScheme.surface,
+                  ),
+                  constraints: BoxConstraints(
+                    minWidth: MediaQuery.sizeOf(context).width,
+                    minHeight: MediaQuery.sizeOf(context).height,
+                  ),
+                  padding: EdgeInsets.zero,
+                  height: MediaQuery.sizeOf(context).height,
+                  width: MediaQuery.sizeOf(context).width,
+                  child: JuneBuilder(
+                    LLMProviderController.new,
+                    builder: (controller) {
+                      final models = controller.models;
+                      final layout = June.getState(
+                        ApplicationLayoutModelController.new,
+                      );
+                      layout.appConfiguration = layout.appConfiguration
+                          .copyWith(
+                            selectedTabbedPanel: ApplicationPanel.models,
+                          );
+                      return ListView.builder(
                         itemCount: models.length,
                         prototypeItem: Tooltip(
                           message: 'Name following convention',
@@ -963,9 +953,7 @@ class ApplicationLayoutModelController extends JuneState {
                                         .nameInNamingConvention !=
                                     models[index].info.nameInNamingConvention,
                                 onTap: () async {
-                                  await ModelUtils.switchModel(
-                                    models[index],
-                                  );
+                                  await ModelUtils.switchModel(models[index]);
                                 },
                                 selected:
                                     controller
@@ -1003,9 +991,964 @@ class ApplicationLayoutModelController extends JuneState {
                                 ),
                               ),
                             ),
+                      );
+                    },
+                  ),
+                ),
+                SettingsList(
+                  sections: [
+                    CustomSettingsSection(
+                      child: CustomSettingsTile(
+                        child: (info) => SingleChildScrollView(
+                          controller: ScrollController(keepScrollOffset: false),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.zero,
+                              border: BoxBorder.all(width: 0.5),
+                              color: theme.colorScheme.surface,
+                            ),
+                            constraints: BoxConstraints(
+                              minWidth: MediaQuery.sizeOf(context).width,
+                              maxWidth: MediaQuery.sizeOf(context).width,
+                              minHeight:
+                                  MediaQuery.sizeOf(context).height, // remove overflow pixels
+                            ),
+                            padding: EdgeInsets.zero,
+                            width: MediaQuery.sizeOf(context).width,
+                            child: JuneBuilder(
+                              SamplerChainSettingsController.new,
+                              builder: (controller) {
+                                final llmProviderController = June.getState(
+                                  LLMProviderController.new,
+                                );
+                                return FormBuilder(
+                                  autovalidateMode:
+                                      AutovalidateMode.onUserInteraction,
+                                  clearValueOnUnregister: true,
+                                  skipDisabled: true,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      CustomSettingsSection(
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            FormBuilderTextField(
+                                              name: 'n_ctx',
+                                              decoration: InputDecoration(
+                                                hintText:
+                                                    'Context Size, max: ${llmProviderController.activeModel.contextsize.maximum}',
+                                                labelText: 'Context Size',
+                                                icon: const Icon(
+                                                  Icons.aspect_ratio,
+                                                ),
+                                                // helperText:
+                                                //     'Context window size in tokens, update trigger model reload',
+                                              ),
+                                              initialValue:
+                                                  '${controller.settings.contextSize}',
+                                              keyboardType:
+                                                  TextInputType.number,
+                                              valueTransformer:
+                                                  (value) => int.tryParse(
+                                                    value ??
+                                                        '${controller.settings.contextSize}',
+                                                  ),
+                                              validator: FormBuilderValidators.compose([
+                                                FormBuilderValidators.required(),
+                                                FormBuilderValidators.integer(),
+                                                FormBuilderValidators.between(
+                                                  0,
+                                                  llmProviderController
+                                                      .activeModel
+                                                      .contextsize
+                                                      .maximum,
+                                                ),
+                                              ]),
+                                              onChanged:
+                                                  (value) => controller.update(
+                                                    contextSize: int.tryParse(
+                                                      value!,
+                                                    ),
+                                                  ),
+                                              onSubmitted: (value) async {
+                                                final updated = int.tryParse(
+                                                  value ??
+                                                      '${controller.settings.contextSize}',
+                                                );
+                                                if (updated !=
+                                                    controller
+                                                        .settings
+                                                        .contextSize) {
+                                                  controller.update(
+                                                    contextSize: updated,
+                                                  );
+                                                }
+                                                if (controller
+                                                        .settings
+                                                        .contextSize !=
+                                                    llmProviderController
+                                                        .activeModel
+                                                        .contextsize
+                                                        .current) {
+                                                  llmProviderController
+                                                      .activeModel = llmProviderController
+                                                      .activeModel
+                                                      .copyWith(
+                                                        contextsize:
+                                                            llmProviderController
+                                                                .activeModel
+                                                                .contextsize
+                                                                .copyWith(
+                                                                  current:
+                                                                      controller
+                                                                          .settings
+                                                                          .contextSize,
+                                                                ),
+                                                      );
+                                                  await ModelUtils.switchModel(
+                                                    UnnuModelDetails(
+                                                      specifications:
+                                                          llmProviderController
+                                                              .activeModel
+                                                              .specifications,
+                                                      info:
+                                                          llmProviderController
+                                                              .activeModel
+                                                              .info,
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                            FormBuilderTextField(
+                                              name: 'seed',
+                                              decoration: const InputDecoration(
+                                                hintText:
+                                                    'Seed, max: 2147483647',
+                                                labelText: 'Seed',
+                                                icon: Icon(Icons.trip_origin),
+                                                // helperText:
+                                                //     'The seed parameter controls randomness',
+                                              ),
+                                              initialValue:
+                                                  '${controller.settings.core.seed}',
+                                              keyboardType:
+                                                  TextInputType.number,
+                                              valueTransformer:
+                                                  (text) => int.tryParse(text!),
+                                              validator: FormBuilderValidators.compose([
+                                                FormBuilderValidators.required(),
+                                                FormBuilderValidators.integer(),
+                                                FormBuilderValidators.between(
+                                                  0,
+                                                  2147483647,
+                                                ),
+                                              ]),
+                                              onChanged:
+                                                  (value) => controller.update(
+                                                    seed: int.tryParse(
+                                                      value ??
+                                                          '${controller.settings.core.seed}',
+                                                    ),
+                                                  ),
+                                              autovalidateMode:
+                                                  AutovalidateMode
+                                                      .onUserInteraction,
+                                            ),
+                                            FormBuilderSlider(
+                                              name: 'temperature',
+                                              decoration: const InputDecoration(
+                                                hintText: 'Temperature',
+                                                labelText: 'Temperature',
+                                                icon: Icon(
+                                                  Icons.device_thermostat,
+                                                ),
+                                                // helperText:
+                                                //     'Temperature controls the randomness of predictions',
+                                              ),
+                                              initialValue:
+                                                  controller
+                                                      .settings
+                                                      .core
+                                                      .temperature
+                                                      .toDouble() *
+                                                  100,
+                                              min: -1.0,
+                                              max: 100,
+                                              divisions: 101,
+                                              valueTransformer:
+                                                  (value) =>
+                                                      (value ?? 0) > 0
+                                                          ? (value ?? 0) / 100.0
+                                                          : value,
+                                              onChanged:
+                                                  (value) => controller.update(
+                                                    temperature:
+                                                        (value ?? 0) < 0
+                                                            ? -1
+                                                            : (value ??
+                                                                    controller
+                                                                        .settings
+                                                                        .core
+                                                                        .temperature) /
+                                                                100.0,
+                                                  ),
+                                            ),
+                                            FormBuilderTextField(
+                                              name: 'min_keep',
+                                              decoration: InputDecoration(
+                                                hintText:
+                                                    'Min Keep, max: ${llmProviderController.activeModel.contextsize.current}',
+                                                labelText: 'Min-Keep',
+                                                icon: const Icon(
+                                                  Icons.dynamic_feed,
+                                                ),
+                                                // helperText:
+                                                //     'Minimum tokens to keep after filtering',
+                                              ),
+                                              initialValue:
+                                                  '${m.min(controller.settings.core.minKeep, llmProviderController.activeModel.contextsize.current)}',
+                                              keyboardType:
+                                                  TextInputType.number,
+                                              validator: FormBuilderValidators.compose([
+                                                FormBuilderValidators.required(),
+                                                FormBuilderValidators.integer(),
+                                                FormBuilderValidators.between(
+                                                  0,
+                                                  llmProviderController
+                                                      .activeModel
+                                                      .contextsize
+                                                      .current,
+                                                ),
+                                              ]),
+                                              onChanged:
+                                                  (value) => controller.update(
+                                                    minKeep: int.tryParse(
+                                                      value ??
+                                                          '${controller.settings.core.minKeep}',
+                                                    ),
+                                                  ),
+                                              autovalidateMode:
+                                                  AutovalidateMode
+                                                      .onUserInteraction,
+                                            ),
+                                            FormBuilderSlider(
+                                              name: 'top_k',
+                                              decoration: const InputDecoration(
+                                                hintText: 'Top K',
+                                                labelText: 'Top-K',
+                                                icon: Icon(
+                                                  Icons.align_vertical_top,
+                                                ),
+                                                // helperText:
+                                                //     'Limits consideration to the K tokens with highest probabilities',
+                                              ),
+                                              initialValue:
+                                                  controller.settings.core.topK
+                                                      .toDouble(),
+                                              min: -1,
+                                              max: 128,
+                                              divisions: 51,
+                                              valueTransformer:
+                                                  (value) => value?.toInt(),
+                                              onChanged:
+                                                  (value) => controller.update(
+                                                    topK:
+                                                        (value ?? 0) < 0
+                                                            ? -1
+                                                            : (value ??
+                                                                    controller
+                                                                        .settings
+                                                                        .core
+                                                                        .topK)
+                                                                .toInt(),
+                                                  ),
+                                            ),
+                                            FormBuilderSlider(
+                                              name: 'top_p',
+                                              decoration: const InputDecoration(
+                                                hintText: 'Top P',
+                                                labelText: 'Top-P',
+                                                icon: Icon(Icons.expand),
+                                                // helperText:
+                                                //     'Smallest set of tokens whose cumulative probability exceeds threshold',
+                                              ),
+                                              initialValue:
+                                                  controller.settings.core.topP,
+                                              min: 0,
+                                              max: 1.0,
+                                              divisions: 50,
+                                              onChanged:
+                                                  (value) => controller.update(
+                                                    topP: value,
+                                                  ),
+                                            ),
+                                            FormBuilderSlider(
+                                              name: 'min_p',
+                                              decoration: const InputDecoration(
+                                                hintText: 'Min P',
+                                                labelText: 'Min-P',
+                                                icon: Icon(Icons.compress),
+                                                // helperText:
+                                                //     'Filter tokens relatively to the most likely token',
+                                              ),
+                                              initialValue:
+                                                  controller.settings.core.minP,
+                                              min: 0,
+                                              max: 1.0,
+                                              divisions: 50,
+                                              onChanged:
+                                                  (value) => controller.update(
+                                                    minP: value,
+                                                  ),
+                                            ),
+                                            FormBuilderSlider(
+                                              name: 'typical_p',
+                                              decoration: const InputDecoration(
+                                                hintText: 'Typical P',
+                                                labelText: 'Typical P',
+                                                icon: Icon(Icons.density_small),
+                                                // helperText:
+                                                //     'Selects tokens close to the expected information content',
+                                              ),
+                                              initialValue:
+                                                  controller
+                                                      .settings
+                                                      .core
+                                                      .typicalP,
+                                              min: 0,
+                                              max: 1.0,
+                                              divisions: 50,
+                                              onChanged:
+                                                  (value) => controller.update(
+                                                    typicalP: value,
+                                                  ),
+                                            ),
+                                            FormBuilderCheckboxGroup(
+                                              name: 'advance_sampling',
+                                              decoration: const InputDecoration(
+                                                hintText:
+                                                    'Advanced Sampling Methods',
+                                                labelText:
+                                                    'Advanced Sampling Methods',
+                                                icon: Icon(
+                                                  Icons.precision_manufacturing,
+                                                ),
+                                                // helperText:
+                                                //     'Sampling strategies applied to token sampling and generation',
+                                              ),
+                                              initialValue: [
+                                                if (controller
+                                                    .settings
+                                                    .withPenalty)
+                                                  0,
+                                                if (controller.settings.withDRY)
+                                                  1,
+                                                if (controller.settings.withXTC)
+                                                  2,
+                                                if (controller
+                                                    .settings
+                                                    .withTopNSigma)
+                                                  3,
+                                              ],
+                                              options: const <
+                                                FormBuilderFieldOption<int>
+                                              >[
+                                                FormBuilderFieldOption<int>(
+                                                  value: 0,
+                                                  child: Text('Penalty'),
+                                                ),
+                                                FormBuilderFieldOption<int>(
+                                                  value: 1,
+                                                  child: Text('DRY'),
+                                                ),
+                                                FormBuilderFieldOption<int>(
+                                                  value: 2,
+                                                  child: Text('XTC'),
+                                                ),
+                                                FormBuilderFieldOption<int>(
+                                                  value: 3,
+                                                  child: Text('NΣ'),
+                                                ),
+                                              ],
+                                              onChanged:
+                                                  (value) => controller.update(
+                                                    withPenalty: (value ??
+                                                            <int>[
+                                                              if (controller
+                                                                  .settings
+                                                                  .withPenalty)
+                                                                0,
+                                                            ])
+                                                        .contains(0),
+                                                    withDRY: (value ??
+                                                            <int>[
+                                                              if (controller
+                                                                  .settings
+                                                                  .withDRY)
+                                                                1,
+                                                            ])
+                                                        .contains(1),
+                                                    withXTC: (value ??
+                                                            <int>[
+                                                              if (controller
+                                                                  .settings
+                                                                  .withXTC)
+                                                                2,
+                                                            ])
+                                                        .contains(2),
+                                                    withTopNSigma: (value ??
+                                                            <int>[
+                                                              if (controller
+                                                                  .settings
+                                                                  .withTopNSigma)
+                                                                3,
+                                                            ])
+                                                        .contains(3),
+                                                  ),
+                                            ),
+                                            FormBuilderRadioGroup(
+                                              name: 'mirostat',
+                                              decoration: const InputDecoration(
+                                                hintText: 'Mirostat Sampling',
+                                                labelText: 'Mirostat',
+                                                // helperText:
+                                                //     'Mirostat adaptive sampling algorithm',
+                                              ),
+                                              initialValue:
+                                                  controller
+                                                      .settings
+                                                      .mirostat
+                                                      .mode
+                                                      .value,
+                                              options: const <
+                                                FormBuilderFieldOption<int>
+                                              >[
+                                                FormBuilderFieldOption<int>(
+                                                  value: 0,
+                                                  child: Text('NONE'),
+                                                ),
+                                                FormBuilderFieldOption<int>(
+                                                  value: 1,
+                                                  child: Text('V1'),
+                                                ),
+                                                FormBuilderFieldOption<int>(
+                                                  value: 2,
+                                                  child: Text('V2'),
+                                                ),
+                                              ],
+                                              valueTransformer:
+                                                  (value) =>
+                                                      MirostatMode.fromValue(
+                                                        value ?? 0,
+                                                      ),
+                                              onChanged:
+                                                  (value) => controller.update(
+                                                    mirostat:
+                                                        MirostatMode.fromValue(
+                                                          value ?? 0,
+                                                        ),
+                                                  ),
+                                            ),
+                                            if (controller
+                                                    .settings
+                                                    .mirostat
+                                                    .mode !=
+                                                MirostatMode.DISABLED)
+                                              Column(
+                                                children: [
+                                                  FormBuilderSlider(
+                                                    name: 'mirostat_tau',
+                                                    decoration:
+                                                        const InputDecoration(
+                                                          hintText: 'tau',
+                                                          labelText: 'τ',
+                                                          // helperText:
+                                                          //     'Target perplexity',
+                                                        ),
+                                                    enabled:
+                                                        controller
+                                                            .settings
+                                                            .mirostat
+                                                            .mode !=
+                                                        MirostatMode.DISABLED,
+                                                    initialValue:
+                                                        controller
+                                                            .settings
+                                                            .mirostat
+                                                            .tau,
+                                                    min: 0,
+                                                    max: 10.0,
+                                                    divisions: 40,
+                                                    onChanged:
+                                                        (value) => controller
+                                                            .update(tau: value),
+                                                  ),
+                                                  FormBuilderSlider(
+                                                    name: 'mirostat_eta',
+                                                    decoration:
+                                                        const InputDecoration(
+                                                          hintText: 'eta',
+                                                          labelText: 'η',
+                                                          // helperText:
+                                                          //     'Learning rate for adaptation',
+                                                        ),
+                                                    enabled:
+                                                        controller
+                                                            .settings
+                                                            .mirostat
+                                                            .mode !=
+                                                        MirostatMode.DISABLED,
+                                                    initialValue: 0.0,
+                                                    min: 0,
+                                                    max: 1.0,
+                                                    divisions: 40,
+                                                    onChanged:
+                                                        (value) => controller
+                                                            .update(eta: value),
+                                                  ),
+                                                ],
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+
+                                      if (controller.settings.withTopNSigma)
+                                        CustomSettingsSection(
+                                          child: FormBuilderSlider(
+                                            name: 'top_n_sigma',
+                                            decoration: const InputDecoration(
+                                              hintText: 'Top-N-Sigma',
+                                              labelText: 'NΣ',
+                                              // helperText:
+                                              //     'Keep tokens within N standard deviations',
+                                            ),
+                                            enabled:
+                                                controller
+                                                    .settings
+                                                    .withTopNSigma,
+                                            initialValue:
+                                                controller
+                                                    .settings
+                                                    .topNSigma
+                                                    .topNSigma,
+                                            min: 0,
+                                            max: 3.0,
+                                            divisions: 300,
+                                            onChanged:
+                                                (value) => controller.update(
+                                                  topNSigma: value,
+                                                ),
+                                          ),
+                                        ),
+                                      if (controller.settings.withPenalty)
+                                        CustomSettingsSection(
+                                          child: Column(
+                                            children: [
+                                              const Divider(),
+                                              Container(
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.zero,
+                                                  color:
+                                                      theme.colorScheme.surface,
+                                                ),
+                                                width:
+                                                    MediaQuery.sizeOf(
+                                                      context,
+                                                    ).width,
+                                                child: const Text(
+                                                  'Penalty',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                              ),
+                                              FormBuilderSlider(
+                                                name: 'penalty_repeat',
+                                                decoration: const InputDecoration(
+                                                  hintText: 'Repeat',
+                                                  labelText: 'Repeat',
+                                                  icon: Icon(Icons.threesixty),
+                                                  // helperText:
+                                                  //     'Repetition penalty reduces probability of recently seen tokens',
+                                                ),
+                                                enabled:
+                                                    controller
+                                                        .settings
+                                                        .withPenalty,
+                                                initialValue:
+                                                    controller
+                                                        .settings
+                                                        .penalty
+                                                        .repeat,
+                                                min: 0,
+                                                max: 10.0,
+                                                divisions: 40,
+                                                onChanged:
+                                                    (value) =>
+                                                        controller.update(
+                                                          repeatPenalty: value,
+                                                        ),
+                                              ),
+                                              FormBuilderSlider(
+                                                name: 'penalty_frequency',
+                                                decoration: const InputDecoration(
+                                                  hintText: 'Frequency',
+                                                  labelText: 'Frequency',
+                                                  icon: Icon(Icons.waves),
+                                                  // helperText:
+                                                  //     'Penalizes tokens proportionally to how often they appear in recent history',
+                                                ),
+                                                enabled:
+                                                    controller
+                                                        .settings
+                                                        .withPenalty,
+                                                initialValue:
+                                                    controller
+                                                        .settings
+                                                        .penalty
+                                                        .frequency,
+                                                min: -2.0,
+                                                max: 2.0,
+                                                divisions: 80,
+                                                onChanged:
+                                                    (value) =>
+                                                        controller.update(
+                                                          frequencyPenalty:
+                                                              value,
+                                                        ),
+                                              ),
+                                              FormBuilderSlider(
+                                                name: 'penalty_presence',
+                                                decoration: const InputDecoration(
+                                                  hintText: 'Presence',
+                                                  labelText: 'Presence',
+                                                  icon: Icon(Icons.back_hand),
+                                                  // helperText:
+                                                  //     'Penalizes tokens that have appeared at all in recent history',
+                                                ),
+                                                enabled:
+                                                    controller
+                                                        .settings
+                                                        .withPenalty,
+                                                initialValue:
+                                                    controller
+                                                        .settings
+                                                        .penalty
+                                                        .presence,
+                                                min: -2.0,
+                                                max: 2.0,
+                                                divisions: 80,
+                                                onChanged:
+                                                    (value) =>
+                                                        controller.update(
+                                                          presencePenalty:
+                                                              value,
+                                                        ),
+                                              ),
+                                              FormBuilderSlider(
+                                                name: 'penalty_last_n',
+                                                decoration: const InputDecoration(
+                                                  hintText: 'Last N',
+                                                  labelText: 'Last N',
+                                                  icon: Icon(Icons.web_stories),
+                                                  // helperText:
+                                                  //     'How many recent tokens are examined for penalties',
+                                                ),
+                                                enabled:
+                                                    controller
+                                                        .settings
+                                                        .withPenalty,
+                                                initialValue:
+                                                    controller
+                                                        .settings
+                                                        .penalty
+                                                        .lastN
+                                                        .toDouble(),
+                                                min: -1,
+                                                max:
+                                                    (llmProviderController
+                                                                .activeModel
+                                                                .contextsize
+                                                                .maximum /
+                                                            2)
+                                                        .floor()
+                                                        .toDouble(),
+                                                divisions:
+                                                    (llmProviderController
+                                                                .activeModel
+                                                                .contextsize
+                                                                .maximum /
+                                                            2)
+                                                        .floor() +
+                                                    1,
+                                                valueTransformer:
+                                                    (value) => value?.toInt(),
+                                                onChanged:
+                                                    (
+                                                      value,
+                                                    ) => controller.update(
+                                                      lastNPenalty:
+                                                          (value ??
+                                                                  controller
+                                                                      .settings
+                                                                      .penalty
+                                                                      .lastN)
+                                                              .toInt(),
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      if (controller.settings.withDRY)
+                                        CustomSettingsSection(
+                                          child: Column(
+                                            children: [
+                                              const Divider(),
+                                              Container(
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.zero,
+                                                  color:
+                                                      theme.colorScheme.surface,
+                                                ),
+                                                width:
+                                                    MediaQuery.sizeOf(
+                                                      context,
+                                                    ).width,
+                                                child: const Text(
+                                                  'DRY',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                              ),
+                                              FormBuilderSlider(
+                                                name: 'dry_multiplier',
+                                                decoration: const InputDecoration(
+                                                  hintText: 'Multiplier',
+                                                  labelText: 'Multiplier',
+                                                  icon: Icon(Icons.close),
+                                                  // helperText:
+                                                  //     'DRY penalty multiplier',
+                                                ),
+                                                enabled:
+                                                    controller.settings.withDRY,
+                                                initialValue:
+                                                    controller
+                                                        .settings
+                                                        .dry
+                                                        .multiplier,
+                                                min: 0,
+                                                max: 5,
+                                                divisions: 100,
+                                                onChanged:
+                                                    (value) =>
+                                                        controller.update(
+                                                          dryMultiplier: value,
+                                                        ),
+                                              ),
+                                              FormBuilderSlider(
+                                                name: 'dry_base',
+                                                decoration: const InputDecoration(
+                                                  hintText: 'Base',
+                                                  labelText: 'Base',
+                                                  icon: Icon(Icons.square),
+                                                  // helperText: 'DRY penalty base',
+                                                ),
+                                                enabled:
+                                                    controller.settings.withDRY,
+                                                initialValue:
+                                                    controller
+                                                        .settings
+                                                        .dry
+                                                        .base,
+                                                min: 0,
+                                                max: 5.0,
+                                                divisions: 200,
+                                                onChanged:
+                                                    (value) => controller
+                                                        .update(dryBase: value),
+                                              ),
+                                              FormBuilderSlider(
+                                                name: 'dry_allowed_length',
+                                                decoration: const InputDecoration(
+                                                  hintText: 'Allowed Length',
+                                                  labelText:
+                                                      'Penalty Allowed Length',
+                                                  icon: Icon(
+                                                    Icons.width_normal,
+                                                  ),
+                                                  // helperText:
+                                                  //     'DRY allowed repetition length',
+                                                ),
+                                                enabled:
+                                                    controller.settings.withDRY,
+                                                initialValue:
+                                                    controller
+                                                        .settings
+                                                        .dry
+                                                        .allowedLength
+                                                        .toDouble(),
+                                                min: 0,
+                                                max:
+                                                    (llmProviderController
+                                                                .activeModel
+                                                                .contextsize
+                                                                .maximum /
+                                                            2)
+                                                        .floor()
+                                                        .toDouble(),
+                                                divisions:
+                                                    (llmProviderController
+                                                                .activeModel
+                                                                .contextsize
+                                                                .maximum /
+                                                            2)
+                                                        .floor(),
+                                                valueTransformer:
+                                                    (value) => value?.toInt(),
+                                                onChanged:
+                                                    (value) =>
+                                                        controller.update(
+                                                          dryAllowedLength:
+                                                              value?.toInt(),
+                                                        ),
+                                              ),
+                                              FormBuilderSlider(
+                                                name: 'dry_penalty_last_n',
+                                                decoration: const InputDecoration(
+                                                  hintText: 'Last N',
+                                                  labelText: 'Penalty Last N',
+                                                  icon: Icon(Icons.web_stories),
+                                                  // helperText:
+                                                  //     'Tokens to scan for DRY',
+                                                ),
+                                                enabled:
+                                                    controller.settings.withDRY,
+                                                initialValue:
+                                                    controller
+                                                        .settings
+                                                        .dry
+                                                        .penaltyLastN
+                                                        .toDouble(),
+                                                min: -1.0,
+                                                max:
+                                                    (llmProviderController
+                                                                .activeModel
+                                                                .contextsize
+                                                                .maximum /
+                                                            2)
+                                                        .floor()
+                                                        .toDouble(),
+                                                divisions:
+                                                    (llmProviderController
+                                                                .activeModel
+                                                                .contextsize
+                                                                .maximum /
+                                                            2)
+                                                        .floor() +
+                                                    1,
+                                                valueTransformer:
+                                                    (value) => value?.toInt(),
+                                                onChanged:
+                                                    (value) =>
+                                                        controller.update(
+                                                          dryPenaltyLastN:
+                                                              value?.toInt(),
+                                                        ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      if (controller.settings.withXTC)
+                                        CustomSettingsSection(
+                                          child: Column(
+                                            children: [
+                                              const Divider(),
+                                              Container(
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.zero,
+                                                  color:
+                                                      theme.colorScheme.surface,
+                                                ),
+                                                width:
+                                                    MediaQuery.sizeOf(
+                                                      context,
+                                                    ).width,
+                                                child: const Text(
+                                                  'XTC',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                              ),
+                                              FormBuilderSlider(
+                                                name: 'xtc_probability',
+                                                decoration: const InputDecoration(
+                                                  hintText: 'Probability',
+                                                  labelText: 'Probability',
+                                                  icon: Icon(Icons.casino),
+                                                  // helperText:
+                                                  //     'Occasionally excludes the most likely tokens to increase diversity',
+                                                ),
+                                                enabled:
+                                                    controller.settings.withXTC,
+                                                initialValue:
+                                                    controller
+                                                        .settings
+                                                        .xtc
+                                                        .probability,
+                                                min: 0,
+                                                max: 1.0,
+                                                divisions: 40,
+                                                onChanged:
+                                                    (value) =>
+                                                        controller.update(
+                                                          xtcProbability: value,
+                                                        ),
+                                              ),
+                                              FormBuilderSlider(
+                                                name: 'xtc_threshold',
+                                                decoration: const InputDecoration(
+                                                  hintText: 'Threshold',
+                                                  labelText: 'Threshold',
+                                                  icon: Icon(Icons.trending_up),
+                                                  // helperText:
+                                                  //     'How many top tokens to consider',
+                                                ),
+                                                enabled:
+                                                    controller.settings.withXTC,
+                                                initialValue:
+                                                    controller
+                                                        .settings
+                                                        .xtc
+                                                        .threshold,
+                                                min: 0,
+                                                max: 1.0,
+                                                divisions: 40,
+                                                onChanged:
+                                                    (value) =>
+                                                        controller.update(
+                                                          xtcThreshold: value,
+                                                        ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -1015,9 +1958,7 @@ class ApplicationLayoutModelController extends JuneState {
   }
 
   void _showAboutDialog(BuildContext context) {
-    final sysInfo = June.getState(
-      SystemInformationController.new,
-    );
+    final sysInfo = June.getState(SystemInformationController.new);
     final theme = Theme.of(context);
     showAboutDialog(
       context: context,

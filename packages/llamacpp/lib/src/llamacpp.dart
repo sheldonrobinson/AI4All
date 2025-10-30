@@ -1,12 +1,36 @@
 part of 'package:llamacpp/llamacpp.dart';
 
-Pointer<Pointer<lcpp_common_chat_msg_t>> convertToLcppCommonChatMsg(
-  List<cm.ChatMessage> messages,
+Pointer<Pointer<lcpp_common_chat_tool_t>> listOfToolsToNative(
+  List<Tool> tools,
 ) {
-  var listOfCommonMsgs = List<Pointer<lcpp_common_chat_msg>>.empty(
+  final listOfCommonTools = List<Pointer<lcpp_common_chat_tool_t>>.empty(
     growable: true,
   );
-  messages.asMap().forEach((idx, msg) {
+  tools.forEach((element) {
+    final toolPtr = ffi.calloc<lcpp_common_chat_tool>();
+    toolPtr.ref.name = element.name.toNativeUtf8().cast<Char>();
+    toolPtr.ref.n_name = element.name.length;
+    toolPtr.ref.description = element.description.toNativeUtf8().cast<Char>();
+    toolPtr.ref.n_description = element.description.length;
+    final parameters = json.encode(element.inputJsonSchema);
+    toolPtr.ref.paramaeters_schema = parameters.toNativeUtf8().cast<Char>();
+    toolPtr.ref.n_paramaeters_schema = parameters.length;
+    listOfCommonTools.add(toolPtr);
+  });
+  final _tools = ffi.calloc<Pointer<lcpp_common_chat_tool_t>>(tools.length);
+  listOfCommonTools.asMap().forEach((idx, value) {
+    _tools[idx] = value;
+  });
+  return _tools;
+}
+
+Pointer<Pointer<lcpp_common_chat_msg_t>> listOfMessagesToNative(
+  List<cm.ChatMessage> messages,
+) {
+  final listOfCommonMsgs = List<Pointer<lcpp_common_chat_msg>>.empty(
+    growable: true,
+  );
+  messages.forEach((msg) {
     switch (msg) {
       case cm.HumanChatMessage():
         final msgPtr = ffi.calloc<lcpp_common_chat_msg>();
@@ -17,7 +41,6 @@ Pointer<Pointer<lcpp_common_chat_msg_t>> convertToLcppCommonChatMsg(
           case cm.ChatMessageContentText():
             msgPtr.ref.content = content.text.toNativeUtf8().cast<Char>();
             msgPtr.ref.n_content = content.text.length;
-            break;
           case cm.ChatMessageContentImage():
             final contentPart = ffi.calloc<lcpp_common_chat_msg_content_part>();
             msgPtr.ref.content_parts = ffi
@@ -36,26 +59,18 @@ Pointer<Pointer<lcpp_common_chat_msg_t>> convertToLcppCommonChatMsg(
             msgPtr.ref.content_parts[0] = contentPart;
             msgPtr.ref.n_content_parts = 1;
           case cm.ChatMessageContentMultiModal():
-            if (kDebugMode) {
-              print('HumanChatMessage::ChatMessageContentMultiModal');
-            }
             if (content.parts.isNotEmpty) {
               msgPtr.ref.content_parts = ffi
                   .calloc<Pointer<lcpp_common_chat_msg_content_part>>(
                     content.parts.length,
                   );
-              var listOfContentParts =
+              final listOfContentParts =
                   List<Pointer<lcpp_common_chat_msg_content_part>>.empty(
                     growable: true,
                   );
               for (final part in content.parts) {
                 switch (part) {
                   case cm.ChatMessageContentText():
-                    if (kDebugMode) {
-                      print(
-                        'ChatMessageContentMultiModal::ChatMessageContentText',
-                      );
-                    }
                     final contextPart =
                         ffi.calloc<lcpp_common_chat_msg_content_part>();
                     contextPart.ref.text =
@@ -63,11 +78,6 @@ Pointer<Pointer<lcpp_common_chat_msg_t>> convertToLcppCommonChatMsg(
                     contextPart.ref.n_text = part.text.length;
                     listOfContentParts.add(contextPart);
                   case cm.ChatMessageContentImage():
-                    if (kDebugMode) {
-                      print(
-                        'ChatMessageContentMultiModal::ChatMessageContentImage',
-                      );
-                    }
                     final contextPart =
                         ffi.calloc<lcpp_common_chat_msg_content_part>();
                     if (part.mimeType != null) {
@@ -82,31 +92,17 @@ Pointer<Pointer<lcpp_common_chat_msg_t>> convertToLcppCommonChatMsg(
                         part.data.toNativeUtf8().cast<Char>();
                     contextPart.ref.n_text = part.data.length;
                     listOfContentParts.add(contextPart);
-
                   case cm.ChatMessageContentMultiModal():
-                    // final _context_part = ffi.calloc<lcpp_common_chat_msg_content_part>();
-                    // _context_part.ref.type = "".toNativeUtf8().cast<ffi.Char>();
-                    // _context_part.ref.n_type = 0;
-                    // _context_part.ref.text =
-                    //     "".toNativeUtf8().cast<ffi.Char>();
-                    // _context_part.ref.n_text = "".length;
-                    // _list_content_parts.add(_context_part);
                     break;
                 }
               }
               listOfContentParts.asMap().forEach((idx, value) {
-                if (kDebugMode) {
-                  print('_list_content_parts[$idx]');
-                }
                 msgPtr.ref.content_parts[idx] = value;
               });
             }
         }
         listOfCommonMsgs.add(msgPtr);
       case cm.AIChatMessage():
-        if (kDebugMode) {
-          print('AIChatMessage()');
-        }
         final msgPtr = ffi.calloc<lcpp_common_chat_msg>();
         msgPtr.ref.role = 'assistant'.toNativeUtf8().cast<Char>();
         msgPtr.ref.n_role = 'assistant'.length;
@@ -132,17 +128,11 @@ Pointer<Pointer<lcpp_common_chat_msg_t>> convertToLcppCommonChatMsg(
             listOfToolCalls.add(toolCall);
           }
           listOfToolCalls.asMap().forEach((idx, value) {
-            if (kDebugMode) {
-              print('_list_tool_calls[$idx]');
-            }
             msgPtr.ref.tool_calls[idx] = value;
           });
         }
         listOfCommonMsgs.add(msgPtr);
       case cm.ToolChatMessage():
-        if (kDebugMode) {
-          print('ToolChatMessage()');
-        }
         final msgPtr = ffi.calloc<lcpp_common_chat_msg>();
         msgPtr.ref.role = 'tool'.toNativeUtf8().cast<Char>();
         msgPtr.ref.n_role = 'tool'.length;
@@ -152,9 +142,6 @@ Pointer<Pointer<lcpp_common_chat_msg_t>> convertToLcppCommonChatMsg(
         msgPtr.ref.n_content = msg.content.length;
         listOfCommonMsgs.add(msgPtr);
       case cm.SystemChatMessage():
-        if (kDebugMode) {
-          print('SystemChatMessage()');
-        }
         final msgPtr = ffi.calloc<lcpp_common_chat_msg>();
         msgPtr.ref.role = 'system'.toNativeUtf8().cast<Char>();
         msgPtr.ref.n_role = 'system'.length;
@@ -162,9 +149,6 @@ Pointer<Pointer<lcpp_common_chat_msg_t>> convertToLcppCommonChatMsg(
         msgPtr.ref.n_content = msg.content.length;
         listOfCommonMsgs.add(msgPtr);
       case cm.CustomChatMessage():
-        if (kDebugMode) {
-          print('CustomChatMessage()');
-        }
         final msgPtr = ffi.calloc<lcpp_common_chat_msg>();
         msgPtr.ref.role = msg.role.toNativeUtf8().cast<Char>();
         msgPtr.ref.n_role = msg.role.length;
@@ -183,13 +167,41 @@ Pointer<Pointer<lcpp_common_chat_msg_t>> convertToLcppCommonChatMsg(
 extension _PromptValueToLlamaCppChatMessagesExtension on PromptValue {
   Pointer<Pointer<lcpp_common_chat_msg_t>> toNative() {
     final messages = toChatMessages();
-    return convertToLcppCommonChatMsg(messages);
+    return listOfMessagesToNative(messages);
   }
+
+  int get length => toChatMessages().length;
 }
 
 extension _ChatMessageToLlamaCppChatMessagesExtension on List<cm.ChatMessage> {
   Pointer<Pointer<lcpp_common_chat_msg_t>> toNative() {
-    return convertToLcppCommonChatMsg(this);
+    return listOfMessagesToNative(this);
+  }
+}
+
+extension _ToolToLlamaCppToolExtension on List<Tool> {
+  Pointer<Pointer<lcpp_common_chat_tool_t>> toNative() {
+    return listOfToolsToNative(this);
+  }
+}
+
+extension _FreeLlamaCppCommonToolExtension
+    on Pointer<Pointer<lcpp_common_chat_tool_t>> {
+  void free(int length) {
+    for (var i = 0; i < length; i++) {
+      final tool = this[i];
+      if (tool.ref.name != nullptr) {
+        ffi.calloc.free(tool.ref.name);
+      }
+      if (tool.ref.description != nullptr) {
+        ffi.calloc.free(tool.ref.description);
+      }
+      if (tool.ref.paramaeters_schema != nullptr) {
+        ffi.calloc.free(tool.ref.paramaeters_schema);
+      }
+      ffi.calloc.free(tool);
+    }
+    ffi.calloc.free(this);
   }
 }
 
@@ -265,6 +277,177 @@ final DynamicLibrary _dylib = () {
   }
   throw UnsupportedError('Unknown platform: ${Platform.operatingSystem}');
 }();
+
+enum GgmlFileType {
+  ALL_F32(0),
+  MOSTLY_F16(1),
+  MOSTLY_Q4_0(2),
+  MOSTLY_Q4_1(3),
+  MOSTLY_Q4_1_SOME_F16(4),
+  MOSTLY_Q4_2(5),
+  MOSTLY_Q4_3(6),
+  MOSTLY_Q8_0(7),
+  MOSTLY_Q5_0(8),
+  MOSTLY_Q5_1(9),
+  MOSTLY_Q2_K(10),
+  MOSTLY_Q3_K_S(11),
+  MOSTLY_Q3_K_M(12),
+  MOSTLY_Q3_K_L(13),
+  MOSTLY_Q4_K_S(14),
+  MOSTLY_Q4_K_M(15),
+  MOSTLY_Q5_K_S(16),
+  MOSTLY_Q5_K_M(17),
+  MOSTLY_Q6_K(18);
+
+  final int value;
+  const GgmlFileType(this.value);
+
+  static GgmlFileType fromString(String strValue) {
+    return switch (strValue) {
+      'ALL_F32' => ALL_F32,
+      'MOSTLY_F16' => MOSTLY_F16,
+      'MOSTLY_Q4_0' => MOSTLY_Q4_0,
+      'MOSTLY_Q4_1' => MOSTLY_Q4_1,
+      'MOSTLY_Q4_1_SOME_F16' => MOSTLY_Q4_1_SOME_F16,
+      'MOSTLY_Q4_2' => MOSTLY_Q4_2,
+      'MOSTLY_Q4_3' => MOSTLY_Q4_3,
+      'MOSTLY_Q8_0' => MOSTLY_Q8_0,
+      'MOSTLY_Q5_0' => MOSTLY_Q5_0,
+      'MOSTLY_Q5_1' => MOSTLY_Q5_1,
+      'MOSTLY_Q2_K' => MOSTLY_Q2_K,
+      'MOSTLY_Q3_K_S' => MOSTLY_Q3_K_S,
+      'MOSTLY_Q3_K_M' => MOSTLY_Q3_K_M,
+      'MOSTLY_Q3_K_L' => MOSTLY_Q3_K_L,
+      'MOSTLY_Q4_K_S' => MOSTLY_Q4_K_S,
+      'MOSTLY_Q4_K_M' => MOSTLY_Q4_K_M,
+      'MOSTLY_Q5_K_S' => MOSTLY_Q5_K_S,
+      'MOSTLY_Q5_K_M' => MOSTLY_Q5_K_M,
+      'MOSTLY_Q6_K' => MOSTLY_Q6_K,
+      _ => ALL_F32,
+    };
+  }
+
+  static GgmlFileType fromValue(int intValue) {
+    return switch (intValue) {
+      0 => ALL_F32,
+      1 => MOSTLY_F16,
+      2 => MOSTLY_Q4_0,
+      3 => MOSTLY_Q4_1,
+      4 => MOSTLY_Q4_1_SOME_F16,
+      5 => MOSTLY_Q4_2,
+      6 => MOSTLY_Q4_3,
+      7 => MOSTLY_Q8_0,
+      8 => MOSTLY_Q5_0,
+      9 => MOSTLY_Q5_1,
+      10 => MOSTLY_Q2_K,
+      11 => MOSTLY_Q3_K_S,
+      12 => MOSTLY_Q3_K_M,
+      13 => MOSTLY_Q3_K_L,
+      14 => MOSTLY_Q4_K_S,
+      15 => MOSTLY_Q4_K_M,
+      16 => MOSTLY_Q5_K_S,
+      17 => MOSTLY_Q5_K_M,
+      18 => MOSTLY_Q6_K,
+      _ => ALL_F32,
+    };
+  }
+
+  static GgmlFileType from(GgmlType ggmlType) {
+    return switch (ggmlType) {
+      GgmlType.f32 => ALL_F32,
+      GgmlType.f16 => MOSTLY_F16,
+      GgmlType.q4_0 => MOSTLY_Q4_0,
+      GgmlType.q4_1 => MOSTLY_Q4_1,
+      GgmlType.q4_2 => MOSTLY_Q4_2,
+      GgmlType.q4_3 => MOSTLY_Q4_3,
+      GgmlType.q5_0 => MOSTLY_Q5_0,
+      GgmlType.q5_1 => MOSTLY_Q5_1,
+      GgmlType.q8_0 => MOSTLY_Q8_0,
+      GgmlType.q8_1 => MOSTLY_Q8_0,
+      GgmlType.q2_k => MOSTLY_Q2_K,
+      GgmlType.q3_k => MOSTLY_Q3_K_M,
+      GgmlType.q4_k => MOSTLY_Q4_K_M,
+      GgmlType.q5_k => MOSTLY_Q5_K_M,
+      GgmlType.q6_k => MOSTLY_Q6_K,
+      GgmlType.q8_k => MOSTLY_Q8_0,
+      GgmlType.iq2_xxs => MOSTLY_Q2_K,
+      GgmlType.iq2_xs => MOSTLY_Q2_K,
+      GgmlType.iq3_xxs => MOSTLY_Q3_K_S,
+      GgmlType.iq1_s => MOSTLY_Q2_K,
+      GgmlType.iq4_nl => MOSTLY_Q4_K_S,
+      GgmlType.iq3_s => MOSTLY_Q3_K_S,
+      GgmlType.iq2_s => MOSTLY_Q2_K,
+      GgmlType.iq4_xs => MOSTLY_Q4_K_S,
+      GgmlType.i8 => MOSTLY_Q8_0,
+      GgmlType.i16 => MOSTLY_F16,
+      GgmlType.i32 => ALL_F32,
+      GgmlType.i64 => ALL_F32,
+      GgmlType.f64 => ALL_F32,
+      GgmlType.iq1_m => MOSTLY_Q2_K,
+      GgmlType.bf16 => MOSTLY_F16,
+      GgmlType.q4_0_4_4 => MOSTLY_Q4_0,
+      GgmlType.q4_0_4_8 => MOSTLY_Q4_0,
+      GgmlType.q4_0_8_8 => MOSTLY_Q4_0,
+      GgmlType.tq1_0 => MOSTLY_Q2_K,
+      GgmlType.tq2_0 => MOSTLY_Q2_K,
+      GgmlType.iq4_nl_4_4 => MOSTLY_Q4_K_S,
+      GgmlType.iq4_nl_4_8 => MOSTLY_Q4_K_S,
+      GgmlType.iq4_nl_8_8 => MOSTLY_Q4_K_S,
+      GgmlType.mxfp4 => MOSTLY_Q4_K_S,
+      _ => ALL_F32,
+    };
+  }
+
+  GgmlType scheme() {
+    return switch (value) {
+      0 => GgmlType.f32,
+      1 => GgmlType.f16,
+      2 => GgmlType.q4_0,
+      3 => GgmlType.q4_1,
+      4 => GgmlType.bf16,
+      5 => GgmlType.q4_2,
+      6 => GgmlType.q4_3,
+      7 => GgmlType.q8_0,
+      8 => GgmlType.q5_0,
+      9 => GgmlType.q5_1,
+      10 => GgmlType.q2_k,
+      11 => GgmlType.q3_k,
+      12 => GgmlType.q3_k,
+      13 => GgmlType.q3_k,
+      14 => GgmlType.q4_k,
+      15 => GgmlType.q4_k,
+      16 => GgmlType.q5_k,
+      17 => GgmlType.q5_k,
+      18 => GgmlType.q6_k,
+      _ => GgmlType.f32,
+    };
+  }
+
+  GgmlType cache() {
+    return switch (value) {
+      0 => GgmlType.f32,
+      1 => GgmlType.f16,
+      2 => GgmlType.q4_0,
+      3 => GgmlType.q4_1,
+      4 => GgmlType.q4_1,
+      5 => GgmlType.q4_0,
+      6 => GgmlType.q4_1,
+      7 => GgmlType.q8_0,
+      8 => GgmlType.q5_0,
+      9 => GgmlType.q5_1,
+      10 => GgmlType.q4_1,
+      11 => GgmlType.q4_1,
+      12 => GgmlType.q4_1,
+      13 => GgmlType.iq4_nl,
+      14 => GgmlType.iq4_nl,
+      15 => GgmlType.q4_1,
+      16 => GgmlType.q5_1,
+      17 => GgmlType.q5_1,
+      18 => GgmlType.q8_0,
+      _ => GgmlType.f32,
+    };
+  }
+}
 
 class LlamaCppModelInfo {
   LlamaCppModelInfo({
@@ -927,7 +1110,49 @@ class LlamaCppModelInfo {
 
   @override
   String toString() {
-    return 'LlamaCppModelInfo(architecture: $architecture, quantization_version: $quantization_version, alignment: $alignment, gguf_version: $gguf_version, file_type: $file_type, name: $name, author: $author, version: $version, organization: $organization, basename: $basename, finetune: $finetune, description: $description, size_label: $size_label, license: $license, license_link: $license_link, url: $url, doi: $doi, uuid: $uuid, repo_url: $repo_url, n_ctx: $n_ctx, n_embd: $n_embd, n_layers: $n_layers, n_ff: $n_ff, use_parallel_residual: $use_parallel_residual, n_experts: $n_experts, n_experts_used: $n_experts_used, n_head: $n_head, attn_head_kv: $attn_head_kv, attn_alibi_bias: $attn_alibi_bias, attn_layer_norm_eps: $attn_layer_norm_eps, attn_layer_rms_eps: $attn_layer_norm_rms_eps, attn_key_len: $attn_key_len, attn_value_len: $attn_value_len, rope_dimension_count: $rope_dim, rope_freq_base: $rope_freq_base, rope_scaling_type: $rope_scaling_type, rope_scaling_factor: $rope_scaling_factor, rope_orig_ctx: $rope_orig_ctx, split_count: $split_count, split_tensor_count: $split_tensor_count)';
+    return '''
+    LlamaCppModelInfo:
+    \tarchitecture: $architecture
+    \tquantization_version: $quantization_version
+    \talignment: $alignment
+    \tgguf_version: $gguf_version
+    \tfile_type: $file_type
+    \tname: $name
+    \tauthor: $author
+    \tversion: $version
+    \torganization: $organization
+    \tbasename: $basename
+    \tfinetune: $finetune
+    \tdescription: $description
+    \tsize_label: $size_label
+    \tlicense: $license
+    \tlicense_link: $license_link
+    \turl: $url
+    \tdoi: $doi
+    \tuuid: $uuid
+    \trepo_url: $repo_url
+    \tn_ctx: $n_ctx
+    \tn_embd: $n_embd
+    \tn_layers: $n_layers
+    \tn_ff: $n_ff
+    \tuse_parallel_residual: $use_parallel_residual
+    \tn_experts: $n_experts
+    \tn_experts_used: $n_experts_used
+    \tn_head: $n_head
+    \tattn_head_kv: $attn_head_kv
+    \tattn_alibi_bias: $attn_alibi_bias
+    \tattn_layer_norm_eps: $attn_layer_norm_eps
+    \tattn_layer_rms_eps: $attn_layer_norm_rms_eps
+    \tattn_key_len: $attn_key_len
+    \tattn_value_len: $attn_value_len
+    \trope_dimension_count: $rope_dim
+    \trope_freq_base: $rope_freq_base
+    \trope_scaling_type: $rope_scaling_type
+    \trope_scaling_factor: $rope_scaling_factor
+    \trope_orig_ctx: $rope_orig_ctx
+    \tsplit_count: $split_count
+    \tsplit_tensor_count: $split_tensor_count
+    ''';
   }
 }
 
@@ -941,11 +1166,15 @@ enum LlamaCppEndianness {
 class LlamaCppGpuInfo {
   String vendor;
   String device_name;
+  int index;
+  int type;
   int memory;
   int frequency;
   LlamaCppGpuInfo({
     required this.vendor,
     required this.device_name,
+    required this.index,
+    required this.type,
     required this.memory,
     required this.frequency,
   });
@@ -953,12 +1182,16 @@ class LlamaCppGpuInfo {
   LlamaCppGpuInfo copyWith({
     String? vendor,
     String? device_name,
+    int? index,
+    int? type,
     int? memory,
     int? frequency,
   }) {
     return LlamaCppGpuInfo(
       vendor: vendor ?? this.vendor,
       device_name: device_name ?? this.device_name,
+      index: index ?? this.index,
+      type: type ?? this.type,
       memory: memory ?? this.memory,
       frequency: frequency ?? this.frequency,
     );
@@ -966,7 +1199,15 @@ class LlamaCppGpuInfo {
 
   @override
   String toString() {
-    return 'LlamaCppGpuInfo(vendor: $vendor, device_name: $device_name, memory: $memory, frequency: $frequency)';
+    return '''
+    LlamaCppGpuInfo:
+    \tvendor: $vendor
+    \tdevice_name: $device_name
+    \tindex: $index
+    \ttype: $type
+    \tmemory: $memory
+    \tfrequency: $frequency
+    ''';
   }
 
   @override
@@ -976,6 +1217,8 @@ class LlamaCppGpuInfo {
     return other is LlamaCppGpuInfo &&
         other.vendor == vendor &&
         other.device_name == device_name &&
+        other.index == index &&
+        other.type == type &&
         other.memory == memory &&
         other.frequency == frequency;
   }
@@ -984,6 +1227,8 @@ class LlamaCppGpuInfo {
   int get hashCode {
     return vendor.hashCode ^
         device_name.hashCode ^
+        index.hashCode ^
+        type.hashCode ^
         memory.hashCode ^
         frequency.hashCode;
   }
@@ -1033,7 +1278,26 @@ class LlamaCppMachineInfo {
 
   @override
   String toString() {
-    return 'LlamaCppMachineInfo(os_name: $os_name, os_version: $os_version, full_name: $full_name, vendor_id: $vendor_id, processor_name: $processor_name, chipset_vendor: $chipset_vendor, microarchitecture: $micro_arch, endianess: $endianess, frequency: $frequency, num_cores: $num_cores, num_processors: $num_processors, num_clusters: $num_clusters, physical_mem: $physical_mem, virtual_mem: $virtual_mem, total_vram: $total_vram, blkmax_vram: $blkmax_vram, gpus: $gpus)';
+    return '''
+    LlamaCppMachineInfo:
+    \tos_name: $os_name
+    \tos_version: $os_version
+    \tfull_name: $full_name
+    \tvendor_id: $vendor_id
+    \tprocessor_name: $processor_name
+    \tchipset_vendor: $chipset_vendor
+    \tmicroarchitecture: $micro_arch
+    \tendianess: $endianess
+    \tfrequency: $frequency
+    \tnum_cores: $num_cores
+    \tnum_processors: $num_processors
+    \tnum_clusters: $num_clusters
+    \tphysical_mem: $physical_mem
+    \tvirtual_mem: $virtual_mem
+    \ttotal_vram: $total_vram
+    \tblkmax_vram: $blkmax_vram
+    \tgpus: $gpus
+    ''';
   }
 
   @override
@@ -1165,12 +1429,20 @@ class LlamaCpp {
     _lcppParams = lcppParams;
   }
 
-  final StreamController<LLMResult> _responseController =
-      StreamController.broadcast(
-        sync: false,
-      );
+  static final StreamController<int> _onCancelEventController =
+      StreamController.broadcast();
 
-  Stream<LLMResult> get responses => _responseController.stream;
+  static Stream<int> get cancelEvents => _onCancelEventController.stream;
+
+  static final StreamController<int> _onAbortEventController =
+      StreamController.broadcast();
+
+  static Stream<int> get abortEvents => _onAbortEventController.stream;
+
+  final StreamController<ChatResult> _responseController =
+      StreamController.broadcast();
+
+  Stream<ChatResult> get responses => _responseController.stream;
 
   static LlamaCppModelInfo modelInfo(String gguf) {
     final model_path = gguf.toNativeUtf8().cast<Char>();
@@ -1181,32 +1453,32 @@ class LlamaCpp {
   }
 
   static LlamaCppMachineInfo machineInfo() {
-    final lcpp_mach_info = lcpp_get_machine_info();
+    final lcppMachInfo = lcpp_get_machine_info();
 
-    final blkmax_vram = lcpp_mach_info.ref.blkmax_vram;
-    final total_vram = lcpp_mach_info.ref.total_vram;
-    final sysInfoPtr = lcpp_mach_info.ref.sysinfo;
-    final system_full_name =
+    final blkmaxVram = lcppMachInfo.ref.blkmax_vram;
+    final totalVram = lcppMachInfo.ref.total_vram;
+    final sysInfoPtr = lcppMachInfo.ref.sysinfo;
+    final systemFullName =
         sysInfoPtr.ref.n_full_name > 0
             ? sysInfoPtr.ref.full_name.cast<ffi.Utf8>().toDartString(
               length: sysInfoPtr.ref.n_full_name,
             )
             : '';
-    final os_name =
+    final osName =
         sysInfoPtr.ref.n_os_name > 0
             ? sysInfoPtr.ref.os_name.cast<ffi.Utf8>().toDartString(
               length: sysInfoPtr.ref.n_os_name,
             )
             : '';
 
-    final os_version =
+    final osVersion =
         sysInfoPtr.ref.n_os_version > 0
             ? sysInfoPtr.ref.os_version.cast<ffi.Utf8>().toDartString(
               length: sysInfoPtr.ref.n_os_version,
             )
             : '';
 
-    final cpuInfoPtr = lcpp_mach_info.ref.cpuinfo;
+    final cpuInfoPtr = lcppMachInfo.ref.cpuinfo;
     final endianness = switch (cpuInfoPtr.ref.endianess) {
       lcpp_cpu_endianess.LCPP_CPU_ENDIANESS_UNSPECIFIED =>
         LlamaCppEndianness.UNSPECIFIED,
@@ -1216,21 +1488,21 @@ class LlamaCpp {
         LlamaCppEndianness.UNKNOWN,
     };
 
-    final processor_name =
+    final processorName =
         cpuInfoPtr.ref.n_processor_name > 0
             ? cpuInfoPtr.ref.processor_name.cast<ffi.Utf8>().toDartString(
               length: cpuInfoPtr.ref.n_processor_name,
             )
             : '';
 
-    final chipset_vendor =
+    final chipsetVendor =
         cpuInfoPtr.ref.n_chipset_vendor > 0
             ? cpuInfoPtr.ref.chipset_vendor.cast<ffi.Utf8>().toDartString(
               length: cpuInfoPtr.ref.n_chipset_vendor,
             )
             : '';
 
-    final vendor_id =
+    final vendorId =
         cpuInfoPtr.ref.n_vendor_id > 0
             ? cpuInfoPtr.ref.vendor_id.cast<ffi.Utf8>().toDartString(
               length: cpuInfoPtr.ref.n_vendor_id,
@@ -1249,17 +1521,19 @@ class LlamaCpp {
     final num_clusters = cpuInfoPtr.ref.num_clusters;
     final freq = cpuInfoPtr.ref.frequency;
 
-    final memInfoPtr = lcpp_mach_info.ref.meminfo;
+    final memInfoPtr = lcppMachInfo.ref.meminfo;
 
     final phys_mem = memInfoPtr.ref.physical_mem;
     final virt_mem = memInfoPtr.ref.virtual_mem;
-    final n_gpu = lcpp_mach_info.ref.n_gpuinfo;
+    final n_gpu = lcppMachInfo.ref.n_gpuinfo;
 
     final gpus = <LlamaCppGpuInfo>[];
-    final gpu_infos = lcpp_mach_info.ref.gpuinfo;
+    final gpu_infos = lcppMachInfo.ref.gpuinfo;
     for (int i = 0; i < n_gpu; i++) {
       final g_freq = gpu_infos[i].ref.frequency;
       final g_mem = gpu_infos[i].ref.memory;
+      final g_idx = gpu_infos[i].ref.index;
+      final g_type = gpu_infos[i].ref.type;
       final gpu_vendor =
           gpu_infos[i].ref.n_vendor > 0
               ? gpu_infos[i].ref.vendor.cast<ffi.Utf8>().toDartString(
@@ -1276,18 +1550,20 @@ class LlamaCpp {
         LlamaCppGpuInfo(
           vendor: gpu_vendor,
           device_name: gpu_name,
+          index: g_idx,
+          type: g_type,
           memory: g_mem,
           frequency: g_freq,
         ),
       );
     }
     final info = LlamaCppMachineInfo(
-      os_name: os_name,
-      os_version: os_version,
-      full_name: system_full_name,
-      vendor_id: vendor_id,
-      processor_name: processor_name,
-      chipset_vendor: chipset_vendor,
+      os_name: osName,
+      os_version: osVersion,
+      full_name: systemFullName,
+      vendor_id: vendorId,
+      processor_name: processorName,
+      chipset_vendor: chipsetVendor,
       micro_arch: uarch,
       endianess: endianness,
       frequency: freq,
@@ -1296,19 +1572,23 @@ class LlamaCpp {
       num_clusters: num_clusters,
       physical_mem: phys_mem,
       virtual_mem: virt_mem,
-      total_vram: total_vram,
-      blkmax_vram: blkmax_vram,
+      total_vram: totalVram,
+      blkmax_vram: blkmaxVram,
       gpus: gpus,
     );
 
-    lcpp_free_machine_info(lcpp_mach_info);
+    lcpp_free_machine_info(lcppMachInfo);
     return info;
+  }
+
+  static void initialize() {
+    init();
+    lcpp_initialize();
   }
 
   Stream<double> reconfigure() async* {
     final contextParams = _contextParams.toNative();
     final lcppParams = _lcppParams.toNative();
-    final completer = Completer();
 
     NativeCallable<LppProgressCallbackFunction>? nativeProgressCallable;
 
@@ -1322,112 +1602,111 @@ class LlamaCpp {
           lcpp_unset_model_load_progress_callback();
           nativeProgressCallable = null;
         }
-        if (!completer.isCompleted) {
-          completer.complete();
-        }
       },
+      sync: true,
     );
 
-    void onProgressCallback(Pointer<LcppFloatStruct_t> response) {
-      try {
-        final progress = response.ref.value;
-        responseStreamController.add(progress);
-        if (progress >= 1.0 || progress < 0.0) {
-          if (!responseStreamController.isClosed) {
-            responseStreamController.close();
-          }
-          if (!completer.isCompleted) {
-            completer.complete();
-          }
-        }
-      } finally {
-        lcpp_free_float(response);
+    Future<void> closeStreamAsync() async {
+      await responseStreamController.close();
+    }
+
+    NativeCallable<LcppOnCancelCallbackFunction>? nativeCancelCallable;
+
+    void onCancelCallback(int canceled) {
+      _onCancelEventController.add(canceled);
+
+      if (nativeCancelCallable != null) {
+        nativeCancelCallable!.close();
+        lcpp_unset_on_cancel_callback();
+        nativeCancelCallable = null;
+      }
+      if (!responseStreamController.isClosed) {
+        unawaited(closeStreamAsync());
       }
     }
+
+    void onProgressCallback(double progress) {
+      responseStreamController.add(progress);
+    }
+
+    nativeCancelCallable =
+        NativeCallable<LcppOnCancelCallbackFunction>.listener(
+          onCancelCallback,
+        );
+
+    lcpp_set_on_cancel_callback(
+      nativeCancelCallable!.nativeFunction,
+    );
 
     nativeProgressCallable =
         NativeCallable<LppProgressCallbackFunction>.listener(
           onProgressCallback,
         );
 
+    nativeProgressCallable!.keepIsolateAlive = false;
+
     lcpp_set_model_load_progress_callback(
       nativeProgressCallable!.nativeFunction,
     );
     yield* responseStreamController.stream;
-
-    if (completer.isCompleted) {
-      if (!responseStreamController.isClosed) {
-        await responseStreamController.close();
-      }
-    }
   }
 
-  Stream<LLMResult> prompt(
+  Stream<ChatResult> prompt(
     LlamaCppSamplingParams params,
     PromptValue messages, {
     bool streaming = true,
+    List<Tool> tools = const <Tool>[],
   }) async* {
     final chatMessages = messages.toChatMessages();
     final commonChatMessages = chatMessages.toNative();
+    final callableTools = tools.isNotEmpty ? tools.toNative() : nullptr;
     final idPrefix = DateTime.now().millisecondsSinceEpoch.toString();
-    int tokenCount = 0;
+    var tokenCount = 0;
 
     NativeCallable<LppTokenStreamCallbackFunction>? nativeNewTokenCallable;
 
-    final responseStreamController =
-        StreamController<LLMResult>.broadcast(
-          onCancel: () {
-            if (streaming) {
-              if (nativeNewTokenCallable != null) {
-                nativeNewTokenCallable!.close();
-                lcpp_unset_token_stream_callback();
-                nativeNewTokenCallable = null;
-              }
-            }
-          },
-          sync: true,
-        );
+    final responseStreamController = StreamController<ChatResult>.broadcast(
+      sync: true,
+    );
+
+    Future<void> closeStreamAsync() async {
+      await responseStreamController.close();
+    }
 
     void onNewTokenCallback(Pointer<LcppTextStruct_t> response) {
-      try {
-        if (streaming) {
-          final text = response.ref.text.cast<ffi.Utf8>();
-          final output = text.toDartString(length: text.length);
-
-          responseStreamController.add(
-            LLMResult(
-              id: '$idPrefix.$tokenCount',
-              output: output,
-              finishReason: FinishReason.unspecified,
-              metadata: {
-                'message.id': idPrefix,
-                'chunk.id': tokenCount,
-                'message.type': 'token',
-              },
-              usage: const LanguageModelUsage(),
-              streaming: true,
-            ),
-          );
-        }
-      } on FormatException catch (e, s) {
-        if (kDebugMode) {
-          debugPrintStack(stackTrace: s, label: e.message);
-        }
+      if (streaming) {
         try {
-          final characters = response.ref.text;
-          final length = characters.cast<ffi.Utf8>().length;
+          final text = response.ref.text.cast<ffi.Utf8>();
+          String value = '';
+          try {
+            value = text.toDartString(length: text.length);
+          } on FormatException catch (e, s) {
+            if (kDebugMode) {
+              debugPrintStack(stackTrace: s, label: e.message);
+            }
+            try {
+              final characters = response.ref.text;
+              final length = characters.cast<ffi.Utf8>().length;
 
-          final charList = Uint8List.view(
-            characters.cast<Uint8>().asTypedList(length).buffer,
-            0,
-            length,
-          );
-          final output = utf8.decode(charList.toList(), allowMalformed: true);
-
+              final charList = Uint8List.view(
+                characters.cast<Uint8>().asTypedList(length).buffer,
+                0,
+                length,
+              );
+              value = utf8.decode(
+                charList.toList(),
+                allowMalformed: true,
+              );
+            } on Exception catch (e, s) {
+              if (kDebugMode) {
+                debugPrintStack(stackTrace: s);
+              }
+            }
+          }
           responseStreamController.add(
-            LLMResult(
+            ChatResult(
               id: '$idPrefix.$tokenCount',
-              output: output,
+              output: AIChatMessage(content: value),
               finishReason: FinishReason.unspecified,
               metadata: {
                 'message.id': idPrefix,
@@ -1442,10 +1721,10 @@ class LlamaCpp {
           if (kDebugMode) {
             debugPrintStack(stackTrace: s);
           }
+        } finally {
+          tokenCount++;
+          lcpp_free_text(response);
         }
-      } finally {
-        tokenCount++;
-        lcpp_free_text(response);
       }
     }
 
@@ -1455,19 +1734,16 @@ class LlamaCpp {
             onNewTokenCallback,
           );
 
-      nativeNewTokenCallable!.keepIsolateAlive = false;
+      nativeNewTokenCallable.keepIsolateAlive = false;
 
-      lcpp_set_token_stream_callback(nativeNewTokenCallable!.nativeFunction);
+      lcpp_set_token_stream_callback(nativeNewTokenCallable.nativeFunction);
     }
 
-    LLMResult result;
-
     NativeCallable<LppChatMessageCallbackFunction>? chatMessageCallable;
-    final completer = Completer();
 
     void chatMessageCallback(Pointer<lcpp_common_chat_msg_t> message) {
       try {
-        final Map<String, dynamic> metadata = Map<String, dynamic>();
+        final metadata = <String, dynamic>{};
         metadata['message.id'] = idPrefix;
         metadata['message.type'] = 'response';
 
@@ -1513,26 +1789,25 @@ class LlamaCpp {
           }
         }
 
-        List<Map<String, String>> content_parts =
-            List<Map<String, String>>.empty(growable: true);
+        final contentParts = List<Map<String, String>>.empty(growable: true);
         if (message.ref.n_content_parts > 0) {
           final contentPartsPtr = message.ref.content_parts;
-          for (int i = 0; i < message.ref.n_content_parts; i++) {
+          for (var i = 0; i < message.ref.n_content_parts; i++) {
             try {
-              Map<String, String> _current = {};
+              final contentPartsVars = <String, String>{};
               final it = contentPartsPtr + i;
               if (it.value.ref.n_text > 0) {
-                _current['text'] = it.value.ref.text
+                contentPartsVars['text'] = it.value.ref.text
                     .cast<ffi.Utf8>()
                     .toDartString(length: it.value.ref.n_text);
               }
               if (it.value.ref.n_type > 0) {
-                _current['type'] = it.value.ref.type
+                contentPartsVars['type'] = it.value.ref.type
                     .cast<ffi.Utf8>()
                     .toDartString(length: it.value.ref.n_type);
               }
-              if (_current.isNotEmpty) {
-                content_parts.add(_current);
+              if (contentPartsVars.isNotEmpty) {
+                contentParts.add(contentPartsVars);
               }
             } on FormatException catch (e, s) {
               debugPrintStack(stackTrace: s, label: e.message);
@@ -1540,71 +1815,111 @@ class LlamaCpp {
           }
         }
 
-        if (content_parts.isNotEmpty) {
-          metadata['content_parts'] = content_parts;
+        if (contentParts.isNotEmpty) {
+          metadata['content_parts'] = contentParts;
         }
-
-        List<Map<String, String>> tool_calls = List<Map<String, String>>.empty(
+        final toolCalls = List<AIChatMessageToolCall>.empty(
           growable: true,
         );
         if (message.ref.n_tool_calls > 0) {
-          final tool_calls_ptr = message.ref.tool_calls;
-          for (int i = 0; i < message.ref.n_tool_calls; i++) {
+          final toolCallsPtr = message.ref.tool_calls;
+          for (var i = 0; i < message.ref.n_tool_calls; i++) {
+            final toolCallVars = <String, dynamic>{};
             try {
-              Map<String, String> _current = {};
-              final it = tool_calls_ptr + i;
+              final it = toolCallsPtr + i;
               if (it.value.ref.n_name > 0) {
-                _current['name'] = it.value.ref.name
+                toolCallVars['name'] = it.value.ref.name
                     .cast<ffi.Utf8>()
                     .toDartString(length: it.value.ref.n_name);
               }
               if (it.value.ref.n_id > 0) {
-                _current['id'] = it.value.ref.id.cast<ffi.Utf8>().toDartString(
-                  length: it.value.ref.n_id,
-                );
+                toolCallVars['id'] = it.value.ref.id
+                    .cast<ffi.Utf8>()
+                    .toDartString(
+                      length: it.value.ref.n_id,
+                    );
               }
               if (it.value.ref.n_arguments > 0) {
-                _current['arguments'] = JsonEncoder().convert(
-                  it.value.ref.arguments.cast<ffi.Utf8>().toDartString(
-                    length: it.value.ref.n_arguments,
+                try {
+                  toolCallVars['argumentsRaw'] = it.value.ref.arguments
+                      .cast<ffi.Utf8>()
+                      .toDartString(
+                        length: it.value.ref.n_arguments,
+                      );
+                } on FormatException catch (e, s) {
+                  if (kDebugMode) {
+                    debugPrintStack(stackTrace: s, label: e.message);
+                  }
+                  try {
+                    final characters = it.value.ref.arguments;
+                    final length = characters.cast<ffi.Utf8>().length;
+                    final charList = Uint8List.view(
+                      characters.cast<Uint8>().asTypedList(length).buffer,
+                      0,
+                      length,
+                    );
+                    toolCallVars['argumentsRaw'] = utf8.decode(
+                      charList.toList(),
+                      allowMalformed: true,
+                    );
+                  } on Exception catch (e, s) {
+                    if (kDebugMode) {
+                      debugPrintStack(stackTrace: s);
+                    }
+                  }
+                }
+                try {
+                  toolCallVars['arguments'] = json.decode(
+                    (toolCallVars['argumentsRaw'] ?? '') as String,
+                  );
+                } on Exception catch (e, s) {
+                  if (kDebugMode) {
+                    debugPrintStack(stackTrace: s);
+                  }
+                }
+              }
+              if (toolCallVars.isNotEmpty) {
+                toolCalls.add(
+                  AIChatMessageToolCall(
+                    name: (toolCallVars['name'] ?? '') as String,
+                    id: (toolCallVars['id'] ?? '') as String,
+                    arguments:
+                        (toolCallVars['arguments'] ?? <String, dynamic>{})
+                            as Map<String, dynamic>,
+                    argumentsRaw:
+                        (toolCallVars['argumentsRaw'] ?? '') as String,
                   ),
                 );
               }
-              if (_current.isNotEmpty) {
-                tool_calls.add(_current);
-              }
             } on FormatException catch (e, s) {
-              debugPrintStack(stackTrace: s, label: e.message);
+              if (kDebugMode) {
+                debugPrintStack(stackTrace: s, label: e.message);
+              }
             }
           }
         }
-        if (tool_calls.isNotEmpty) {
-          metadata['tool_calls'] = JsonEncoder().convert(tool_calls);
-        }
 
-        result = LLMResult(
+        final result = ChatResult(
           id: idPrefix,
-          output: output,
+          output: AIChatMessage(content: output, toolCalls: toolCalls),
           finishReason:
-              tool_calls.isNotEmpty
-                  ? FinishReason.toolCalls
-                  : FinishReason.stop,
+              toolCalls.isNotEmpty ? FinishReason.toolCalls : FinishReason.stop,
           metadata: metadata,
           usage: const LanguageModelUsage(),
-          streaming: false,
         );
-        responseStreamController.add(result);
-        completer.complete();
-      } on FormatException catch (e) {
-        // eat exceptions
-      } finally {
-        if (chatMessageCallable != null) {
-          chatMessageCallable!.close();
-          lcpp_unset_chat_message_callback();
-          chatMessageCallable = null;
+        if (!responseStreamController.isClosed) {
+          responseStreamController.add(result);
         }
+        _responseController.add(result);
+      } on FormatException catch (e, s) {
+        if (kDebugMode) {
+          debugPrintStack(stackTrace: s, label: e.message);
+        }
+      } finally {
         lcpp_free_common_chat_msg(message);
-        responseStreamController.close();
+        if (!responseStreamController.isClosed) {
+          unawaited(closeStreamAsync());
+        }
       }
     }
 
@@ -1613,20 +1928,101 @@ class LlamaCpp {
           chatMessageCallback,
         );
 
-    lcpp_set_chat_message_callback(chatMessageCallable!.nativeFunction);
+    lcpp_set_chat_message_callback(chatMessageCallable.nativeFunction);
 
-    lcpp_prompt(params.toNative(), commonChatMessages, chatMessages.length);
+    NativeCallable<LcppOnAbortCallbackFunction>? nativeAbortCallable;
+
+    void onAbortCallback(int aborted) {
+      _onAbortEventController.add(aborted);
+      if (aborted != lcpp_finish_reason.LCPP_FINISH_REASON_STOP.value) {
+        final reason = lcpp_finish_reason.fromValue(aborted);
+        final metadata = <String, dynamic>{};
+        metadata['message.id'] = idPrefix;
+        metadata['message.type'] = 'error';
+        metadata['message.exit_code'] = aborted;
+        final result = ChatResult(
+          id: idPrefix,
+          output: const AIChatMessage(content: ''),
+          finishReason: switch (reason) {
+            lcpp_finish_reason.LCPP_FINISH_REASON_STOP => FinishReason.stop,
+            lcpp_finish_reason.LCPP_FINISH_REASON_LENGTH => FinishReason.length,
+            lcpp_finish_reason.LCPP_FINISH_REASON_EOS => FinishReason.stop,
+            lcpp_finish_reason.LCPP_FINISH_REASON_CANCELLED =>
+              FinishReason.unspecified,
+            lcpp_finish_reason.LCPP_FINISH_REASON_ABORTED =>
+              FinishReason.unspecified,
+            lcpp_finish_reason.LCPP_FINISH_REASON_TOOL_CALLS =>
+              FinishReason.toolCalls,
+            lcpp_finish_reason.LCPP_FINISH_REASON_CONTENT_FILTER =>
+              FinishReason.contentFilter,
+            lcpp_finish_reason.LCPP_FINISH_REASON_RECITATION =>
+              FinishReason.recitation,
+            lcpp_finish_reason.LCPP_FINISH_REASON_ERROR_TOKENIZE =>
+              FinishReason.unspecified,
+            lcpp_finish_reason.LCPP_FINISH_REASON_ERROR_DETOKENIZE =>
+              FinishReason.unspecified,
+            lcpp_finish_reason.LCPP_FINISH_REASON_ERROR_DECODE =>
+              FinishReason.unspecified,
+            lcpp_finish_reason.LCPP_FINISH_REASON_ERROR_ENCODE =>
+              FinishReason.unspecified,
+            lcpp_finish_reason.LCPP_FINISH_REASON_TIMEOUT =>
+              FinishReason.unspecified,
+            lcpp_finish_reason.LCPP_FINISH_REASON_INVALID_BATCH_INPUT =>
+              FinishReason.unspecified,
+            lcpp_finish_reason.LCPP_FINISH_REASON_UNHANDLED_EXCEPTION =>
+              FinishReason.unspecified,
+            lcpp_finish_reason.LCPP_FINISH_REASON_FATAL_ERROR =>
+              FinishReason.unspecified,
+            lcpp_finish_reason.LCPP_FINISH_REASON_UNSPECIFIED =>
+              FinishReason.unspecified,
+          },
+          metadata: metadata,
+          usage: const LanguageModelUsage(),
+        );
+        _responseController.add(result);
+      }
+
+      if (nativeNewTokenCallable != null) {
+        nativeNewTokenCallable!.close();
+        lcpp_unset_token_stream_callback();
+        nativeNewTokenCallable = null;
+      }
+      if (chatMessageCallable != null) {
+        chatMessageCallable!.close();
+        lcpp_unset_chat_message_callback();
+        chatMessageCallable = null;
+      }
+      if (nativeAbortCallable != null) {
+        nativeAbortCallable!.close();
+        lcpp_unset_on_abort_callback();
+        nativeAbortCallable = null;
+      }
+      if (!responseStreamController.isClosed) {
+        unawaited(closeStreamAsync());
+      }
+    }
+
+    nativeAbortCallable = NativeCallable<LcppOnAbortCallbackFunction>.listener(
+      onAbortCallback,
+    );
+
+    lcpp_set_on_cancel_callback(
+      nativeAbortCallable!.nativeFunction,
+    );
+
+    lcpp_prompt(
+      params.toNative(),
+      commonChatMessages,
+      chatMessages.length,
+      callableTools,
+      tools.length,
+    );
 
     /// Stream of token responses.
-    yield* responseStreamController.stream.map((response) {
-      if (response.finishReason == FinishReason.stop ||
-          response.finishReason == FinishReason.toolCalls) {
-        _responseController.add(response);
-      }
-      return response;
-    });
+    yield* responseStreamController.stream;
 
     commonChatMessages.free(chatMessages.length);
+    callableTools.free(tools.length);
   }
 
   void stop() {
@@ -1647,30 +2043,6 @@ class LlamaCpp {
     if (kDebugMode) {
       print('LlamaCpp::cancel:>');
     }
-  }
-
-  String detokenize(List<int> tokens, bool special) {
-    final input = ffi.malloc<Int>(tokens.length);
-    for (int index = 0; index < tokens.length; index++) {
-      input[index] = tokens[index];
-    }
-
-    final result = ffi.malloc<lcpp_data_pvalue>();
-
-    lcpp_detokenize(input, tokens.length, special, result);
-
-    final text =
-        result.ref.found
-            ? result.ref.value.cast<ffi.Utf8>().toDartString()
-            : '';
-
-    if (result.ref.found) {
-      lcpp_native_free(result.ref.value.cast<Void>());
-    }
-
-    ffi.malloc.free(input);
-    ffi.malloc.free(result);
-    return text;
   }
 
   List<int> tokenize(String text) {

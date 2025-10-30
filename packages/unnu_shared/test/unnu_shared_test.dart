@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:unnu_shared/unnu_shared.dart';
-import 'package:unnu_shared/src/utils/unnu_utils.dart';
+import 'package:unnu_shared/src/utils/utils.dart';
 
 void main() {
   test('convert Bytes To Float32', () {

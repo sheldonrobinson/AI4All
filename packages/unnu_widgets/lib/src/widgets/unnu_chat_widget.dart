@@ -1,36 +1,37 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:cross_cache/cross_cache.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_core/flutter_chat_core.dart' as chat_core;
 import 'package:flutter_chat_ui/flutter_chat_ui.dart' as chat_ui;
+import 'package:flutter_popup_card/flutter_popup_card.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flyer_chat_file_message/flyer_chat_file_message.dart';
 import 'package:flyer_chat_image_message/flyer_chat_image_message.dart';
 import 'package:flyer_chat_system_message/flyer_chat_system_message.dart';
 import 'package:flyer_chat_text_message/flyer_chat_text_message.dart';
 import 'package:flyer_chat_text_stream_message/flyer_chat_text_stream_message.dart';
-import 'package:flutter_popup_card/flutter_popup_card.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:june/june.dart';
 import 'package:langchain/langchain.dart';
-import 'package:langchain_core/chat_models.dart' as cm;
+import 'package:langchain_core/chat_models.dart';
+import 'package:mcp_dart/mcp_dart.dart' as mcp;
 import 'package:motion_toast/motion_toast.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:super_clipboard/super_clipboard.dart';
 import 'package:unnu_ai_model/unnu_ai_model.dart';
+import 'package:unnu_mi5/unnu_mi5.dart';
 import 'package:unnu_shared/unnu_shared.dart';
 
 import '../common/config.dart';
 import '../common/types.dart';
-import '../components/unnu_stream_manager.dart';
 import '../components/message_action_bar.dart';
+import '../components/unnu_stream_manager.dart';
 
 class SendIcon extends StatelessWidget {
   const SendIcon({
@@ -101,6 +102,7 @@ class UnnuActionBar extends StatelessWidget {
   final ChatWidgetController _widgetController = June.getState(
     ChatWidgetController.new,
   );
+
   @override
   Widget build(BuildContext context) {
     return MessageActionBar(
@@ -108,15 +110,15 @@ class UnnuActionBar extends StatelessWidget {
         MessageActionButton(
           icon: Icons.cleaning_services, //Icons.delete_sweep,
           title: tooltips['clearAll'] ?? 'Clear All',
-          onPressed: () {
+          onPressed: () async {
             final chatSessionController = June.getState(
               ChatSessionController.new,
             );
             final streamingMessageController = June.getState(
               StreamingMessageController.new,
             );
-            chatSessionController.clearMessages();
-            streamingMessageController.clearMessages();
+            await chatSessionController.clearMessages();
+            await streamingMessageController.clearMessages();
           },
           destructive: true,
           nature: ButtonNature.Holdable,
@@ -170,28 +172,6 @@ class UnnuActionBar extends StatelessWidget {
           type: ButtonType.IconOnly,
           variant: ButtonVariant.Outlined,
         ),
-        if (_widgetController.changeNotifier.search)
-          MessageActionButton(
-            enabled: _chatSessionController.chatSessionVM.webSearch,
-            nature: ButtonNature.Action,
-            icon: Icons.apps,
-            secondaryIcon: Icons.apps_outage,
-            title: tooltips['Search'] ?? 'Search',
-            onPressed: () {
-              final chatSessionController = June.getState(
-                ChatSessionController.new,
-              );
-              final chatWidgetController = June.getState(
-                ChatWidgetController.new,
-              );
-              chatSessionController.chatSessionVM = chatSessionController
-                  .chatSessionVM
-                  .copyWith(
-                    webSearch: !chatSessionController.chatSessionVM.webSearch,
-                  );
-              chatWidgetController.setState();
-            },
-          ),
       ],
     );
   }
@@ -222,7 +202,7 @@ class UnnuChatWidget extends StatefulWidget {
 
 const Duration _kChunkAnimationDuration = Durations.medium1;
 typedef AttachmentSubscription =
-    ({bool subscribed, StreamSubscription<AttachmentUpdate> subscription});
+    ({bool subscribed, StreamSubscription<StatusUpdate> subscription});
 
 class _UnnuChatWidgetState extends State<UnnuChatWidget> {
   final _aiMsgId = IdTracker();
@@ -247,6 +227,9 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
     ChatSettingsController.new,
   );
 
+  final McpToolsController toolsController = June.getState(
+    McpToolsController.new,
+  );
   // Store scroll state per stream ID
   final Map<String, double> _initialScrollExtents = {};
   final Map<String, bool> _reachedTargetScroll = {};
@@ -283,49 +266,49 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
         );
       }
 
-      _userCache.updateUser(
-        Avatars.User.id,
-        chat_core.User(
-          id: Avatars.User.id,
-          imageSource:
-              (avatars[Avatars.User.id] ?? '').isNotEmpty
-                  ? Uri.file(
-                    avatars[Avatars.User.id]!,
-                    windows: Platform.isWindows,
-                  ).toString()
-                  : null,
-          name: Avatars.User.Name,
-        ),
-      );
-
-      _userCache.updateUser(
-        Avatars.Assistant.id,
-        chat_core.User(
-          id: Avatars.Assistant.id,
-          imageSource:
-              (avatars[Avatars.Assistant.id] ?? '').isNotEmpty
-                  ? Uri.file(
-                    avatars[Avatars.Assistant.id]!,
-                    windows: Platform.isWindows,
-                  ).toString()
-                  : null,
-          name: Avatars.Assistant.Name,
-        ),
-      );
-      _userCache.updateUser(
-        'system',
-        chat_core.User(id: 'system', name: 'System'),
-      );
-      _userCache.updateUser(
-        'application',
-        chat_core.User(id: 'application', name: 'Application'),
-      );
+      _userCache
+        ..updateUser(
+          Avatars.User.id,
+          chat_core.User(
+            id: Avatars.User.id,
+            imageSource:
+                (avatars[Avatars.User.id] ?? '').isNotEmpty
+                    ? Uri.file(
+                      avatars[Avatars.User.id]!,
+                      windows: Platform.isWindows,
+                    ).normalizePath().toString()
+                    : null,
+            name: Avatars.User.Name,
+          ),
+        )
+        ..updateUser(
+          Avatars.Assistant.id,
+          chat_core.User(
+            id: Avatars.Assistant.id,
+            imageSource:
+                (avatars[Avatars.Assistant.id] ?? '').isNotEmpty
+                    ? Uri.file(
+                      avatars[Avatars.Assistant.id]!,
+                      windows: Platform.isWindows,
+                    ).normalizePath().toString()
+                    : null,
+            name: Avatars.Assistant.Name,
+          ),
+        )
+        ..updateUser(
+          'system',
+          const chat_core.User(id: 'system', name: 'System'),
+        )
+        ..updateUser(
+          'application',
+          const chat_core.User(id: 'application', name: 'Application'),
+        );
     });
 
-    streamingMessageController.resubscribe();
+    // streamingMessageController.resubscribe();
 
     if (widget.transcriptions != null) {
-      widget.transcriptions!.listen(_handleStreamingTranscript);
+      widget.transcriptions?.listen(_handleStreamingTranscript);
     }
 
     if (widget.mimetypes.isNotEmpty &&
@@ -334,10 +317,10 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
         )) {
       _attachments.add((
         subscribed: true,
-        subscription: AttachmentsMonitor.updates.listen(
+        subscription: StatusMonitor.updates.listen(
           (event) async {
             switch (event.status) {
-              case AttachmentStatus.NEW:
+              case StatusEventCode.NEW:
                 if (context.mounted) {
                   MotionToast.success(
                     description: const Text('Adding ...'),
@@ -347,43 +330,44 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
                   status: SendIconState.loading,
                   nonblocking: false,
                 );
-              case AttachmentStatus.PARSE:
+              case StatusEventCode.PARSE:
                 if (context.mounted) {
                   MotionToast.success(
                     description: const Text('Parsing ...'),
                   ).show(context);
                 }
-              case AttachmentStatus.EMBED:
+              case StatusEventCode.EMBED:
                 if (context.mounted) {
                   MotionToast.success(
                     description: const Text('Embedding ...'),
                   ).show(context);
                 }
-              case AttachmentStatus.PROCESSED:
+              case StatusEventCode.PROCESSED:
                 final file = File(
                   event.attachment.uri.toFilePath(
                     windows: Platform.isWindows,
                   ),
                 );
                 if (file.existsSync()) {
+                  final fileMessage = chat_core.Message.file(
+                    source: event.attachment.uri.toString(),
+                    name: p.basename(
+                      event.attachment.uri.toFilePath(
+                        windows: Platform.isWindows,
+                      ),
+                    ),
+                    id: ChatSettingsController.uuid.v7(),
+                    createdAt: DateTime.now().toUtc(),
+                    size: file.lengthSync(),
+                    authorId: 'application',
+                    metadata: <String, dynamic>{
+                      'session.id': event.attachment.sessionId,
+                      'status': event.status.name,
+                    },
+                  );
                   await streamingMessageController.messagingModel.chatController
                       .insertMessage(
-                        chat_core.Message.file(
-                          source: event.attachment.uri.toString(),
-                          name: p.basename(
-                            event.attachment.uri.toFilePath(
-                              windows: Platform.isWindows,
-                            ),
-                          ),
-                          id: ChatSettingsController.uuid.v7(),
-                          createdAt: DateTime.now().toUtc(),
-                          size: file.lengthSync(),
-                          authorId: 'application',
-                          metadata: <String, dynamic>{
-                            'session.id': event.attachment.sessionId,
-                            'status': event.status.name,
-                          },
-                        ),
+                        fileMessage,
                       );
                 }
                 if (context.mounted) {
@@ -395,7 +379,7 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
                   status: SendIconState.idle,
                   nonblocking: false,
                 );
-              case AttachmentStatus.COMPLETED:
+              case StatusEventCode.COMPLETED:
                 if (context.mounted) {
                   MotionToast.success(
                     description: const Text('Completed'),
@@ -405,7 +389,7 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
                   status: SendIconState.idle,
                   nonblocking: false,
                 );
-              case AttachmentStatus.REMOVE:
+              case StatusEventCode.REMOVE:
                 final fileName = event.attachment.uri.toFilePath(
                   windows: Platform.isWindows,
                 );
@@ -428,13 +412,13 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
                     description: const Text('Removed'),
                   ).show(context);
                 }
-              case AttachmentStatus.NOT_FOUND:
+              case StatusEventCode.NOT_FOUND:
                 if (context.mounted) {
                   MotionToast.error(
                     description: const Text('Not found'),
                   ).show(context);
                 }
-              case AttachmentStatus.OPERATION_NOT_ALLOWED:
+              case StatusEventCode.OPERATION_NOT_ALLOWED:
                 if (context.mounted) {
                   MotionToast.error(
                     description: const Text('Operation not allowed'),
@@ -444,7 +428,7 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
                   status: SendIconState.idle,
                   nonblocking: false,
                 );
-              case AttachmentStatus.EXCEEDS_QUOTA:
+              case StatusEventCode.EXCEEDS_QUOTA:
                 if (context.mounted) {
                   MotionToast.error(
                     description: const Text('Exceeded quota'),
@@ -454,7 +438,39 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
                   status: SendIconState.idle,
                   nonblocking: false,
                 );
-              case AttachmentStatus.NOOP:
+              case StatusEventCode.NOOP:
+                widgetController.update(
+                  status: SendIconState.idle,
+                  nonblocking: false,
+                );
+              case StatusEventCode.ABORTED:
+                if (context.mounted) {
+                  MotionToast.error(
+                    description: const Text('Operation aborted'),
+                  ).show(context);
+                }
+                widgetController.update(
+                  status: SendIconState.idle,
+                  nonblocking: false,
+                );
+              case StatusEventCode.PROMPT_GENERATION_ERROR:
+                if (context.mounted) {
+                  MotionToast.error(
+                    description: const Text(
+                      'Unable to complete, try reducing the context windows or prompt size',
+                    ),
+                  ).show(context);
+                }
+                widgetController.update(
+                  status: SendIconState.idle,
+                  nonblocking: false,
+                );
+              case StatusEventCode.MODEL_LOADING_ERROR:
+                if (context.mounted) {
+                  MotionToast.error(
+                    description: const Text('Unable to load model'),
+                  ).show(context);
+                }
                 widgetController.update(
                   status: SendIconState.idle,
                   nonblocking: false,
@@ -739,22 +755,28 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
     }
   }
 
-  Future<void> _onSendPressed(String text) async {
-    if (kDebugMode) {
-      print('_onSendPressed: $text');
-    }
+  Future<void> _sendButtonRouting() async {
     switch (widgetController.changeNotifier.status) {
-      case SendIconState.idle:
-        if (text.isNotEmpty) {
-          await _handleMessageSend(text);
-        }
       case SendIconState.busy:
         await _cancelResponse();
       case SendIconState.transcribing:
         await _sendTranscribedMessage();
       case SendIconState.loading:
         break;
+      case SendIconState.idle:
+        break;
     }
+  }
+
+  Future<void> _sendButtonText(String text) async {
+    await _handleMessageSend(text);
+  }
+
+  void _onSendPressed(String text) {
+    if (kDebugMode) {
+      print('_onSendPressed: $text');
+    }
+    unawaited(text.isNotEmpty ? _sendButtonText(text) : _sendButtonRouting());
   }
 
   Future<void> _handleMessageSend(String text) async {
@@ -771,7 +793,7 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
       authorId: Avatars.User.id,
       createdAt: timeNow,
       sentAt: timeNow,
-      text: text,
+      text: text.trim(),
       metadata: metadata,
     );
     await streamingMessageController.insert(message);
@@ -1080,7 +1102,7 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
 
     final sessionId = message.metadata!['session.id'] as String;
 
-    final streamId = _aiMsgId.nextId();
+    var streamId = _aiMsgId.nextId();
     chat_core.TextStreamMessage? streamMessage;
 
     try {
@@ -1088,6 +1110,30 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
       _reachedTargetScroll[streamId] = false;
 
       final ragEnabled = settingsController.getSetting(sessionId).enableSearch;
+
+      final chatMessageTools =
+          (toolsController.actives[sessionId] ?? <ActiveTool>[]);
+      final toolsRegistry = toolsController.ToolRegistry;
+      final clientsRegistry = toolsController.ClientRegistry;
+      final tools = chatMessageTools.map(
+        (e) => Tool.fromFunction(
+          name: e.tool.name,
+          description: toolsRegistry[e.tool]?.description ?? '',
+          inputJsonSchema:
+              toolsRegistry[e.tool]?.inputSchema.toJson() ??
+              <String, dynamic>{},
+          func:
+              (Map<String, dynamic> input) async =>
+                  clientsRegistry[Uri.tryParse(e.tool.reference_id) ?? Uri()]
+                      ?.callTool(
+                        mcp.CallToolRequestParams(
+                          name: e.tool.name,
+                          arguments: input,
+                        ),
+                      ) ??
+                  mcp.CallToolResult.fromContent(isError: true, content: []),
+        ),
+      );
       final meta = switch (message) {
         chat_core.TextMessage() =>
           (ragEnabled && widget.onRetrieve != null)
@@ -1110,16 +1156,6 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
                 },
               }
               : const <String, dynamic>{},
-        chat_core.TextStreamMessage() => const <String, dynamic>{},
-
-        chat_core.ImageMessage() => const <String, dynamic>{},
-
-        chat_core.FileMessage() => const <String, dynamic>{},
-
-        chat_core.VideoMessage() => const <String, dynamic>{},
-
-        chat_core.AudioMessage() => const <String, dynamic>{},
-
         chat_core.SystemMessage() =>
           (ragEnabled && widget.onRetrieve != null)
               ? {
@@ -1141,57 +1177,63 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
                 },
               }
               : const <String, dynamic>{},
-        chat_core.CustomMessage() => const <String, dynamic>{},
-        chat_core.UnsupportedMessage() => const <String, dynamic>{},
+        _ => const <String, dynamic>{},
       };
 
-      final chatMessage =
-          message is chat_core.TextMessage
-              ? message.authorId == Avatars.User.id
-                  ? cm.ChatMessage.humanText(
-                    message.text,
-                  )
+      final chatMessage = switch (message) {
+        chat_core.TextMessage() =>
+          message.authorId == Avatars.User.id
+              ? UnnuAIModel.transformToRAG(
+                ChatMessage.humanText(
+                  message.text,
+                ),
+                metadata: meta,
+              )
+              : message.authorId == Avatars.Assistant.id
+              ? ChatMessage.ai(message.text)
+              : ChatMessage.custom(message.text, role: message.authorId),
+        chat_core.SystemMessage() => UnnuAIModel.transformToRAG(
+          ChatMessage.system(
+            message.text,
+          ),
+          metadata: meta,
+        ),
+        _ => ChatMessage.custom(
+          '\n\n$message',
+          role:
+              message.authorId == Avatars.User.id
+                  ? ChatMessageRole.human.name
                   : message.authorId == Avatars.Assistant.id
-                  ? cm.ChatMessage.ai(message.text)
-                  : cm.ChatMessage.custom(message.text, role: message.authorId)
-              : cm.ChatMessage.custom(
-                message.toString(),
-                role:
-                    message.authorId == Avatars.User.id
-                        ? cm.ChatMessageRole.human.name
-                        : message.authorId == Avatars.Assistant.id
-                        ? cm.ChatMessageRole.ai.name
-                        : message.authorId,
-              );
-      if (kDebugMode) {
-        print('_sndmsg: $chatMessage');
-      }
-      final response = sessionController.chatSessionVM.activeSession
-          .sendMessageStream(
-            chatMessage,
-            metadata: meta,
-          );
+                  ? ChatMessageRole.ai.name
+                  : message.authorId,
+        ),
+      };
 
       // This implements a scrolling behavior where we stop auto-scrolling once the
       // generated message reaches the top of the viewport. For this to work properly,
       // make sure to set `shouldScrollToEndWhenAtBottom` to false in `ChatAnimatedList`.
-      streamingMessageController
-          .messagingModel
-          .subscriptions[streamId] = response.listen(
+      await sessionController.chatSessionVM.ai.setup(tools: tools.toList());
+      var replyToId = message.id;
+      var replyToType = 'user';
+      final subscription = sessionController.chatSessionVM.ai.chat.listen(
         (chunk) async {
-          final textChunk = chunk.output;
+          final textChunk = chunk.output.content;
+          // Ensure stream message exists before adding chunk
+          if (chunk.metadata['message.type'] == 'response') {
+            await streamingMessageController.onChatResult(chunk);
+          }
           if (textChunk.isNotEmpty) {
             if (isFirstChunk) {
               // On the first valid chunk, ensure the message is inserted.
               // This handles both non-thinking models and thinking models where
               // the response arrives before the timer.
-
               isFirstChunk = false;
               // Create and insert the message ON the first chunk
               final createdWhen = DateTime.now().toUtc();
               final metainfo = {
                 'session.id': sessionId,
-                'replyTo.id': message.id,
+                'replyTo.id': replyToId,
+                'replyTo.type': replyToType,
                 'allow.updates': true,
                 'is.streaming': true,
               };
@@ -1282,50 +1324,79 @@ class _UnnuChatWidgetState extends State<UnnuChatWidget> {
               }
             });
           }
-        },
-        onDone: () async {
-          // Stream completed successfully (only if message was created)
-          if (streamMessage != null) {
-            await streamingMessageController.onComplete(streamId);
+          // Reset on tool call
+          if(chunk.output.toolCalls.isNotEmpty){
+            // Clean up scroll state for this stream ID when done/errored
+            _initialScrollExtents.remove(streamId);
+            _reachedTargetScroll.remove(streamId);
+
+            isFirstChunk =true;
+            replyToType = 'tool';
+            replyToId = streamId;
+
+            streamId = _aiMsgId.nextId();
+            _reachedTargetScroll[streamId] = false;
           }
-          {
-            widgetController.update(
-              status: SendIconState.idle,
-              nonblocking: true,
-            );
-          }
-          // Clean up scroll state for this stream ID
-          _initialScrollExtents.remove(streamId);
-          _reachedTargetScroll.remove(streamId);
         },
         onError: (err, stacktrace) async {
-          await streamingMessageController.onError(streamId, err.toString());
-          {
-            widgetController.update(
-              status: SendIconState.idle,
-              nonblocking: true,
-            );
+          if (kDebugMode) {
+            debugPrintStack(label: '$err');
           }
+          await streamingMessageController.onError(streamId, err.toString());
+
           // Clean up scroll state for this stream ID when done/errored
           _initialScrollExtents.remove(streamId);
           _reachedTargetScroll.remove(streamId);
         },
+        cancelOnError: true,
       );
-    } on Exception catch (err) {
+
+      final executor = AgentExecutor(
+        agent: sessionController.chatSessionVM.ai.agent,
+        memory: ConversationBufferMemory(),
+      );
+      final completer = Completer<String>();
+      Future<Map<String, dynamic>> run(Completer<String> _completer) async {
+        final res = await executor.invoke({
+          BaseChain.defaultInputKey: chatMessage,
+        });
+        completer.complete((res[BaseChain.defaultOutputKey] ?? '') as String);
+        return res;
+      }
+
+      await run(completer);
+
+      await completer.future.whenComplete(() async {
+        // Stream completed successfully (only if message was created)
+        if (streamMessage != null) {
+          await streamingMessageController.onComplete(streamId);
+        }
+
+        await subscription.cancel();
+        // await sessionController.chatSessionVM.ai.teardown();
+
+        // Clean up scroll state for this stream ID
+        // _initialScrollExtents.remove(streamId);
+        // _reachedTargetScroll.remove(streamId);
+      });
+    } on Exception catch (err, stacktrace) {
+      if (kDebugMode) {
+        debugPrintStack(label: '$err', stackTrace: stacktrace);
+      }
       // Catch other potential errors during stream processing
       await streamingMessageController.onError(streamId, err);
     } finally {
+
       // Clean up scroll state for this stream ID when done/errored
       _initialScrollExtents.remove(streamId);
       _reachedTargetScroll.remove(streamId);
 
-      if (kDebugMode) {
-        print('_sndmsg:finally:>');
-      }
+      await sessionController.chatSessionVM.ai.teardown();
     }
 
-    if (kDebugMode) {
-      print('_sndmsg:>');
-    }
+    widgetController.update(
+      status: SendIconState.idle,
+      nonblocking: true,
+    );
   }
 }

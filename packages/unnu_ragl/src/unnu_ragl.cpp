@@ -54,17 +54,17 @@ static UnnuRaglResponseCallback response_cb = nullptr;
 
 static UnnuRaglEmbeddingCallback embedding_cb = nullptr;
 
-static int32_t EMBEDDING_SIZE = 768;
+static int32_t UNNU_RAGL_EMBEDDING_SIZE = 768;
 
-static bool PARAGRAPH_CHUNKING = true;
+static bool UNNU_RAGL_PARAGRAPH_CHUNKING = true;
 
-static int32_t CHUNKING_SIZE = 384;
+static int32_t UNNU_RAGL_CHUNKING_SIZE = 384;
 
-static int32_t QUERY_RESULT_LIMIT = 5;
+static int32_t UNNU_RAGL_QUERY_RESULT_LIMIT = 5;
 
-static int32_t MAX_QUEUED_BATCHES = 512;
+static int32_t UNNU_RAGL_MAX_QUEUED_BATCHES = 512;
 
-static int32_t POOLING_TYPE = 0; // 0 - mean, 1 - cls, 2 - max
+static int32_t UNNU_RAGL_POOLING_TYPE = 0; // 0 - mean, 1 - cls, 2 - max
 
 std::string _loadBytesFromFile(const std::string& path) {
 	std::ifstream fs(path, std::ios::in | std::ios::binary);
@@ -92,11 +92,11 @@ void unnu_rag_lite_init(const char* path) {
 	if (cpuinfo_initialize()) {
 		int cores = cpuinfo_get_cores_count();
 		if (cores > 2) {
-			_config.max_queued_batches = MAX_QUEUED_BATCHES;
+			_config.max_queued_batches = UNNU_RAGL_MAX_QUEUED_BATCHES;
 			_config.num_threads_per_replica = cores / 2;
 		}
 		else {
-			_config.max_queued_batches = MAX_QUEUED_BATCHES;
+			_config.max_queued_batches = UNNU_RAGL_MAX_QUEUED_BATCHES;
 		}
 	}
 
@@ -353,7 +353,7 @@ void unnu_rag_lite_open_kb(char* db_path, int* errorCode) {
 
 	connection = std::make_unique<duckdb::Connection>(*database);
 
-	_unnu_ragl_db_setup(EMBEDDING_SIZE, errorCode);
+	_unnu_ragl_db_setup(UNNU_RAGL_EMBEDDING_SIZE, errorCode);
 }
 
 
@@ -517,7 +517,7 @@ void unnu_rag_lite_mapping(const char* uri, const char* document_id) {
 	duckdb::Connection conn(*database);
 	try {
 		duckdb::Appender doxinfo_appender(conn, "doxinfo");
-		doxinfo_appender.AppendRow(document_id, uri, EMBEDDING_SIZE);
+		doxinfo_appender.AppendRow(document_id, uri, UNNU_RAGL_EMBEDDING_SIZE);
 	}
 	catch (...) {
 #if defined(_DEBUG) || defined(DEBUG)
@@ -536,7 +536,7 @@ static inline std::vector<float> _unnu_ragl_process(std::string input) {
 
 	std::vector<std::vector<size_t>> _inputs_ids;
 	_inputs_ids.push_back(_encoder_ids);
-	while (_encoder->num_queued_batches() == MAX_QUEUED_BATCHES) {
+	while (_encoder->num_queued_batches() == UNNU_RAGL_MAX_QUEUED_BATCHES) {
 #if defined(_DEBUG) || defined(DEBUG)
 		fprintf(stderr, "info: delayed num_queued_batches() == MAX_QUEUED_BATCHES\n");
 #endif
@@ -557,7 +557,7 @@ static inline std::vector<float> _unnu_ragl_process(std::string input) {
 	output.last_hidden_state.release();
 
 	arma::fmat _mat(_data.data(), _shape[2], _shape[1], true, true);
-	arma::fmat _mean = POOLING_TYPE == 0 ? arma::mean(_mat, 1).eval() : POOLING_TYPE == 1 ? _mat.col(0).eval() : arma::max(_mat, 1).eval();
+	arma::fmat _mean = UNNU_RAGL_POOLING_TYPE == 0 ? arma::mean(_mat, 1).eval() : UNNU_RAGL_POOLING_TYPE == 1 ? _mat.col(0).eval() : arma::max(_mat, 1).eval();
 
 	auto _normalised = arma::normalise(_mean.t(), 2, 1);
 	auto _embedding = _normalised.eval();
@@ -652,7 +652,7 @@ void _unnu_rag_lite_embed(std::string text) {
 	embedding_context_t context;
 	boost::uuids::random_generator gen;
 	context.document_id = boost::uuids::to_string(gen()).c_str();
-	context.chunks = _unnu_ragl_split_text_into_chunks(text, CHUNKING_SIZE, true);
+	context.chunks = _unnu_ragl_split_text_into_chunks(text, UNNU_RAGL_CHUNKING_SIZE, true);
 	int errorCode = 0;
 
 	if (context.chunks.size() > 0) {
@@ -736,23 +736,23 @@ void unnu_rag_lite_closeall_kb() {
 }
 
 void unnu_rag_lite_update_dims(int32_t sz) {
-	EMBEDDING_SIZE = sz;
+	UNNU_RAGL_EMBEDDING_SIZE = sz;
 }
 
 void unnu_rag_lite_enable_paragraph_chunking(int8_t val) {
-	PARAGRAPH_CHUNKING = (val == 0);
+	UNNU_RAGL_PARAGRAPH_CHUNKING = (val == 0);
 }
 
 void unnu_rag_lite_set_chunk_size(int32_t val) {
-	CHUNKING_SIZE = val;
+	UNNU_RAGL_CHUNKING_SIZE = val;
 }
 
 void unnu_rag_lite_set_pooling_type(int32_t val) {
-	POOLING_TYPE = val;
+	UNNU_RAGL_POOLING_TYPE = val;
 }
 
 void unnu_rag_lite_result_limit(int32_t sz) {
-	QUERY_RESULT_LIMIT = sz;
+	UNNU_RAGL_QUERY_RESULT_LIMIT = sz;
 }
 
 
@@ -766,13 +766,14 @@ void unnu_set_ragl_embedding_callback(UnnuRaglEmbeddingCallback callback) {
 
 void unnu_ragl_free_result(UnnuRaglResult_t* result) {
 	if (result != nullptr) {
-		if (result->text != nullptr) free(result->text);
-		if (result->ref_id != nullptr) free(result->ref_id);
+		if (result->length > 0) free(result->text);
+		if (result->reflen > 0) free(result->ref_id);
 		if (result->count > 0) {
 			for (int k = 0, n = result->count; k < n; k++) {
-				auto fragment = result->fragments[k];
+				UnnuRaglFragment_t* fragment = result->fragments[k];
 				if (fragment != nullptr) {
-					free(fragment->text);
+					if (fragment->length > 0) free(fragment->text);
+					free(fragment);
 				}
 			}
 		}

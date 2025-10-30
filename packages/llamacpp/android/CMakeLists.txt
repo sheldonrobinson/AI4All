@@ -45,6 +45,17 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 ################## cpuinfo settings ###############################
+FetchContent_Declare(
+  cpuinfo
+  GIT_REPOSITORY https://github.com/sheldonrobinson/cpuinfo.git
+  GIT_TAG        origin/main
+  GIT_SHALLOW    TRUE
+  
+  EXCLUDE_FROM_ALL
+
+  OVERRIDE_FIND_PACKAGE
+)
+
 set(CPUINFO_LOG_LEVEL "none" CACHE STRING "Minimum logging level (info with lower severity will be ignored)" FORCE)
 set(CPUINFO_LOG_TO_STDIO OFF CACHE BOOL "Log errors, warnings, and information to stdout/stderr" FORCE)
 set(CPUINFO_LIBRARY_TYPE "static" CACHE STRING "Type of cpuinfo library (shared, static, or default) to build" FORCE)
@@ -53,51 +64,114 @@ set(CPUINFO_BUILD_UNIT_TESTS OFF CACHE BOOL "Build cpuinfo unit tests" FORCE)
 set(CPUINFO_BUILD_MOCK_TESTS OFF CACHE BOOL "Build cpuinfo mock tests" FORCE)
 set(CPUINFO_BUILD_BENCHMARKS OFF CACHE BOOL "Build cpuinfo micro-benchmarks" FORCE)
 set(CPUINFO_BUILD_PKG_CONFIG OFF CACHE BOOL "Build pkg-config manifest" FORCE)
+set(CPUINFO_INSTALL OFF CACHE BOOL "Install applicatuins and libraries" FORCE)
+
+FetchContent_MakeAvailable(cpuinfo)
+
+file(REAL_PATH ${cpuinfo_SOURCE_DIR}/include CPUINFO_INCLUDE_DIR)
+file(REAL_PATH ${cpuinfo_SOURCE_DIR} CPUINFO_SOURCE_DIR)
+file(REAL_PATH ${cpuinfo_BINARY_DIR} CPUINFO_BINARY_DIR)
+
+set(CPUINFO_LIBRARY ${CPUINFO_BINARY_DIR}/$<CONFIG>/cpuinfo.lib CACHE FILEPATH "cpuinfo library" FORCE)
+
+####################
+FetchContent_Declare(
+  pciids
+  GIT_REPOSITORY https://github.com/sheldonrobinson/pciids.git
+  GIT_TAG        origin/master
+  GIT_SHALLOW    TRUE
+  
+  EXCLUDE_FROM_ALL
+  
+  OVERRIDE_FIND_PACKAGE
+)
+
+FetchContent_MakeAvailable(pciids)
+
+file(REAL_PATH ${pciids_SOURCE_DIR} PCI_IDS_SOURCE_DIR)
 
 #################### Vulkan
+FetchContent_Declare(
+  vulkan
+  GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Loader.git
+  GIT_TAG        vulkan-sdk-1.4.328.1 # vulkan-sdk-1.3.296.0 # 
+
+  GIT_SHALLOW    TRUE
+  
+  EXCLUDE_FROM_ALL
+  
+  OVERRIDE_FIND_PACKAGE
+)
+
+FetchContent_Declare(
+  vulkan-headers
+  GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers.git
+  GIT_TAG        vulkan-sdk-1.4.328.1 # vulkan-sdk-1.3.296.0 # 
+  GIT_SHALLOW    TRUE
+  
+  EXCLUDE_FROM_ALL
+  
+  OVERRIDE_FIND_PACKAGE
+)
+
 set(VULKAN_HEADERS_ENABLE_TESTS OFF CACHE BOOL "Test Vulkan-Headers" FORCE)
 set(VULKAN_HEADERS_ENABLE_INSTALL OFF CACHE BOOL "Install Vulkan-Headers" FORCE)
+set(BUILD_TESTS OFF CACHE BOOL "Build Tests" FORCE)
+set(LOADER_CODEGEN ON CACHE BOOL "Enable vulkan loader code generation" FORCE)
 
+
+FetchContent_MakeAvailable(vulkan vulkan-headers)
+add_dependencies(vulkan Vulkan-Headers)
+
+#  FetchContent_MakeAvailable(vulkan-headers)
+
+file(REAL_PATH ${vulkan-headers_SOURCE_DIR} VULKAN_HEADERS_DIR)
+file(REAL_PATH ${vulkan_BINARY_DIR} VULKAN_LOADER_BUILD_DIR)
+
+set(Vulkan_INCLUDE_DIR ${VULKAN_HEADERS_DIR}/include CACHE PATH "Vulkan include dir" FORCE)
+set(Vulkan_LIBRARY ${VULKAN_LOADER_BUILD_DIR}/loader/$<CONFIG>/vulkan-1.lib CACHE FILEPATH "vulkan import library" FORCE)
+set(Vulkan_BINPATH ${VULKAN_LOADER_BUILD_DIR}/loader/$<CONFIG>/vulkan-1.dll CACHE FILEPATH "vulkan library" FORCE)
+
+if(NOT TARGET Vulkan::Vulkan)
+	add_library(Vulkan::Vulkan INTERFACE IMPORTED)
+	list(APPEND VULKAN_PROJECTS vulkan Vulkan-Headers)
+    set_target_properties(Vulkan::Vulkan PROPERTIES
+                          INTERFACE_LINK_LIBRARIES vulkan							  
+						  INTERFACE_POSITION_INDEPENDENT_CODE ON
+						  )
+endif()
+
+#################### infoware
 FetchContent_Declare(
-  cpuinfo
-  GIT_REPOSITORY https://github.com/pytorch/cpuinfo.git
-  GIT_TAG        e4cadd02a8b386c38b84f0a19eddacec3f433baa # release-1.10.0
+  infoware
+  GIT_REPOSITORY https://github.com/sheldonrobinson/infoware.git
+  GIT_TAG        origin/main
   GIT_SHALLOW    TRUE
   
   EXCLUDE_FROM_ALL
-  
-  CMAKE_ARGS -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-             -DCPUINFO_LOG_LEVEL="none"
-			 -DCPUINFO_LOG_TO_STDIO=OFF 
-             -DCPUINFO_LIBRARY_TYPE="shared"
-			 -DCPUINFO_BUILD_TOOLS=OFF
-			 -DCPUINFO_BUILD_UNIT_TESTS=OFF
-			 -DCPUINFO_BUILD_MOCK_TESTS=OFF
-			 -DCPUINFO_BUILD_BENCHMARKS=OFF
-			 -DCPUINFO_BUILD_PKG_CONFIG=OFF
-			 -DBUILD_SHARED_LIBS=ON
+  			 
+  OVERRIDE_FIND_PACKAGE
 )
 
-FetchContent_Declare(
-  VULKAN_HEADERS
-  GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers.git
-  GIT_TAG        vulkan-sdk-1.4.321.0 # release-1.10.0
-  GIT_SHALLOW    TRUE
-  
-  EXCLUDE_FROM_ALL
-  
-  CMAKE_ARGS -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-             -DVULKAN_HEADERS_ENABLE_TESTS=OFF
-             -DVULKAN_HEADERS_ENABLE_MODULE=OFF
-			 -DCPUINFO_BUILD_MOCK_TESTS=OFF
-			 -DVULKAN_HEADERS_ENABLE_MODULE_STD=OFF
-			 -DBUILD_SHARED_LIBS=ON
-)
+set(INFOWARE_USE_VULKAN ON CACHE BOOL "Add public, transitive define to infoware to use Vulkan for GPU detection."                           FORCE)
+set(INFOWARE_USE_D3D    OFF CACHE BOOL "Add public, transitive define to infoware to use Direct 3D for GPU detection."                       FORCE)
+set(INFOWARE_USE_OPENGL OFF CACHE BOOL "Add public, transitive define to infoware to use Open Graphics Language (OpenGL) for GPU detection." FORCE)
+set(INFOWARE_USE_OPENCL OFF CACHE BOOL "Add public, transitive define to infoware to use Open Compute Language (OpenCL) for GPU detection."  FORCE)
+set(INFOWARE_USE_X11 OFF CACHE BOOL "Add public, transitive define to infoware to use X11 for display detection." FORCE)
+set(INFOWARE_USE_PCIIDS ON CACHE BOOL "Want PCI IDs. If disabled, the PCI ID database will not be compiled, and the pci.hpp API will be unimplemented." FORCE)
+set(INFOWARE_EXAMPLES OFF CACHE BOOL "Add infoware examples to the build." FORCE)
+set(INFOWARE_TESTS    OFF CACHE BOOL "Input tests for infoware."           FORCE)
+set(INFOWARE_INSTALL  OFF CACHE BOOL "Install libraries and binaries."     FORCE)
+set(INFOWARE_PCI_IDS_PATH       ${PCI_IDS_SOURCE_DIR}/pci.ids CACHE FILEPATH "pci.ids file to use. Overrides cloning from INFOWARE_PCI_IDS_REPOSITORY." FORCE)
+set(INFOWARE_PCI_IDS_REPOSITORY "https://github.com/sheldonrobinson/pciids" CACHE STRING   "Path/URL to clone a pciids git repository from if override path not supplied. Defaults to https://github.com/pciutils/pciids." FORCE)
 
+FetchContent_MakeAvailable(infoware pciids vulkan vulkan-headers)
 
-FetchContent_MakeAvailable(cpuinfo VULKAN_HEADERS)
+file(REAL_PATH ${infoware_BINARY_DIR} INFOWARE_BUILD_DIR)
+set(INFOWARE_BINARY_DLL ${INFOWARE_BUILD_DIR}/lib/$<CONFIG>/infoware$<$<CONFIG:Debug>:d>.dll CACHE FILEPATH "infoware build as dll" FORCE)
 
-include_directories("${vulkan_headers_SOURCE_DIR}/include")
+add_dependencies(infoware vulkan Vulkan-Headers)
+target_include_directories(infoware PRIVATE ${Vulkan_INCLUDE_DIR})
 
 ##########################  kleidiai
 set(KLEIDIAI_BUILD_TESTS       OFF CACHE BOOL "Build unit tests."             FORCE)

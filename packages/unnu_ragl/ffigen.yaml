@@ -9,8 +9,8 @@ ignore-source-errors: false
 headers:
   entry-points:
     - 'src/unnu_ragl.h'
-  include-directives:
-    - 'src/unnu_ragl.h'
+compiler-opts:
+  - '-I./src'
 preamble: |
   // ignore_for_file: always_specify_types
   // ignore_for_file: camel_case_types

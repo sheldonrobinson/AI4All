@@ -4,7 +4,7 @@ description: "AI4All Plus Edition"
 # Prevent accidental publishing to pub.dev.
 publish_to: 'none'
 
-version: 1.0.2
+version: 1.1.2+1
 
 resolution: workspace
 
@@ -22,15 +22,18 @@ dependencies:
   unnu_ai_model:
   unnu_shared:
   unnu_widgets:
+  unnu_sap:
   unnu_speech:
+  unnu_aux:
+  unnu_common:
   unnu_ragl:
   unnu_know:
   unnu_dxl:
-  unnu_sap:
-  unnu_aux:
-  unnu_common:
-  langchain: ^0.8.0+1
   flutter_chat_core: ^2.8.0
+  langchain:
+    git:
+      url: https://github.com/sheldonrobinson/langchain_dart.git
+      path: packages/langchain
   sqflite: ^2.4.2
   sqflite_common_ffi: ^2.3.6
   sembast: ^3.8.5+1
@@ -40,25 +43,34 @@ dependencies:
   stream_transform: ^2.1.1
   shared_preferences: ^2.5.3
   june: ^1.0.0+1
-  path: ^1.9.1
   readmore_expandable_text: ^0.0.3
-  card_settings_ui: ^2.0.1
-  hold_to_confirm_button: ^0.0.2
   timeago: ^3.7.1
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  card_settings_ui: ^2.0.1
+  flutter_form_builder: ^10.2.0
+  form_builder_validators: ^11.2.0
+  hold_to_confirm_button: ^0.0.2
+  splasher: ^0.1.1
+  lottie: ^3.3.2
   native_splash_screen: ^3.0.0
   window_manager: ^0.5.1
-  nativeapi: ^0.1.0-dev.2
+  nativeapi: ^0.1.0
+  super_native_extensions: ^0.9.1
+  super_clipboard: ^0.9.1
+  super_drag_and_drop: ^0.9.1
   flutter_platform_alert: ^0.8.0
-  yaml: ^3.1.3
-  msix: ^3.16.9
-  feedback: ^3.2.0
-  feedback_gitlab: ^3.0.0
   asset_cache: ^2.2.0
   flutter_adaptive_scaffold: ^0.3.3+1
+  uuid: ^4.5.1
+  yaml: ^3.1.3
   package_info_plus: ^9.0.0
   flutter_memory_info: ^0.0.3
   disclosure: ^2.2.0
   gpt_markdown: ^1.1.4
+  feedback: ^3.2.0
+  feedback_gitlab: ^3.0.0
+  msix: ^3.16.9
 
 
 dev_dependencies:
@@ -67,8 +79,10 @@ dev_dependencies:
   msix: ^3.16.12
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
-  very_good_analysis: ^10.0.0
   native_splash_screen_cli: ^3.0.0
+  very_good_analysis: ^10.0.0
+  build_runner: ^2.10.1
+  flutter_gen_runner: ^5.12.0
   
 flutter:
   generate: true # Add this line
@@ -82,8 +96,10 @@ flutter:
     - assets/icon/
     - assets/icon/2.0x/
     - assets/icon/3.0x/
+    # animations
+    - assets/animations/loading_circles.json
     # model
-    - assets/models/chat/Qwen3-0.6B-Q8_0.gguf
+    - assets/models/chat/Qwen3-1.7B-Q4_K_M.gguf
     - assets/models/embedding/granite-embedding-107m-multilingual-ct2-int8/
     # resources
     - assets/json/config.json
@@ -426,7 +442,7 @@ msix_config:
   publisher_display_name: Sheldon Robinson
   identity_name: SheldonRobinson.AI4AllPlus
   publisher: CN=1F2E715E-C3E2-42EE-A3A0-0B5CA6D53B74
-  msix_version: 1.0.2.0
+  msix_version: 1.1.2.0
   logo_path: H:\AI4All\apps\Plus\assets\icon\3.0x\icon.png
   capabilities: microphone, broadFileSystemAccess, internetClient
   store: true

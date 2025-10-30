@@ -7,12 +7,13 @@ import 'dart:io';
 
 import 'package:ffi/ffi.dart' as ffi;
 import 'package:flutter/foundation.dart';
+import 'package:langchain_core/tools.dart';
 
 import 'package:path/path.dart' as p;
 import 'package:langchain_core/prompts.dart';
 import 'package:langchain_core/chat_models.dart' as cm;
-import 'package:langchain_core/llms.dart';
 import 'package:langchain_core/language_models.dart';
+import 'package:langchain_core/chat_models.dart';
 import 'package:collection/collection.dart';
 
 import 'src/bindings.dart';

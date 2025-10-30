@@ -339,8 +339,8 @@ class OfflineTtsController extends JuneState {
          handleData: (data, sink) {
            // Add your transformation logic here
            if (data.isNotEmpty) {
-             final oratory = config.dialoguizer.process(data);
-             oratory.removeWhere(
+             final oratory = config.dialoguizer.process(data)
+             ..removeWhere(
                    (element) =>
                element.type != ResponseSegmentType.Answer ||
                    element.text.isEmpty,

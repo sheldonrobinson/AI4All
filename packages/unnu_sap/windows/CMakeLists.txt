@@ -12,6 +12,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# For
+# set VERBOSE=1
+# faster compile
+# set CMAKE_BUILD_PARALLEL_LEVEL=8
+
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
  	set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "Needed to avoid cmake_install.cmake build issues." FORCE) 
 endif()
@@ -49,12 +54,27 @@ endif()
 include(FetchContent)
 include(InstallRequiredSystemLibraries)
 
+####################### zlib
+FetchContent_Declare(
+  zlib
+  GIT_REPOSITORY 		 https://github.com/sheldonrobinson/zlib.git
+  GIT_TAG        		 origin/develop
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
+  
+  EXCLUDE_FROM_ALL
+			 
+  OVERRIDE_FIND_PACKAGE
+
+)
+
 ######################## bzip2
 FetchContent_Declare(
   bzip2
-  GIT_REPOSITORY https://github.com/sheldonrobinson/bzip2.git
-  GIT_TAG        origin/master
-  GIT_SHALLOW    TRUE
+  GIT_REPOSITORY 		 https://github.com/sheldonrobinson/bzip2.git
+  GIT_TAG        		 origin/master
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
   
   EXCLUDE_FROM_ALL
 			 
@@ -89,19 +109,8 @@ if(NOT TARGET BZip2::BZip2)
 						  INTERFACE_POSITION_INDEPENDENT_CODE ON
 						  )
 endif()
-####################### zlib
-FetchContent_Declare(
-  zlib
-  GIT_REPOSITORY https://github.com/madler/zlib.git
-  GIT_TAG        5a82f71ed1dfc0bec044d9702463dbdf84ea3b71
-  GIT_SHALLOW    TRUE
-  
-  EXCLUDE_FROM_ALL
-			 
-  OVERRIDE_FIND_PACKAGE
 
-)
-
+####################### zlib cont
 set(ZLIB_BUILD_TESTING "none" CACHE STRING "Enable Zlib Examples as tests" FORCE)
 set(ZLIB_BUILD_SHARED OFF CACHE BOOL "Enable building zlib shared library" FORCE)
 set(ZLIB_BUILD_STATIC ON CACHE BOOL "Enable building zlib static library" FORCE)
@@ -116,7 +125,7 @@ set(MINIZIP_BUILD_TESTING OFF CACHE BOOL "Enable testing of minizip" FORCE)
 set(MINIZIP_ENABLE_BZIP2 ON CACHE BOOL "Build minizip withj bzip2 support" FORCE)
 set(MINIZIP_INSTALL OFF CACHE BOOL "Enable installation of minizip" FORCE)
 
-FetchContent_MakeAvailable(bzip2 zlib)
+FetchContent_MakeAvailable(zlib bzip2)
 
 file(REAL_PATH ${zlib_SOURCE_DIR} ZLIB_INCLUDE_DIR)
 file(REAL_PATH ${zlib_SOURCE_DIR} ZLIB_SOURCE_DIR)
@@ -175,22 +184,18 @@ elseif(CMAKE_HOST_UNIX)
   set(MKDIRFLAGS -p)
 endif()
 
-if(CMAKE_GENERATOR_PLATFORM MATCHES "^arm64")
+if ( (CMAKE_CXX_COMPILER_ARCHITECTURE_ID STREQUAL "ARM64") OR  (CMAKE_CXX_COMPILER_ARCHITECTURE_ID STREQUAL "arm64") )
 set(ORT_PLATFORM "arm64")
 else()
 set(ORT_PLATFORM "x64")
 endif()
 
-if(NOT CMAKE_BUILD_TYPE)
-  message(STATUS "No CMAKE_BUILD_TYPE given, default to Release")
-  set(CMAKE_BUILD_TYPE Release)
-endif()
-
 FetchContent_Declare(
   msonnxruntime
-  GIT_REPOSITORY https://github.com/microsoft/onnxruntime.git
-  GIT_TAG        v1.23.1
-  GIT_SHALLOW    TRUE
+  GIT_REPOSITORY 		 https://github.com/microsoft/onnxruntime.git
+  GIT_TAG        		 v1.23.2
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
   
   EXCLUDE_FROM_ALL
 )
@@ -213,10 +218,14 @@ file(REAL_PATH ${msonnxruntime_BINARY_DIR} MSONNXRUNTIME_BINARY_DIR)
 
 file(TO_NATIVE_PATH ${MSONNXRUNTIME_SOURCE_DIR} ORT_BUILD_SRC_DIR)
 file(TO_NATIVE_PATH "${MSONNXRUNTIME_SOURCE_DIR}/tools/ci_build/build.py" ORT_BUILD_PY)
+
 file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/ort/build/win-${ORT_PLATFORM}" ORT_BUILD_DIR)
 file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/ort/build/win-${ORT_PLATFORM}/$<CONFIG>" ORT_BUILD_ROOT_DIR)
 file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/ort/build/win-${ORT_PLATFORM}/$<CONFIG>/$<CONFIG>" ORT_BUILD_BINARY_DIR)
 
+# file(TO_NATIVE_PATH "${MSONNXRUNTIME_SOURCE_DIR}/build" ORT_BUILD_DIR)
+# file(TO_NATIVE_PATH "${MSONNXRUNTIME_SOURCE_DIR}/build/$<CONFIG>" ORT_BUILD_ROOT_DIR)
+# file(TO_NATIVE_PATH "${MSONNXRUNTIME_SOURCE_DIR}/build//$<CONFIG>/$<CONFIG>" ORT_BUILD_BINARY_DIR)
 
 file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/ort/win-${ORT_PLATFORM}/include" ORT_BUILD_INC_DIR)
 file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/ort/win-${ORT_PLATFORM}/bin" ORT_BUILD_BIN_DIR)
@@ -317,9 +326,10 @@ set_target_properties(# Specifies the target library.
 ####################### sherpa-onnx-c-api
 FetchContent_Declare(
   sherpa-onnx
-  GIT_REPOSITORY https://github.com/sheldonrobinson/sherpa-onnx.git
-  GIT_TAG        origin/master
-  GIT_SHALLOW    TRUE
+  GIT_REPOSITORY 		 https://github.com/sheldonrobinson/sherpa-onnx.git
+  GIT_TAG        		 origin/master
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
   
   EXCLUDE_FROM_ALL
 )
@@ -409,8 +419,8 @@ set(SHERPA_ONNX_CAPI_IMPORTLIBPATH ${SHERPA_ONNX_INSTALL_DIR}/lib/sherpa-onnx-c-
 set(SHERPA_ONNX_CXXAPI_BINPATH ${SHERPA_ONNX_INSTALL_DIR}/bin/sherpa-onnx-cxx-api.dll)
 set(SHERPA_ONNX_CXXAPI_IMPORTLIBPATH ${SHERPA_ONNX_INSTALL_DIR}/lib/sherpa-onnx-cxx-api.lib)
 
+#-A x64,version=10.0.26100.0 -T v143,host=x64 
 add_custom_target(sherpa_build ALL COMMAND cmake${CMAKE_EXECUTABLE_SUFFIX} 
-										-A x64,version=10.0.26100.0 -T v143,host=x64 
 										-B ${SHERPA_ONNX_BUILD_DIR} -G "Visual Studio 17 2022" 
 										--install-prefix=${SHERPA_ONNX_INSTALL_DIR} 
 										-DCMAKE_BUILD_TYPE=$<CONFIG>

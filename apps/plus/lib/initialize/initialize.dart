@@ -14,7 +14,12 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart' as sqflite_ffi;
 import 'package:unnu_ai_model/unnu_ai_model.dart';
 import 'package:unnu_aux/unnu_aux.dart';
 import 'package:unnu_know/unnu_know.dart';
+import 'package:unnu_common/unnu_common.dart';
+import 'package:unnu_dxl/unnu_dxl.dart';
 import 'package:unnu_ragl/unnu_ragl.dart';
+import 'package:unnu_sap/unnu_asr.dart';
+import 'package:unnu_speech/unnu_speech.dart';
+import 'package:unnu_sap/unnu_tts.dart';
 import 'package:unnu_shared/unnu_shared.dart';
 import 'package:unnu_widgets/unnu_widgets.dart';
 import 'package:uuid/uuid.dart';
@@ -35,8 +40,8 @@ Future<void> registerModels() async {
   final llmProviderController = June.getState(LLMProviderController.new);
 
   configurationController.config.models.forEach(
-        (key, value) async =>
-    await llmProviderController.hydrateModelSettings(value),
+    (key, value) async =>
+        await llmProviderController.hydrateModelSettings(value),
   );
 
   const uuid = Uuid();
@@ -167,7 +172,7 @@ Future<void> registerEmbedding(String? kbFileName) async {
   );
 
   final filePath = await absoluteApplicationSupportPath('conversations.yml');
-  if(File(filePath).existsSync()) {
+  if (File(filePath).existsSync()) {
     await settingsController.load(filePath);
   }
 
@@ -196,6 +201,214 @@ Future<void> registerChatDatabase(String? dbFileName) async {
 
   final _ = June.getState(
     StreamingMessageController.new,
-  )
-  ..setChatController(SembastChatController(database));
+  )..setChatController(SembastChatController(database));
+}
+
+Future<void> runInitializaton(Completer<bool> completer) async {
+  final statusController = June.getState(InitializationStatusController.new);
+  statusController.update((
+    name: 'Subsystems',
+    status: InitializationStatus.INITIALIZING,
+  ));
+
+  final dbCompleter = Completer<bool>();
+
+  final unnuttsInitCompleter = Completer<bool>();
+  final unnuasrInitCompleter = Completer<bool>();
+  final unnullamaInitCompleter = Completer<bool>();
+  final unnudxlInitCompleter = Completer<bool>();
+  final unnuragInitCompleter = Completer<bool>();
+  final modelRegisteredCompleter = Completer<bool>();
+  final modelLoadingCompleter = Completer<bool>();
+
+  Future<void> dbInit(Completer<bool> _completer) async {
+    statusController.update((
+      name: 'Chatbot',
+      status: InitializationStatus.INITIALIZING,
+    ));
+    await registerChatDatabase('chat.db');
+    _completer.complete(true);
+  }
+
+  Future<void> UnnuTtsInit(Completer<bool> _completer) async {
+    UnnuTts.init();
+    _completer.complete(true);
+    statusController.update((
+      name: 'TTS',
+      status: InitializationStatus.VERIFIED,
+    ));
+  }
+
+  Future<void> UnnuAsrInit(Completer<bool> _completer) async {
+    UnnuAsr.init();
+    _completer.complete(true);
+    statusController.update((
+      name: 'ASR',
+      status: InitializationStatus.VERIFIED,
+    ));
+  }
+
+  Future<void> LlamaCppInit(Completer<bool> _completer) async {
+    LlamaCpp.initialize();
+    _completer.complete(true);
+    statusController.update((
+      name: 'AI',
+      status: InitializationStatus.VERIFIED,
+    ));
+  }
+
+  Future<void> UnnuDxlInit(Completer<bool> _completer) async {
+    UnnuDxl.init();
+    _completer.complete(true);
+    statusController.update((
+      name: 'DXL',
+      status: InitializationStatus.VERIFIED,
+    ));
+  }
+
+  Future<void> UnnuRAGInit(Completer<bool> _completer) async {
+    RagLite.init();
+    _completer.complete(true);
+    statusController.update((
+      name: 'RAG',
+      status: InitializationStatus.VERIFIED,
+    ));
+  }
+
+  // Helper to create and insert the message, ensuring it only happens once.
+  Future<void> loadInitialModel(Completer<bool> _completer) async {
+    final chatSessionController = June.getState(
+      ChatSessionController.new,
+    );
+    final llmProviderController = June.getState(
+      LLMProviderController.new,
+    );
+
+    final streamingMessageController = June.getState(
+      StreamingMessageController.new,
+    );
+
+    final ret = await ModelUtils.switchModel(
+      UnnuModelDetails(
+        info: llmProviderController.activeModel.info,
+        specifications: llmProviderController.activeModel.specifications,
+      ),
+    );
+    if (ret == 0) {
+      await chatSessionController.newChat();
+      await streamingMessageController.newChat();
+    }
+    _completer.complete(true);
+  }
+
+  unawaited(dbInit(dbCompleter));
+  unawaited(UnnuTtsInit(unnuttsInitCompleter));
+  unawaited(UnnuAsrInit(unnuasrInitCompleter));
+  unawaited(LlamaCppInit(unnullamaInitCompleter));
+  unawaited(UnnuDxlInit(unnudxlInitCompleter));
+  unawaited(UnnuRAGInit(unnuragInitCompleter));
+
+  await unnuttsInitCompleter.future.whenComplete(
+    () async {
+      statusController.update((
+        name: 'TTS (please wait, takes awhile ...)',
+        status: InitializationStatus.CONFIGURING,
+      ));
+      await UnnuTts.configure(await getOfflineTtsConfig());
+      statusController.update((
+        name: 'TTS',
+        status: InitializationStatus.CONFIGURED,
+      ));
+    },
+  );
+
+  await unnuasrInitCompleter.future.whenComplete(
+    () async {
+      statusController.update((
+        name: 'ASR (also takes awhile ...)',
+        status: InitializationStatus.CONFIGURING,
+      ));
+      await UnnuAsr.configure(
+        getOnlineRecognizerConfig(await getOnlineModelConfig()),
+        await getVadModelConfig(),
+        OnlinePunctuationConfig(
+          model: await getOnlinePunctuationModelConfig(),
+        ),
+      );
+      statusController.update((
+        name: 'ASR',
+        status: InitializationStatus.CONFIGURED,
+      ));
+    },
+  );
+
+  await unnullamaInitCompleter.future.whenComplete(
+    () async {
+      statusController.update((
+        name: 'AI',
+        status: InitializationStatus.CONFIGURING,
+      ));
+      await loadConfiguration();
+      statusController.update((
+        name: 'AI',
+        status: InitializationStatus.VALIDATING,
+      ));
+      await registerModels();
+      modelRegisteredCompleter.complete(true);
+      ;
+    },
+  );
+
+  await unnuragInitCompleter.future.whenComplete(
+    () async {
+      statusController.update((
+        name: 'RAG (may momentarily pause.)',
+        status: InitializationStatus.INITIALIZING,
+      ));
+      await registerEmbedding('kbase.db');
+      statusController.update((
+        name: 'RAG',
+        status: InitializationStatus.INITIALIZED,
+      ));
+    },
+  );
+
+  await Future.wait(
+    [
+      dbCompleter.future,
+      modelRegisteredCompleter.future,
+    ],
+    cleanUp: (successValue) => modelLoadingCompleter.complete(false),
+  ).whenComplete(
+        () async {
+      statusController.update((
+      name: 'AI (takes very long time ...)',
+      status: InitializationStatus.STARTING,
+      ));
+      await loadInitialModel(modelLoadingCompleter);
+    },
+  );
+
+  await Future.wait(
+    [
+      unnuttsInitCompleter.future,
+      unnuasrInitCompleter.future,
+      unnudxlInitCompleter.future,
+      unnuragInitCompleter.future,
+      modelLoadingCompleter.future,
+    ],
+    cleanUp: (successValue) => completer.complete(true),
+  ).whenComplete(
+    () {
+      statusController.update((
+        name: 'Application (finishing up takes awhile ...)',
+        status: InitializationStatus.STARTING,
+      ));
+      completer.complete(true);
+      statusController.update((
+        name: '...',
+        status: InitializationStatus.STARTING,
+      ));
+    },
+  );
 }

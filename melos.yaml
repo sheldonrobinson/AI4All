@@ -7,12 +7,13 @@ sdkPath: auto
 packages:
   - apps/*
   - packages/*
-  - packages/*/example
   - packages/serious-python/src/*
 
 ignore:
   # e.g. ignore example apps
   # - 'packages/*/src/*'
+  - packages/serious-python/src/serious_python/example/*
+  - packages/*/example
 
 command:
   bootstrap:
@@ -27,7 +28,7 @@ command:
       flyer_chat_file_message: ^2.2.3
       flyer_chat_text_stream_message: ^2.2.6
       # ai
-      agenix: ^3.0.0
+      # agenix: ^3.0.0
       dart_mcp: ^0.3.3
       mcp_toolkit: ^0.3.0
       mcp_llm: ^1.0.2
@@ -37,11 +38,19 @@ command:
       flutter_mcp_ui_core: ^0.2.3
       flutter_mcp_ui_runtime: ^0.2.5
       flutter_mcp_ui_generator: ^0.2.4
+      mcp_flow_runtime: ^0.1.0
       flutter_ai_toolkit: ^0.10.0
       flutter_ai_providers: ^0.3.4+1
-      sherpa_onnx: ^1.12.1
+      genui: ^0.5.1 # Or the latest version
+      genui_a2ui: ^0.5.1 # Or the latest version
+      a2a: ^3.1.0 # Or the latest version
+      # sherpa_onnx: ^1.12.1
       langchain: ^0.8.0+1
       langchain_core: ^0.4.0+1
+      dartantic_ai: ^1.3.0
+      dotprompt_dart: ^0.5.0
+      mcp_dart: ^1.0.2
+      ag_ui: ^0.1.0
       # widgets
       flutter_expandable_fab: ^2.5.2
       grouped_list: ^6.0.0
@@ -78,6 +87,7 @@ command:
       pro_mpack: ^2.0.2
       json_serializable: ^6.10.0
       json_annotation: ^4.9.0
+      json_schema_builder: ^0.1.3
       freezed: ^3.0.6
       freezed_annotation: ^3.1.0
       yaml: ^3.1.3
@@ -85,11 +95,12 @@ command:
       yaml_edit: ^2.2.2
       xml: ^6.5.0
       # ui
-      elementary: ^3.2.0
+      elementary: ^3.2.1
       fluentui_system_icons: ^1.1.273
       fluent_ui: ^4.13.0
       flutter_spinkit: ^5.2.2
       flutter_inappwebview: ^6.1.5
+      drop_down_search_field: ^1.2.2+1
       motion_toast: ^2.14.0
       whiteboard: ^1.0.0
       signature: ^6.3.0
@@ -113,6 +124,14 @@ command:
       awesome_flutter_extensions: ^1.3.0
       read_more_text_plus: ^1.0.1
       choice: ^2.3.2
+      split_view: ^3.2.1
+      multi_split_view: ^3.6.1
+      skeletonizer: ^2.1.1
+      smooth_page_indicator: ^2.0.1
+      injectable: ^2.7.1+2
+      auto_route: ^11.0.0
+      auto_route_generator: ^10.4.0
+      lean_builder: ^0.1.4
       # settings
       flutter_settings_screens: ^0.3.4
       card_settings_ui: ^2.0.1
@@ -208,6 +227,7 @@ command:
       # remote
       rfw: ^1.0.31
       # utils
+      oauth2_client: ^4.2.1
       graphs: ^2.3.2
       string_scanner: ^1.4.1
       markdown: ^7.3.0
@@ -240,6 +260,7 @@ command:
       collection: ^1.19.1
       os_detect: ^2.0.3
       built_value: ^8.10.1
+      neat_periodic_task: ^2.0.1
       menubar:
         git:
           url: https://github.com/google/flutter-desktop-embedding.git
@@ -253,11 +274,18 @@ command:
       quiver: ^3.2.2
       state_machine: ^3.0.1
       async_state_builder: ^0.4.2
+      fsm2: ^3.3.1
+      scope: ^5.1.0
+      fixed: ^6.1.1
+      system_info2: ^4.1.0
+      strings: ^4.0.1
+      money2: ^6.0.9
       chunked_stream: ^1.4.2
       flutter_secure_storage: ^9.2.4
       state_watcher: ^0.1.0
       share_plus: ^12.0.1
       wakelock_plus: ^1.3.2
+      settings_yaml: ^8.3.1
       tokenizer: ^1.0.0
       acyclic_steps: ^0.11.2
       log_pro: ^0.0.4
@@ -274,12 +302,13 @@ command:
       devicelocale: ^0.8.1
       language_code: ^0.5.5
       # add-ons
-      hooks: ^0.20.1
-      data_assets: ^0.19.3
-      code_assets: ^0.19.6
+      hooks: ^1.0.0
+      data_assets: ^0.19.6
+      code_assets: ^1.0.0
       mutex: ^3.1.0
       native_synchronization: ^0.3.1
-      nativeapi: ^0.1.0-dev.2
+      nativeapi: ^0.1.0
+      cnativeapi: ^0.1.0
       app_runner: ^2.2.2
       dependency_initializer: ^3.0.0
       upgrade: ^0.0.8
@@ -288,6 +317,7 @@ command:
       source_helper: ^1.3.5
       code_builder: ^4.10.1
       ffi: ^2.1.4
+      native_toolchain_c: ^0.17.4
       plugin_platform_interface: ^2.1.8
       device_preview_plus: ^2.4.2
 #      serious_python: ^0.9.3
@@ -305,7 +335,7 @@ command:
       built_value_generator: ^8.10.1
       ffigen: ^19.1.0
       build_runner: ^2.10.1
-      hooks_runner: ^0.22.1
+      hooks_runner: ^1.0.0
       messages_builder: ^0.2.1
       native_splash_screen_cli: ^3.0.0
       very_good_analysis: ^10.0.0

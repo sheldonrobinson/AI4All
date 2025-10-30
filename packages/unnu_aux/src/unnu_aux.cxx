@@ -11,9 +11,8 @@
 void unnu_aux_free_text(UnnuTextStruct_t* ptr) {
 	if (ptr != nullptr) {
 		if (ptr->length > 0) free(ptr->text);
+        free(ptr);
 	}
-	free(ptr);
-
 }
 
 void unnu_aux_update_corpora(const char* path) {
@@ -854,75 +853,95 @@ UnnuAuxConfig_t* unnu_aux_load_config(const char* filepath) {
 }
 
 void unnu_aux_free_setting(UnnuAuxConfigSetting_t* setting) {
+    if(setting != nullptr){
+		UnnuAuxConfigSetting_t _val = *setting;
 #if defined(_DEBUG) || defined(DEBUG)
-	if (setting->n_name > 0)  fprintf(stderr, "unnu_aux_free_setting freeing name %s.\n", setting->name);
+    if (_val.n_name > 0)  fprintf(stderr, "unnu_aux_free_setting freeing name %s.\n", _val.name);
 #endif
-	if (setting->n_name > 0) free(setting->name);
-	switch (setting->type) {
-	case UnnuAuxConfigValueType::UNNU_AUX_CONFIG_LIST:
-		if (setting->value.list != nullptr) {
-			for (int i = 0, n = setting->value.list->count; i < n; i++) {
-				unnu_aux_free_setting(setting->value.list->elements[i]);
-			}
-			free(setting->value.list);
-		}
-		break;
-	case UnnuAuxConfigValueType::UNNU_AUX_CONFIG_STR_ARRAY:
-		if (setting->value.object != nullptr) {
-			char** _values = (char**) setting->value.object;
-			for (int i = 0, n = setting->length; i < n; i++) {
-				free(_values[i]);
-			}
-			free(setting->value.list);
-		}
-		break;
-	case UnnuAuxConfigValueType::UNNU_AUX_CONFIG_STRING:
+        if (_val.n_name > 0) { free(_val.name); }
+        switch (_val.type) {
+        case UnnuAuxConfigValueType::UNNU_AUX_CONFIG_LIST:
+            if (_val.value.list != nullptr) {
+				UnnuAuxConfigList_t _list = *(_val.value.list);
+                for (int i = 0, n = _list.count; i < n; i++) {
+                    unnu_aux_free_setting(_list.elements[i]);
+                }
+                free(_val.value.list);
+            }
+            break;
+        case UnnuAuxConfigValueType::UNNU_AUX_CONFIG_STR_ARRAY:
+            if (_val.value.object != nullptr) {
+				// void* _value = (void*)_val.value.object;
+                //for (int i = 0, n = setting->length; i < n; i++) {
+                //    free(_values[i]);
+                //}
+                free(_val.value.object);
+            }
+            break;
+        case UnnuAuxConfigValueType::UNNU_AUX_CONFIG_STRING:
 #if defined(_DEBUG) || defined(DEBUG)
-		if (setting->length > 0) fprintf(stderr, "unnu_aux_free_setting freeing string %s.\n", setting->value.sval);
+        if (_val.length > 0) fprintf(stderr, "unnu_aux_free_setting freeing string %s.\n", setting->value.sval);
 #endif
-		if(setting->length>0) (setting->value.sval);
-		break;
-	default:
-		break;
-	}
+			if (_val.value.sval != nullptr) {
+				if (_val.length > 0) (_val.value.sval);
+			}
+            break;
+        default:
+            break;
+        }
+		free(setting);
+    }
 }
 
 void unnu_aux_free_config(UnnuAuxConfig_t* config) {
-
-	if (config->root != nullptr) {
+	if (config != nullptr) {
+		UnnuAuxConfig_t _config = *config;
+		if (_config.root != nullptr) {
 #if defined(_DEBUG) || defined(DEBUG)
-		fprintf(stderr, "freeing config %s.\n", config->root->name);
+			fprintf(stderr, "freeing config %s.\n", config->root->name);
 #endif
-		if (config->root->n_name > 0) free(config->root->name);
-		if (config->root->attributes != nullptr && config->root->attributes->root != nullptr) {
-			if (config->root->attributes->root->type == UnnuAuxConfigValueType::UNNU_AUX_CONFIG_LIST && config->root->attributes->root->value.list != nullptr) {
-				for (int i = 0, n = config->root->attributes->root->value.list->count; i < n; i++) {
-					unnu_aux_free_setting(config->root->attributes->root->value.list->elements[i]);
+			UnnuAuxConfigSetting_t _root = *(_config.root);
+			if (_root.n_name > 0) free(_root.name);
+			if (_root.attributes != nullptr) {
+				UnnuAuxConfig_t _attr_root = *(_root.attributes);
+				if (_attr_root.root != nullptr) {
+					UnnuAuxConfigSetting_t _attr_root_setting = *(_attr_root.root);
+					if (_attr_root_setting.type == UnnuAuxConfigValueType::UNNU_AUX_CONFIG_LIST && _attr_root_setting.value.list != nullptr) {
+						UnnuAuxConfigList_t _attr_list = *(_attr_root_setting.value.list);
+						for (int i = 0, n = _attr_list.count; i < n; i++) {
+							unnu_aux_free_setting(_attr_list.elements[i]);
+						}
+						free(_attr_root_setting.value.list);
+					}
+					free(_attr_root.root);
 				}
-				free(config->root->attributes->root->value.list);
+				free(_root.attributes);
 			}
-			free(config->root->attributes->root);
-		}
-		free(config->root->attributes);
+			
 
-		switch (config->root->type) {
-		case UnnuAuxConfigValueType::UNNU_AUX_CONFIG_LIST:
-			if (config->root->value.list != nullptr) {
-				for (int i = 0, n = config->root->value.list->count; i < n; i++) {
-					unnu_aux_free_setting(config->root->value.list->elements[i]);
+			switch (_root.type) {
+			case UnnuAuxConfigValueType::UNNU_AUX_CONFIG_LIST:
+				if (_root.value.list != nullptr) {
+					UnnuAuxConfigList_t _list = *(_root.value.list);
+					for (int i = 0, n = _list.count; i < n; i++) {
+						unnu_aux_free_setting(_list.elements[i]);
+					}
+					free(_root.value.list);
 				}
-				free(config->root->value.list);
-			}
-			break;
-		case UnnuAuxConfigValueType::UNNU_AUX_CONFIG_STRING:
+				break;
+			case UnnuAuxConfigValueType::UNNU_AUX_CONFIG_STRING:
 #if defined(_DEBUG) || defined(DEBUG)
-			if (config->root->length > 0) fprintf(stderr, "unnu_aux_free_config freeing string %s.\n", config->root->value.sval);
+				if (_root.length > 0) fprintf(stderr, "unnu_aux_free_config freeing string %s.\n", _root.value.sval);
 #endif
-			if (config->root->length > 0) free(config->root->value.sval);
-			break;
+				if (_root.value.sval != nullptr) {
+					if (_root.length > 0) free(_root.value.sval);
+				}
+				break;
 
+			}
+			free(_config.root);
 		}
-		free(config->root);
+		free(config);
 	}
 }
 
@@ -1443,14 +1462,17 @@ void unnu_aux_delete_conversation_settings(const char* filepath, UnnuAuxConversa
 }
 
 int32_t unnu_aux_check_min_hw_specs() {
+
 	if (cpuinfo_initialize()) {
+		int32_t res = 0;
+#if CPUINFO_ARCH_X86 || CPUINFO_ARCH_X86_64
 		int32_t F16C_FLAG = 1 << 0;
 		int32_t SSE4_2_FLAG = 1 << 1;
 		int32_t BMI2_FLAG = 1 << 2;
 		int32_t AVX_FLAG = 1 << 3;
 		int32_t AVX2_FLAG = 1 << 4;
 		int32_t FMA_FLAG = 1 << 5;
-		int32_t res = 0;
+		
 		if(!cpuinfo_has_x86_f16c()){
 			res |= F16C_FLAG;
 		}
@@ -1469,7 +1491,12 @@ int32_t unnu_aux_check_min_hw_specs() {
 		}
 		if(!cpuinfo_has_x86_fma3()){
 			res |= FMA_FLAG;
-		}
+		} 
+#endif
+#if CPUINFO_ARCH_ARM || CPUINFO_ARCH_ARM64
+#endif
+#if CPUINFO_ARCH_RISCV32 || CPUINFO_ARCH_RISCV64
+#endif
 		return res;		
 	} 
 	return -1;

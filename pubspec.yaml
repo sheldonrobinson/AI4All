@@ -16,11 +16,13 @@ workspace:
   - packages/unnu_common
   - packages/unnu_dxl
   - packages/unnu_know
+  - packages/unnu_mi5
   - packages/unnu_ragl
   - packages/unnu_sap
   - packages/unnu_shared
   - packages/unnu_speech
   - packages/unnu_widgets
+  - packages/mcp_dart
   - packages/serious-python/src/serious_python
   
 dev_dependencies:
@@ -31,8 +33,8 @@ melos:
   categories:
     apps:
       - apps/*
-    examples:
-      - packages/example*
+    packages:
+      - packages/*
   ide:
     intellij:
       enabled: true

@@ -8,7 +8,6 @@ import 'package:feedback/feedback.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_memory_info/flutter_memory_info.dart';
 import 'package:flutter_platform_alert/flutter_platform_alert.dart';
 import 'package:llamacpp/llamacpp.dart';
 import 'package:native_splash_screen/native_splash_screen.dart' as nss;
@@ -50,13 +49,19 @@ final _jsonAssets = JsonAssetCache(
 );
 
 Future<void> main() async {
-  FlutterError.onError = (FlutterErrorDetails details) {
+  FlutterError.onError = (FlutterErrorDetails details) async {
     if (kDebugMode) {
       // In development mode, simply print to console.
       FlutterError.dumpErrorToConsole(details);
+      final _ = await FlutterPlatformAlert.showAlert(
+        windowTitle: 'Unhandled Exception',
+        text: 'Details: ${details}',
+        iconStyle: IconStyle.error,
+      );
     } else {
       // In production mode, report to the application zone to report to sentry.
       Zone.current.handleUncaughtError(details.exception, details.stack!);
+	  
     }
   };
 
@@ -67,9 +72,7 @@ Future<void> main() async {
     () async {
       WidgetsFlutterBinding.ensureInitialized();
       UnnuAux.init();
-      final totalMem = (await MemoryInfo.getTotalPhysicalMemorySize()) ?? 0;
-      final _check =
-          totalMem >= 12884901888 && UnnuAux.checkMinimumHw() == 0 ? 0 : -1;
+      final _check = UnnuAux.checkMinimumHw();
       switch (_check) {
         case 0:
           {
@@ -79,7 +82,16 @@ Future<void> main() async {
             final sz = mainMonitor?.size ?? const Size(1280, 800);
             if (kDebugMode) {
               print(
-                'Display\n\tname: ${mainMonitor?.name}\n\tid: ${mainMonitor?.id}\n\tprimary: ${mainMonitor?.isPrimary}\n\size: ${mainMonitor?.size}\n\tscaleFactor: ${mainMonitor?.scaleFactor}\n\tposition: ${mainMonitor?.position}\n\trefreshRate: ${mainMonitor?.refreshRate}\nSize: ${sz}',
+                '''
+                Display
+                \tname: ${mainMonitor?.name}
+                \tid: ${mainMonitor?.id}
+                \tprimary: ${mainMonitor?.isPrimary}
+                \tsize: ${mainMonitor?.size}
+                \tscaleFactor: ${mainMonitor?.scaleFactor}
+                \tposition: ${mainMonitor?.position}
+                \trefreshRate: ${mainMonitor?.refreshRate}
+                \nSize: ${sz}''',
               );
             }
             final windowOptions = WindowOptions(
@@ -98,9 +110,10 @@ Future<void> main() async {
               maximumSize: sz,
               minimumSize: const Size(360, 480),
               windowButtonVisibility: true,
+              alwaysOnTop: false,
             );
 
-            LlamaCpp.init();
+            LlamaCpp.initialize();
             UnnuTts.init();
             UnnuAsr.init();
 
@@ -143,7 +156,15 @@ Future<void> main() async {
           }
       }
     },
-    (Object error, StackTrace stackTrace) {},
+    (Object error, StackTrace stackTrace) async {
+      if(kDebugMode) {
+        final _ = await FlutterPlatformAlert.showAlert(
+          windowTitle: 'Unhandled Exception',
+          text: 'ERROR ${error}\n\n${stackTrace}',
+          iconStyle: IconStyle.error,
+        );
+      }
+    },
     zoneValues: {},
   );
 }

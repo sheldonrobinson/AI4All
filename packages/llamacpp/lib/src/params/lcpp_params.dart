@@ -803,6 +803,9 @@ class LlamaCppParams {
   /// how to split the model across multiple GPUs
   final lcpp_split_mode? _splitMode;
 
+  /// how to split the model across multiple CPUs
+  final lcpp_numa_strategy? _numa;
+
   /// path to GGUF model file
   final String? _modelPath;
 
@@ -856,6 +859,7 @@ class LlamaCppParams {
   /// Creates a new instance of [LlamaCppParams].
   const LlamaCppParams({
     lcpp_split_mode? splitMode,
+    lcpp_numa_strategy? numa,
     String? modelPath,
     bool? vocabOnly,
     bool? useMmap,
@@ -867,6 +871,7 @@ class LlamaCppParams {
     int? nGpuLayers,
     int? mainGPU,
   }) : _splitMode = splitMode,
+       _numa = numa,
        _modelPath = modelPath,
        _vocabOnly = vocabOnly,
        _useMmap = useMmap,
@@ -884,6 +889,10 @@ class LlamaCppParams {
       splitMode:
           map['splitMode'] != null
               ? lcpp_split_mode.fromValue(map['splitMode'] as int)
+              : null,
+      numa:
+          map['numa'] != null
+              ? lcpp_numa_strategy.fromValue(map['numa'] as int)
               : null,
       modelPath: map['modelPath'] != null ? map['modelPath'] as String : null,
       vocabOnly: map['vocabOnly'] != null ? map['vocabOnly'] as bool : null,
@@ -914,6 +923,7 @@ class LlamaCppParams {
       mainGPU: params.main_gpu,
       expertsOffLoad: params.offload_experts,
       splitMode: params.split_mode,
+      numa: params.numa,
       useMlock: params.use_mlock,
       useMmap: params.use_mmap,
       vocabOnly: params.vocab_only,
@@ -944,15 +954,24 @@ class LlamaCppParams {
           family: lcpp_model_family.LCPP_MODEL_FAMILY_PHI.value,
         );
       } else if (modelFile.startsWith(
-        RegExp('llama|gemma|gpt', caseSensitive: false),
+        RegExp('llama', caseSensitive: false),
       )) {
         return (
-          reasoning: false,
+          reasoning: modelFile.startsWith(
+            RegExp('llama[3-9]', caseSensitive: false),
+          ),
+          family: lcpp_model_family.LCPP_MODEL_FAMILY_LLAMA.value,
+        );
+      } else if (modelFile.startsWith(
+        RegExp('gemma|gpt', caseSensitive: false),
+      )) {
+        return (
+          reasoning: modelFile.contains(
+            RegExp('reasoning', caseSensitive: false),
+          ),
           family:
               modelFile.startsWith(RegExp('gpt', caseSensitive: false))
                   ? lcpp_model_family.LCPP_MODEL_FAMILY_GPT_OSS.value
-                  : modelFile.startsWith(RegExp('llama', caseSensitive: false))
-                  ? lcpp_model_family.LCPP_MODEL_FAMILY_LLAMA.value
                   : lcpp_model_family.LCPP_MODEL_FAMILY_GEMMA.value,
         );
       } else if (modelFile.startsWith(
@@ -960,7 +979,7 @@ class LlamaCppParams {
       )) {
         return (
           reasoning: modelFile.startsWith(
-            RegExp('qwen3|qwq', caseSensitive: false),
+            RegExp('qwen[3-9]|qwq', caseSensitive: false),
           ),
           family: lcpp_model_family.LCPP_MODEL_FAMILY_QWEN.value,
         );
@@ -969,12 +988,12 @@ class LlamaCppParams {
       )) {
         return (
           reasoning: modelFile.startsWith(
-            RegExp('deepseek-r|deepseek-v3\.', caseSensitive: false),
+            RegExp('deepseek-r|deepseek-v[3-9]\.', caseSensitive: false),
           ),
           family: lcpp_model_family.LCPP_MODEL_FAMILY_DEEPSEEK.value,
         );
       } else if (modelFile.startsWith(
-        RegExp('seed|granite|ernie', caseSensitive: false),
+        RegExp('seed|granite|ernie|apertus', caseSensitive: false),
       )) {
         return (
           reasoning: true,
@@ -985,6 +1004,10 @@ class LlamaCppParams {
                     RegExp('granite', caseSensitive: false),
                   )
                   ? lcpp_model_family.LCPP_MODEL_FAMILY_GRANITE.value
+                  : modelFile.startsWith(
+                    RegExp('apertus', caseSensitive: false),
+                  )
+                  ? lcpp_model_family.LCPP_MODEL_FAMILY_APERTUS.value
                   : lcpp_model_family.LCPP_MODEL_FAMILY_GENERIC.value,
         );
       } else if (modelFile.startsWith(
@@ -995,6 +1018,41 @@ class LlamaCppParams {
             RegExp('magistral', caseSensitive: false),
           ),
           family: lcpp_model_family.LCPP_MODEL_FAMILY_MISTRAL.value,
+        );
+      } else if (modelFile.contains(
+        RegExp('nemotron', caseSensitive: false),
+      )) {
+        return (
+          reasoning: true,
+          family: lcpp_model_family.LCPP_MODEL_FAMILY_NEMOTRON.value,
+        );
+      } else if (modelFile.startsWith(
+        RegExp('minimax', caseSensitive: false),
+      )) {
+        return (
+          reasoning: true,
+          family: lcpp_model_family.LCPP_MODEL_FAMILY_MINIMAX.value,
+        );
+      } else if (modelFile.startsWith(
+        RegExp('glm', caseSensitive: false),
+      )) {
+        return (
+          reasoning: true,
+          family: lcpp_model_family.LCPP_MODEL_FAMILY_GLM.value,
+        );
+      } else if (modelFile.startsWith(
+        RegExp('command-', caseSensitive: false),
+      )) {
+        return (
+          reasoning: true,
+          family: lcpp_model_family.LCPP_MODEL_FAMILY_COHERE.value,
+        );
+      } else if (modelFile.startsWith(
+        RegExp('lfm2-', caseSensitive: false),
+      )) {
+        return (
+          reasoning: false,
+          family: lcpp_model_family.LCPP_MODEL_FAMILY_LIQUID.value,
         );
       }
       return (
@@ -1037,6 +1095,10 @@ class LlamaCppParams {
       lcppParams.split_modeAsInt = _splitMode.value;
     }
 
+    if (_numa != null) {
+      lcppParams.numaAsInt = _numa.value;
+    }
+
     if (_checkTensors != null) {
       lcppParams.check_tensors = _checkTensors;
     }
@@ -1068,6 +1130,7 @@ class LlamaCppParams {
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'splitMode': _splitMode?.value,
+      'numa': _numa?.value,
       'modelPath': _modelPath,
       'vocabOnly': _vocabOnly,
       'useMmap': _useMmap,
@@ -1087,6 +1150,7 @@ class LlamaCppParams {
   LlamaCppParams copyWith({
     String? modelPath,
     lcpp_split_mode? splitMode,
+    lcpp_numa_strategy? numa,
     bool? vocabOnly,
     bool? useMmap,
     bool? useMlock,
@@ -1098,9 +1162,10 @@ class LlamaCppParams {
     int? mainGPU,
   }) {
     return LlamaCppParams(
-      modelPath: modelPath ?? this._modelPath,
+      modelPath: modelPath ?? _modelPath,
       splitMode:
           splitMode ?? _splitMode ?? lcpp_split_mode.LCPP_SPLIT_MODE_NONE,
+      numa: numa ?? _numa ?? lcpp_numa_strategy.LCPP_NUMA_STRATEGY_DISABLED,
       vocabOnly: vocabOnly ?? _vocabOnly,
       useMmap: useMmap ?? _useMmap,
       useMlock: useMlock ?? _useMlock,
@@ -1115,7 +1180,21 @@ class LlamaCppParams {
 
   @override
   String toString() {
-    return 'LlamaCppParams(splitMode: $_splitMode, modelPath: $_modelPath, vocabOnly: $_vocabOnly, useMmap: $_useMmap, useMlock: $_useMlock, checkTensors: $_checkTensors, escape: $_escape, multilineInput: $_multilineInput, _expertsOffLoad: $_expertsOffLoad, nGpuLayers: $_nGpuLayers, mainGPU: $_mainGPU)';
+    return '''
+    LlamaCppParams:
+    \tsplitMode: $_splitMode
+    \tnuma: $_numa
+    \tmodelPath: $_modelPath
+    \tvocabOnly: $_vocabOnly
+    \tuseMmap: $_useMmap
+    \tuseMlock: $_useMlock
+    \tcheckTensors: $_checkTensors
+    \tescape: $_escape
+    \tmultilineInput: $_multilineInput
+    \t_expertsOffLoad: $_expertsOffLoad
+    \tnGpuLayers: $_nGpuLayers
+    \tmainGPU: $_mainGPU
+    ''';
   }
 
   @override
@@ -1123,6 +1202,7 @@ class LlamaCppParams {
     if (identical(this, other)) return true;
 
     return other._splitMode == _splitMode &&
+        other._numa == _numa &&
         other._modelPath == _modelPath &&
         other._vocabOnly == _vocabOnly &&
         other._useMmap == _useMmap &&
@@ -1138,6 +1218,7 @@ class LlamaCppParams {
   @override
   int get hashCode {
     return _splitMode.hashCode ^
+        _numa.hashCode ^
         _modelPath.hashCode ^
         _vocabOnly.hashCode ^
         _useMmap.hashCode ^

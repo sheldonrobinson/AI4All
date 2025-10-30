@@ -52,12 +52,67 @@ include(InstallRequiredSystemLibraries)
 
 find_package(OpenMP REQUIRED)
 
+######################### duckdb
+FetchContent_Declare(
+  duckdb
+  GIT_REPOSITORY		 https://github.com/sheldonrobinson/duckdb.git
+  GIT_TAG				 origin/v1.4.x
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
+  
+  EXCLUDE_FROM_ALL
+			 
+  OVERRIDE_FIND_PACKAGE
+)
+
+######################## boost
+FetchContent_Declare(
+  boost
+  GIT_REPOSITORY 		 https://github.com/boostorg/boost.git
+  GIT_TAG        		 boost-1.88.0
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
+  
+  EXCLUDE_FROM_ALL
+			 
+  OVERRIDE_FIND_PACKAGE
+)
+
+######################## sqlite3
+FetchContent_Declare(
+  sqlite3
+  GIT_REPOSITORY 		 https://github.com/sheldonrobinson/sqlite-amalgamation.git
+  GIT_TAG        		 origin/master
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
+  
+  EXCLUDE_FROM_ALL
+			 
+  OVERRIDE_FIND_PACKAGE
+			 
+)
+
+####################### zlib
+FetchContent_Declare(
+  zlib
+  GIT_REPOSITORY 		 https://github.com/sheldonrobinson/zlib.git
+  GIT_TAG        		 origin/develop
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
+  
+  EXCLUDE_FROM_ALL
+			 
+  OVERRIDE_FIND_PACKAGE
+
+)
+
 ######################## bzip2
 FetchContent_Declare(
   bzip2
-  GIT_REPOSITORY https://github.com/sheldonrobinson/bzip2.git
-  GIT_TAG        origin/master
-  GIT_SHALLOW    TRUE
+  GIT_REPOSITORY 		 https://github.com/sheldonrobinson/bzip2.git
+  GIT_TAG        		 origin/master
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
   
   EXCLUDE_FROM_ALL
 			 
@@ -92,18 +147,7 @@ if(NOT TARGET BZip2::BZip2)
 						  )
 endif()
 
-####################### zlib
-FetchContent_Declare(
-  zlib
-  GIT_REPOSITORY https://github.com/sheldonrobinson/zlib.git
-  GIT_TAG        origin/develop
-  GIT_SHALLOW    TRUE
-  
-  EXCLUDE_FROM_ALL
-			 
-  OVERRIDE_FIND_PACKAGE
-
-)
+####################### zlib cont
 
 set(ZLIB_BUILD_TESTING "none" CACHE STRING "Enable Zlib Examples as tests" FORCE)
 set(ZLIB_BUILD_SHARED OFF CACHE BOOL "Enable building zlib shared library" FORCE)
@@ -119,7 +163,7 @@ set(MINIZIP_BUILD_TESTING OFF CACHE BOOL "Enable testing of minizip" FORCE)
 set(MINIZIP_ENABLE_BZIP2 ON CACHE BOOL "Build minizip withj bzip2 support" FORCE)
 set(MINIZIP_INSTALL OFF CACHE BOOL "Enable installation of minizip" FORCE)
 
-FetchContent_MakeAvailable(bzip2 zlib)
+FetchContent_MakeAvailable(zlib bzip2)
 
 file(REAL_PATH ${zlib_SOURCE_DIR} ZLIB_INCLUDE_DIR)
 file(REAL_PATH ${zlib_SOURCE_DIR} ZLIB_SOURCE_DIR)
@@ -159,9 +203,10 @@ add_dependencies(libminizipstatic zlibstatic bz2_static)
 ######################## xz
 FetchContent_Declare(
   liblzma
-  GIT_REPOSITORY https://github.com/sheldonrobinson/xz.git
-  GIT_TAG        origin/master
-  GIT_SHALLOW    TRUE
+  GIT_REPOSITORY 		 https://github.com/sheldonrobinson/xz.git
+  GIT_TAG        		 origin/master
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
   
   EXCLUDE_FROM_ALL
   
@@ -202,9 +247,10 @@ endif()
 ######################## lz4
 FetchContent_Declare(
   lz4
-  GIT_REPOSITORY https://github.com/lz4/lz4.git
-  GIT_TAG        v1.10.0
-  GIT_SHALLOW    TRUE
+  GIT_REPOSITORY 		 https://github.com/lz4/lz4.git
+  GIT_TAG        		 v1.10.0
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
   
   SOURCE_SUBDIR  build/cmake
   
@@ -228,9 +274,10 @@ set(LZ4_LIBRARY ${LZ4_BINARY_DIR}/$<CONFIG>/lz4.lib CACHE FILEPATH "lz4 library"
 ######################## lzo
 FetchContent_Declare(
   lzo2
-  GIT_REPOSITORY https://github.com/sheldonrobinson/lzo2.git
-  GIT_TAG        origin/master
-  GIT_SHALLOW    TRUE
+  GIT_REPOSITORY 		 https://github.com/sheldonrobinson/lzo2.git
+  GIT_TAG        		 origin/master
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
   
   EXCLUDE_FROM_ALL
 			 
@@ -252,9 +299,10 @@ set(LZO2_LIBRARY ${LZO2_BINARY_DIR}/$<CONFIG>/lzo2.lib CACHE FILEPATH "lzo2 libr
 ######################## zstd
 FetchContent_Declare(
   zstd
-  GIT_REPOSITORY https://github.com/sheldonrobinson/zstd.git
-  GIT_TAG        origin/dev
-  GIT_SHALLOW    TRUE
+  GIT_REPOSITORY 		 https://github.com/sheldonrobinson/zstd.git
+  GIT_TAG        		 origin/dev
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
   
   SOURCE_SUBDIR build/cmake
   
@@ -295,84 +343,13 @@ if( NOT TARGET zstd::libzstd_static)
 							)
 endif()
 
-################## cpuinfo
-FetchContent_Declare(
-  cpuinfo
-  GIT_REPOSITORY https://github.com/sheldonrobinson/cpuinfo.git
-  GIT_TAG        origin/main
-  GIT_SHALLOW    TRUE
-  
-  EXCLUDE_FROM_ALL
-			 
-  OVERRIDE_FIND_PACKAGE
-)
-
-set(CPUINFO_LOG_LEVEL "none" CACHE STRING "Minimum logging level (info with lower severity will be ignored)" FORCE)
-set(CPUINFO_LOG_TO_STDIO OFF CACHE BOOL "Log errors, warnings, and information to stdout/stderr" FORCE)
-set(CPUINFO_LIBRARY_TYPE "static" CACHE STRING "Type of cpuinfo library (shared, static, or default) to build" FORCE)
-set(CPUINFO_BUILD_TOOLS OFF CACHE BOOL "Build command-line tools" FORCE)
-set(CPUINFO_BUILD_UNIT_TESTS OFF CACHE BOOL "Build cpuinfo unit tests" FORCE)
-set(CPUINFO_BUILD_MOCK_TESTS OFF CACHE BOOL "Build cpuinfo mock tests" FORCE)
-set(CPUINFO_BUILD_BENCHMARKS OFF CACHE BOOL "Build cpuinfo micro-benchmarks" FORCE)
-set(CPUINFO_BUILD_PKG_CONFIG OFF CACHE BOOL "Build pkg-config manifest" FORCE)
-set(CPUINFO_INSTALL OFF CACHE BOOL "Install applicatuins and libraries" FORCE)
-
-FetchContent_MakeAvailable(cpuinfo)
-
-file(REAL_PATH ${cpuinfo_SOURCE_DIR}/include CPUINFO_INCLUDE_DIR)
-file(REAL_PATH ${cpuinfo_SOURCE_DIR} CPUINFO_SOURCE_DIR)
-file(REAL_PATH ${cpuinfo_BINARY_DIR} CPUINFO_BINARY_DIR)
-
-set(CPUINFO_LIBRARY ${CPUINFO_BINARY_DIR}/$<CONFIG>/cpuinfo.lib CACHE FILEPATH "cpuinfo library" FORCE)
-
-################## OpenBLAS
-FetchContent_Declare(
-  openblas
-  GIT_REPOSITORY https://github.com/sheldonrobinson/OpenBLAS.git
-  GIT_TAG        origin/develop
-  GIT_SHALLOW    TRUE
-  
-  EXCLUDE_FROM_ALL
-			 
-  OVERRIDE_FIND_PACKAGE
-)
-
-set(OPENBLAS_BUILD_WITHOUT_LAPACK ON CACHE BOOL "Do not build LAPACK and LAPACKE (Only BLAS or CBLAS)" FORCE)
-set(OPENBLAS_BUILD_WITHOUT_LAPACKE ON CACHE BOOL "Do not build the C interface to LAPACK)" FORCE)
-set(OPENBLAS_BUILD_LAPACK_DEPRECATED OFF CACHE BOOL "When building LAPACK, include also some older, deprecated routines" FORCE)
-set(BUILD_TESTING OFF CACHE BOOL "Build LAPACK testsuite when building LAPACK" FORCE)
-set(BUILD_BENCHMARKS OFF CACHE BOOL "Build the collection of BLAS/LAPACK benchmarks" FORCE)
-set(C_LAPACK ON CACHE BOOL "Build LAPACK from C sources instead of the original Fortran" FORCE)
-set(OPENBLAS_BUILD_WITHOUT_CBLAS OFF CACHE BOOL "Do not build the C interface (CBLAS) to the BLAS functions" FORCE)
-set(OPENBLAS_DYNAMIC_ARCH OFF CACHE BOOL "Include support for multiple CPU targets, with automatic selection at runtime (x86/x86_64, aarch64, ppc or RISCV64-RVV1.0 only)" FORCE)
-set(BUILD_RELAPACK OFF CACHE BOOL "Build with ReLAPACK (recursive implementation of several LAPACK functions on top of standard LAPACK)" FORCE)
-set(OPENBLAS_BUILD_STATIC_LIBS OFF CACHE BOOL "Build static library" FORCE)
-set(OPENBLAS_BUILD_SHARED_LIBS ON CACHE BOOL "Build shared library" FORCE)
-set(OPENBLAS_INSTALL OFF CACHE BOOL "Install applications and library" FORCE)
-set(NOFORTRAN ON CACHE BOOL "No fortran compiler available" FORCE)
-set(NO_AVX512 OFF CACHE BOOL "Do not use AVX512 extensions" FORCE)
-set(USE_OPENMP ON CACHE BOOL "Enable OpenMP" FORCE)
-
-FetchContent_MakeAvailable(openblas)
-
-if (MSVC)
-    target_compile_options(openblas_shared PUBLIC /fp:fast /arch:avx /arch:AVX2)
-else ()
-    target_compile_options(openblas_shared PUBLIC -mavx -mavx2 -mfma)
-endif ()
-
-file(REAL_PATH ${openblas_SOURCE_DIR} OPENBLAS_INCLUDE_DIR)
-file(REAL_PATH ${openblas_SOURCE_DIR} OPENBLAS_SOURCE_DIR)
-file(REAL_PATH ${openblas_BINARY_DIR} OPENBLAS_BINARY_DIR)
-
-set(OPENBLAS_LIBRARY ${OPENBLAS_BINARY_DIR}/lib/$<CONFIG>/openblas.lib CACHE FILEPATH "openblas library" FORCE)
-
 ######################## win-iconv
 FetchContent_Declare(
   iconv
-  GIT_REPOSITORY https://github.com/sheldonrobinson/win-iconv.git
-  GIT_TAG        origin/master
-  GIT_SHALLOW    TRUE
+  GIT_REPOSITORY 		 https://github.com/sheldonrobinson/win-iconv.git
+  GIT_TAG        		 origin/master
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
   
   EXCLUDE_FROM_ALL
 			 
@@ -404,67 +381,7 @@ if(NOT TARGET Iconv::Iconv)
 							)
 endif()
 
-######################## boost
-FetchContent_Declare(
-  boost
-  GIT_REPOSITORY https://github.com/boostorg/boost.git
-  GIT_TAG        boost-1.88.0
-  GIT_SHALLOW    TRUE
-  
-  EXCLUDE_FROM_ALL
-			 
-  OVERRIDE_FIND_PACKAGE
-)
-
-set(BOOST_FILESYSTEM_NO_DEPRECATED ON CACHE BOOL "Disable deprecated functionality of Boost.Filesystem" FORCE)
-set(BOOST_FILESYSTEM_DISABLE_SENDFILE ON CACHE BOOL "Disable usage of sendfile API in Boost.Filesystem" FORCE)
-set(BOOST_FILESYSTEM_DISABLE_COPY_FILE_RANGE OFF CACHE BOOL "Disable usage of copy_file_range API in Boost.Filesystem" FORCE)
-set(BOOST_FILESYSTEM_DISABLE_STATX OFF CACHE BOOL "Disable usage of statx API in Boost.Filesystem" FORCE)
-set(BOOST_FILESYSTEM_DISABLE_GETRANDOM OFF CACHE BOOL "Disable usage of getrandom API in Boost.Filesystem" FORCE)
-set(BOOST_FILESYSTEM_DISABLE_ARC4RANDOM OFF CACHE BOOL "Disable usage of arc4random API in Boost.Filesystem" FORCE)
-set(BOOST_FILESYSTEM_DISABLE_BCRYPT OFF CACHE BOOL "Disable usage of BCrypt API in Boost.Filesystem")
-set(BOOST_FILESYSTEM_EMSCRIPTEN_USE_WASI OFF CACHE BOOL "Use WASI under emscripten in Boost.Filesystem")
-
-set(BOOST_JSON_INSTALL OFF CACHE BOOL "Install boost::json files" FORCE)
-set(BOOST_JSON_BUILD_TESTS OFF CACHE BOOL "Build boost::json tests" FORCE)
-set(BOOST_JSON_BUILD_FUZZERS OFF CACHE BOOL "Build boost::json fuzzers" FORCE)
-set(BOOST_JSON_BUILD_EXAMPLES OFF CACHE BOOL "Build boost::json examples" FORCE)
-set(BOOST_JSON_BUILD_BENCHMARKS OFF CACHE BOOL "Build boost::json benchmarks" FORCE)
-
-set(BOOST_IOSTREAMS_ENABLE_ZLIB ON CACHE BOOL "Boost.Iostreams: Enable ZLIB support" FORCE)
-set(BOOST_IOSTREAMS_ENABLE_BZIP2 ON CACHE BOOL "Boost.Iostreams: Enable BZip2 support" FORCE)
-set(BOOST_IOSTREAMS_ENABLE_LZMA ON CACHE BOOL "Boost.Iostreams: Enable LZMA support" FORCE)
-set(BOOST_IOSTREAMS_ENABLE_ZSTD ON CACHE BOOL "Boost.Iostreams: Enable Zstd support" FORCE)
-set(BOOST_IOSTREAMS_ZSTD_TARGET "zstd::libzstd_static" CACHE STRING "Target name for Zstd (zstd::libzstd_shared, zstd::libzstd_static)" FORCE)
-
-set(BOOST_ENABLE_MPI OFF CACHE BOOL "Build and enable installation of Boost.MPI and its dependents (requires MPI, CMake 3.10)" FORCE)
-set(BOOST_ENABLE_PYTHON OFF CACHE BOOL "Build and enable installation of Boost.Python and its dependents (requires Python, CMake 3.14)" FORCE)
-set(BUILD_TESTING OFF CACHE BOOL "Build the tests." FORCE)
-
-set(BOOST_DLL_USE_STD_FS ON CACHE BOOL "Use std::filesystem instead of Boost.Filesystem" FORCE)
-set(BOOST_ALL_NO_LIB ON CACHE BOOL "Build no system binaries." FORCE)
-
-FetchContent_MakeAvailable(bzip2 zlib liblzma zstd iconv boost)
-
-target_include_directories(boost_iostreams PRIVATE ${LibLZMA_INCLUDE_DIR} ${ZSTD_INCLUDE_DIR} ${BZIP2_SOURCE_DIR} ${BZIP2_BINARY_DIR} ${ZLIB_SOURCE_DIR} ${ZLIB_BINARY_DIR})
-add_dependencies(boost_iostreams iconv_static zlibstatic bz2_static libzstd_static liblzma)
-
-target_include_directories(boost_locale PRIVATE ${Iconv_INCLUDE_DIR})
-add_dependencies(boost_locale iconv_static)
-
-######################## sqlite3
-FetchContent_Declare(
-  sqlite3
-  GIT_REPOSITORY https://github.com/sheldonrobinson/sqlite-amalgamation.git
-  GIT_TAG        origin/master
-  GIT_SHALLOW    TRUE
-  
-  EXCLUDE_FROM_ALL
-			 
-  OVERRIDE_FIND_PACKAGE
-			 
-)
-
+######################## sqlite3 cont
 set(SQLITE3_ENABLE_SHARED             ON CACHE BOOL  "Build shared library"                           FORCE)
 set(SQLITE3_ENABLE_STATIC             OFF CACHE BOOL "Build static library"                           FORCE)
 set(SQLITE3_BUILD_SHELL               OFF CACHE BOOL "Build SQLite3 shell application"                FORCE)
@@ -493,9 +410,9 @@ set(SQLITE3_USE_URI                   ON CACHE BOOL "Enable the default URI file
 set(SQLITE3_WIN32_USE_UUID            OFF CACHE BOOL "Enable uuid type and method"     				  FORCE)
 set(SQLITE3_INSTALL                   OFF CACHE BOOL "Install applications and library"          	  FORCE)
 
-FetchContent_MakeAvailable(bzip2 zlib sqlite3)
+FetchContent_MakeAvailable(sqlite3 zlib bzip2)
 
-# add_dependencies(sqlite3-shared zlibstatic)
+add_dependencies(sqlite3-shared zlibstatic)
 
 file(REAL_PATH ${sqlite3_SOURCE_DIR} SQLITE3_INCLUDE_DIR)
 file(REAL_PATH ${sqlite3_SOURCE_DIR} SQLITE3_SOURCE_DIR)
@@ -518,12 +435,50 @@ if(NOT TARGET SQLite::SQLite3)
 	target_link_libraries(SQLite::SQLite3 INTERFACE $<BUILD_INTERFACE:${SQLITE3_LIBRARY}>)
 endif()
 
+######################## boost cont
+set(BOOST_FILESYSTEM_NO_DEPRECATED ON CACHE BOOL "Disable deprecated functionality of Boost.Filesystem" FORCE)
+set(BOOST_FILESYSTEM_DISABLE_SENDFILE ON CACHE BOOL "Disable usage of sendfile API in Boost.Filesystem" FORCE)
+set(BOOST_FILESYSTEM_DISABLE_COPY_FILE_RANGE OFF CACHE BOOL "Disable usage of copy_file_range API in Boost.Filesystem" FORCE)
+set(BOOST_FILESYSTEM_DISABLE_STATX OFF CACHE BOOL "Disable usage of statx API in Boost.Filesystem" FORCE)
+set(BOOST_FILESYSTEM_DISABLE_GETRANDOM OFF CACHE BOOL "Disable usage of getrandom API in Boost.Filesystem" FORCE)
+set(BOOST_FILESYSTEM_DISABLE_ARC4RANDOM OFF CACHE BOOL "Disable usage of arc4random API in Boost.Filesystem" FORCE)
+set(BOOST_FILESYSTEM_DISABLE_BCRYPT OFF CACHE BOOL "Disable usage of BCrypt API in Boost.Filesystem")
+set(BOOST_FILESYSTEM_EMSCRIPTEN_USE_WASI OFF CACHE BOOL "Use WASI under emscripten in Boost.Filesystem")
+
+set(BOOST_JSON_INSTALL OFF CACHE BOOL "Install boost::json files" FORCE)
+set(BOOST_JSON_BUILD_TESTS OFF CACHE BOOL "Build boost::json tests" FORCE)
+set(BOOST_JSON_BUILD_FUZZERS OFF CACHE BOOL "Build boost::json fuzzers" FORCE)
+set(BOOST_JSON_BUILD_EXAMPLES OFF CACHE BOOL "Build boost::json examples" FORCE)
+set(BOOST_JSON_BUILD_BENCHMARKS OFF CACHE BOOL "Build boost::json benchmarks" FORCE)
+
+set(BOOST_IOSTREAMS_ENABLE_ZLIB ON CACHE BOOL "Boost.Iostreams: Enable ZLIB support" FORCE)
+set(BOOST_IOSTREAMS_ENABLE_BZIP2 ON CACHE BOOL "Boost.Iostreams: Enable BZip2 support" FORCE)
+set(BOOST_IOSTREAMS_ENABLE_LZMA ON CACHE BOOL "Boost.Iostreams: Enable LZMA support" FORCE)
+set(BOOST_IOSTREAMS_ENABLE_ZSTD ON CACHE BOOL "Boost.Iostreams: Enable Zstd support" FORCE)
+set(BOOST_IOSTREAMS_ZSTD_TARGET "zstd::libzstd_static" CACHE STRING "Target name for Zstd (zstd::libzstd_shared, zstd::libzstd_static)" FORCE)
+
+set(BOOST_ENABLE_MPI OFF CACHE BOOL "Build and enable installation of Boost.MPI and its dependents (requires MPI, CMake 3.10)" FORCE)
+set(BOOST_ENABLE_PYTHON OFF CACHE BOOL "Build and enable installation of Boost.Python and its dependents (requires Python, CMake 3.14)" FORCE)
+set(BUILD_TESTING OFF CACHE BOOL "Build the tests." FORCE)
+
+set(BOOST_DLL_USE_STD_FS ON CACHE BOOL "Use std::filesystem instead of Boost.Filesystem" FORCE)
+set(BOOST_ALL_NO_LIB ON CACHE BOOL "Build no system binaries." FORCE)
+
+FetchContent_MakeAvailable(boost zlib bzip2 liblzma zstd iconv)
+
+target_include_directories(boost_iostreams PRIVATE ${LibLZMA_INCLUDE_DIR} ${ZSTD_INCLUDE_DIR} ${BZIP2_SOURCE_DIR} ${BZIP2_BINARY_DIR} ${ZLIB_SOURCE_DIR} ${ZLIB_BINARY_DIR})
+add_dependencies(boost_iostreams iconv_static zlibstatic bz2_static libzstd_static liblzma)
+
+target_include_directories(boost_locale PRIVATE ${Iconv_INCLUDE_DIR})
+add_dependencies(boost_locale iconv_static)
 
 ############################ Corrosion
 FetchContent_Declare(
     Corrosion
-    GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
-    GIT_TAG 	   v0.5 # Optionally specify a commit hash, version tag or branch here
+    GIT_REPOSITORY		   https://github.com/corrosion-rs/corrosion.git
+    GIT_TAG 	   		   v0.5 # Optionally specify a commit hash, version tag or branch here
+	GIT_SHALLOW 		   TRUE
+    GIT_SUBMODULES_RECURSE TRUE
 )
 
 set(CORROSION_DEV_MODE OFF CACHE BOOL "Enables some additional features if you're developing Corrosion" FORCE)
@@ -534,8 +489,10 @@ FetchContent_MakeAvailable(Corrosion)
 ############################### GQLite
 FetchContent_Declare(
     gqlite
-    GIT_REPOSITORY	https://github.com/sheldonrobinson/GQLite.git
-    GIT_TAG			origin/unnu_rag # Optionally specify a commit hash, version tag or branch here
+    GIT_REPOSITORY		   https://github.com/sheldonrobinson/GQLite.git
+    GIT_TAG				   origin/unnu_rag # Optionally specify a commit hash, version tag or branch here
+	GIT_SHALLOW 		   TRUE
+    GIT_SUBMODULES_RECURSE TRUE
 			 
     OVERRIDE_FIND_PACKAGE
 )
@@ -591,12 +548,26 @@ if(NOT TARGET gqlitedbdll)
 endif()
 # add_dependencies(gqlitedb sqlite3-shared)
 
+######################### pthreadpool
+FetchContent_Declare(
+  pthreadpool
+  GIT_REPOSITORY		 https://github.com/sheldonrobinson/pthreadpool.git
+  GIT_TAG				 origin/main
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
+  
+  EXCLUDE_FROM_ALL
+  			 
+  OVERRIDE_FIND_PACKAGE
+)
+
 ######################### fxdiv
 FetchContent_Declare(
   fxdiv
-  GIT_REPOSITORY	https://github.com/sheldonrobinson/FXdiv.git
-  GIT_TAG			origin/master
-  GIT_SHALLOW       TRUE
+  GIT_REPOSITORY		 https://github.com/sheldonrobinson/FXdiv.git
+  GIT_TAG				 origin/master
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
   
   EXCLUDE_FROM_ALL
 			 
@@ -618,24 +589,45 @@ set(FXDIV_LIBRARY ${FXDIV_BINARY_DIR}/$<CONFIG>/fxdiv.lib CACHE FILEPATH "fxdiv 
 
 target_compile_definitions(fxdiv INTERFACE FXDIV_USE_INLINE_ASSEMBLY=0)
 
-######################### pthreadpool
+################## cpuinfo
+FetchContent_Declare(
+  cpuinfo
+  GIT_REPOSITORY 		 https://github.com/sheldonrobinson/cpuinfo.git
+  GIT_TAG        		 origin/main
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
+  
+  EXCLUDE_FROM_ALL
+			 
+  OVERRIDE_FIND_PACKAGE
+)
+
+set(CPUINFO_LOG_LEVEL "none" CACHE STRING "Minimum logging level (info with lower severity will be ignored)" FORCE)
+set(CPUINFO_LOG_TO_STDIO OFF CACHE BOOL "Log errors, warnings, and information to stdout/stderr" FORCE)
+set(CPUINFO_LIBRARY_TYPE "static" CACHE STRING "Type of cpuinfo library (shared, static, or default) to build" FORCE)
+set(CPUINFO_BUILD_TOOLS OFF CACHE BOOL "Build command-line tools" FORCE)
+set(CPUINFO_BUILD_UNIT_TESTS OFF CACHE BOOL "Build cpuinfo unit tests" FORCE)
+set(CPUINFO_BUILD_MOCK_TESTS OFF CACHE BOOL "Build cpuinfo mock tests" FORCE)
+set(CPUINFO_BUILD_BENCHMARKS OFF CACHE BOOL "Build cpuinfo micro-benchmarks" FORCE)
+set(CPUINFO_BUILD_PKG_CONFIG OFF CACHE BOOL "Build pkg-config manifest" FORCE)
+set(CPUINFO_INSTALL OFF CACHE BOOL "Install applicatuins and libraries" FORCE)
+
+FetchContent_MakeAvailable(cpuinfo)
+
+file(REAL_PATH ${cpuinfo_SOURCE_DIR}/include CPUINFO_INCLUDE_DIR)
+file(REAL_PATH ${cpuinfo_SOURCE_DIR} CPUINFO_SOURCE_DIR)
+file(REAL_PATH ${cpuinfo_BINARY_DIR} CPUINFO_BINARY_DIR)
+
+set(CPUINFO_LIBRARY ${CPUINFO_BINARY_DIR}/$<CONFIG>/cpuinfo.lib CACHE FILEPATH "cpuinfo library" FORCE)
+
+######################### pthreadpool cont
 set(PTHREADPOOL_LIBRARY_TYPE "static" CACHE STRING "Type of library (shared, static, or default) to build" FORCE)
 set(PTHREADPOOL_ALLOW_DEPRECATED_API OFF CACHE BOOL "Enable deprecated API functions" FORCE)
 set(PTHREADPOOL_BUILD_TESTS OFF CACHE BOOL "Build pthreadpool unit tests" FORCE)
 set(PTHREADPOOL_BUILD_BENCHMARKS OFF CACHE BOOL "Build pthreadpool micro-benchmarks" FORCE)
 set(PTHREADPOOL_INSTALL OFF CACHE BOOL "Install applicatuins and libraries" FORCE)
 
-FetchContent_Declare(
-  pthreadpool
-  GIT_REPOSITORY	https://github.com/sheldonrobinson/pthreadpool.git
-  GIT_TAG			origin/main
-  
-  EXCLUDE_FROM_ALL
-  			 
-  OVERRIDE_FIND_PACKAGE
-)
-
-FetchContent_MakeAvailable(cpuinfo fxdiv pthreadpool)
+FetchContent_MakeAvailable(pthreadpool cpuinfo fxdiv)
 
 file(REAL_PATH ${pthreadpool_SOURCE_DIR}/include PTHREADPOOL_INCLUDE_DIR)
 file(REAL_PATH ${pthreadpool_SOURCE_DIR} PTHREADPOOL_SOURCE_DIR)
@@ -643,133 +635,19 @@ file(REAL_PATH ${pthreadpool_BINARY_DIR} PTHREADPOOL_BINARY_DIR)
 
 set(PTHREADPOOL_LIBRARY ${PTHREADPOOL_BINARY_DIR}/$<CONFIG>/pthreadpool.lib CACHE FILEPATH "pthreadpool library" FORCE)
 
+add_dependencies(pthreadpool cpuinfo fxdiv)
 target_compile_definitions(pthreadpool PUBLIC PTHREADPOOL_USE_CPUINFO=1)
 target_include_directories(pthreadpool PRIVATE $<BUILD_INTERFACE:${CPUINFO_INCLUDE_DIR}>)
-add_dependencies(pthreadpool cpuinfo fxdiv)
 
-################## armadillo
-set(ARMADILLO_STATIC_LIB ON CACHE BOOL "Generate static library instead of shared library" FORCE)
-set(ARMADILLO_INSTALL OFF CACHE BOOL "Install applicatuins and libraries" FORCE)
-set(OPENBLAS_PROVIDES_LAPACK OFF CACHE BOOL "Assume that OpenBLAS provides LAPACK functions" FORCE)
-
-FetchContent_Declare(
-  armadillo
-  GIT_REPOSITORY https://github.com/sheldonrobinson/armadillo.git
-  GIT_TAG        14.6.x
-  GIT_SHALLOW    TRUE
-  
-  EXCLUDE_FROM_ALL
-  			 
-  OVERRIDE_FIND_PACKAGE
-)
-
-FetchContent_MakeAvailable(openblas armadillo)
-
-file(REAL_PATH ${armadillo_SOURCE_DIR}/include ARMADILLO_INCLUDE_DIR)
-file(REAL_PATH ${armadillo_SOURCE_DIR} ARMADILLO_SOURCE_DIR)
-file(REAL_PATH ${armadillo_BINARY_DIR} ARMADILLO_BINARY_DIR)
-
-set(ARMADILLO_LIBRARY ${ARMADILLO_BINARY_DIR}/$<CONFIG>/armadillo.lib CACHE FILEPATH "armadillo library" FORCE)
-
-add_dependencies(armadillo openblas_shared)
-
-################## onetbb
-FetchContent_Declare(
-  tbb
-  GIT_REPOSITORY https://github.com/sheldonrobinson/oneTBB.git
-  GIT_TAG        origin/master
-  GIT_SHALLOW    TRUE
-  
-  EXCLUDE_FROM_ALL
-  			 
-  OVERRIDE_FIND_PACKAGE
-)
-
-set(TBB_TEST OFF CACHE BOOL "Enable testing" FORCE)
-set(TBB_EXAMPLES OFF CACHE BOOL "Enable examples" FORCE)
-set(TBB_STRICT ON CACHE BOOL "Treat compiler warnings as errors" FORCE)
-set(TBB_WINDOWS_DRIVER OFF CACHE BOOL "Build as Universal Windows Driver (UWD)" FORCE)
-set(TBB_NO_APPCONTAINER OFF CACHE BOOL "Apply /APPCONTAINER:NO (for testing binaries for Windows Store)" FORCE)
-set(TBB4PY_BUILD OFF CACHE BOOL "Enable tbb4py build" FORCE)
-set(TBB_BUILD ON CACHE BOOL "Enable tbb build" FORCE)
-set(TBBMALLOC_BUILD OFF CACHE BOOL "Enable tbbmalloc build" FORCE)
-set(TBB_CPF OFF CACHE INTERNAL "Enable preview features of the library" FORCE)
-set(TBB_FIND_PACKAGE OFF CACHE BOOL "Enable search for external oneTBB using find_package instead of build from sources" FORCE)
-set(TBB_DISABLE_HWLOC_AUTOMATIC_SEARCH OFF CACHE BOOL "Disable HWLOC automatic search by pkg-config tool" FORCE)
-set(TBB_ENABLE_IPO ON CACHE BOOL "Enable Interprocedural Optimization (IPO) during the compilation" FORCE)
-set(TBB_CONTROL_FLOW_GUARD OFF CACHE BOOL "Enable Control Flow Guard (CFG) during the compilation" FORCE)
-set(TBB_FUZZ_TESTING OFF CACHE BOOL "Enable fuzz testing" FORCE)
-set(TBB_INSTALL OFF CACHE BOOL "Enable installation" FORCE)
-set(TBB_FILE_TRIM ON CACHE BOOL "Enable __FILE__ trim" FORCE)
-set(TBB_ENABLE_SHARED_LIBS ON CACHE BOOL "Build shared libs" FORCE)
-
-FetchContent_MakeAvailable(tbb)
-
-file(REAL_PATH ${tbb_SOURCE_DIR}/include TBB_INCLUDE_DIR)
-file(REAL_PATH ${tbb_SOURCE_DIR} TBB_SOURCE_DIR)
-file(REAL_PATH ${tbb_BINARY_DIR} TBB_BINARY_DIR)
-
-################## onednn
-
-
-FetchContent_Declare(
-  dnnl
-  GIT_REPOSITORY https://github.com/sheldonrobinson/oneDNN.git
-  GIT_TAG        origin/main
-  GIT_SHALLOW    TRUE
-  
-  EXCLUDE_FROM_ALL
-			 
-  OVERRIDE_FIND_PACKAGE
-)
-
-set(DNNL_VERBOSE OFF CACHE BOOL "allows oneDNN be verbose whenever ONEDNN_VERBOSE environment variable set to 1" FORCE)
-set(DNNL_ENABLE_CONCURRENT_EXEC ON CACHE BOOL "disables sharing a common scratchpad between primitives. This option must be turned ON if there is a possibility of executing distinct primitives concurrently. CAUTION: enabling this option increases memory consumption." FORCE) 
-set(DNNL_ENABLE_PRIMITIVE_CACHE ON CACHE BOOL "enables primitive cache." FORCE)
-set(DNNL_ENABLE_MAX_CPU_ISA ON CACHE BOOL "enables control of CPU ISA detected by oneDNN via DNNL_MAX_CPU_ISA environment variable and dnnl_set_max_cpu_isa() function" FORCE)
-set(DNNL_ENABLE_CPU_ISA_HINTS ON CACHE BOOL "enables control of CPU ISA specific hints by oneDNN via DNNL_CPU_ISA_HINTS environment variable and dnnl_set_cpu_isa_hints() function" FORCE)
-set(ONEDNN_BUILD_GRAPH ON CACHE BOOL "builds graph component" FORCE)
-set(DNNL_LIBRARY_TYPE "SHARED" CACHE STRING "specifies whether oneDNN library should be SHARED or STATIC" FORCE)
-set(DNNL_BUILD_DOC OFF CACHE BOOL "builds documentation" FORCE)
-set(DNNL_BUILD_EXAMPLES OFF CACHE BOOL "builds examples" FORCE)
-set(DNNL_BUILD_TESTS OFF CACHE BOOL "builds tests" FORCE)
-set(DNNL_BUILD_FOR_CI OFF CACHE BOOL "specifies whether oneDNN library will use special testing environment for internal testing processes" FORCE)
-set(DNNL_DEV_MODE OFF CACHE BOOL "Enables internal tracing capabilities" FORCE)
-set(DNNL_WERROR OFF CACHE BOOL "treat warnings as errors" FORCE)
-set(DNNL_EXPERIMENTAL OFF CACHE BOOL "Enables experimental features in oneDNN. When enabled, each experimental feature has to be individually selected using environment variables."  FORCE)
-set(DNNL_EXPERIMENTAL_UKERNEL OFF CACHE BOOL "Enable experimental functionality for ukernels. This option works independently from DNNL_EXPERIMENTAL." FORCE)
-set(DNNL_EXPERIMENTAL_PROFILING OFF CACHE BOOL "Enable experimental profiling capabilities. This option works independently from DNNL_EXPERIMENTAL." FORCE)
-set(DNNL_EXPERIMENTAL_LOGGING OFF CACHE BOOL "Enable experimental functionality for logging. This option works independently from DNNL_EXPERIMENTAL." FORCE)
-set(DNNL_EXPERIMENTAL_SYCL_KERNEL_COMPILER OFF CACHE BOOL "Enable experimental SYCL OpenCL kernel compiler extension. This option works independently from DNNL_EXPERIMENTAL." FORCE)
-set(DNNL_ENABLE_JIT_PROFILING OFF CACHE BOOL "Enable registration of oneDNN kernels that are generated at runtime with VTune Profiler (on by default). Without the registrations, VTune Profiler would report data collected inside the kernels as `outside any known module`." FORCE)
-set(DNNL_ENABLE_ITT_TASKS OFF CACHE BOOL "Enable ITT Tasks tagging feature and tag all primitive execution (on by default). VTune Profiler can group profiling results based on those ITT tasks and show corresponding timeline information." FORCE)
-set(DNNL_ENABLE_MEM_DEBUG OFF CACHE BOOL "enables memory-related debug functionality, such as buffer overflow (default) and underflow, using gtests and benchdnn. Additionaly, this option enables testing of out-of-memory handling by the library, such as failed memory allocations, using primitive-related gtests. This feature is experimental and is only available on Linux." FORCE)
-set(DNNL_ENABLE_STACK_CHECKER OFF CACHE BOOL "enables stack checker that can be used to get information about stack consumption for a particular library entry point. This feature is only available on Linux (see src/common/stack_checker.hpp for more details). Note: This option requires enabling concurrent scratchpad (DNNL_ENABLE_CONCURRENT_EXEC)." FORCE)
-set(DNNL_DISABLE_GPU_REF_KERNELS OFF CACHE BOOL "builds oneDNN with only optimized kernels for GPU compute primitives" FORCE)
-set(DNNL_INSTALL OFF CACHE BOOL "Install applications and libraries" FORCE)
-
-FetchContent_MakeAvailable(openblas tbb dnnl)
-
-if (MSVC)
-    target_compile_options(dnnl PUBLIC /arch:SSE2 /arch:AVX /arch:AVX2 /fp:fast)
-else ()
-    target_compile_options(dnnl PUBLIC -msse2 -mavx -mavx2 -mfma)
-endif ()
-
-file(REAL_PATH ${dnnl_SOURCE_DIR}/include DNNL_INCLUDE_DIR)
-file(REAL_PATH ${dnnl_SOURCE_DIR} DNNL_SOURCE_DIR)
-file(REAL_PATH ${dnnl_BINARY_DIR} DNNL_BINARY_DIR)
-
-set(DNNL_LIBRARY ${DNNL_BINARY_DIR}/src/$<CONFIG>/dnnl.lib CACHE FILEPATH "dnnl library" FORCE)
-
-add_dependencies(dnnl tbb openblas_shared)
 
 ######################### blingfire
 set(BLING_FIRE_INSTALL OFF CACHE INTERNAL "Install applications and libraries" FORCE)
 FetchContent_Declare(
   blingfire
-  GIT_REPOSITORY	https://github.com/sheldonrobinson/BlingFire.git
-  GIT_TAG			origin/master
+  GIT_REPOSITORY		 https://github.com/sheldonrobinson/BlingFire.git
+  GIT_TAG				 origin/master
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
   
   EXCLUDE_FROM_ALL
 			 
@@ -802,8 +680,10 @@ set(SPM_ENABLE_MSVC_MT_BUILD OFF CACHE BOOL "Use /MT flag in MSVC build" FORCE)
 
 FetchContent_Declare(
   tokenizers_cpp
-  GIT_REPOSITORY	https://github.com/sheldonrobinson/tokenizers-cpp.git
-  GIT_TAG			origin/main
+  GIT_REPOSITORY		 https://github.com/sheldonrobinson/tokenizers-cpp.git
+  GIT_TAG				 origin/main
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
   
   EXCLUDE_FROM_ALL
 			 
@@ -824,14 +704,201 @@ set(TOKENIZERS_CPP_LIBRARY ${TOKENIZERS_CPP_BINARY_DIR}/$<CONFIG>/tokenizer_cpp.
 ################## ct2
 FetchContent_Declare(
   ct2
-  GIT_REPOSITORY https://github.com/sheldonrobinson/CTranslate2.git
-  GIT_TAG        origin/master
-  GIT_SHALLOW    TRUE
+  GIT_REPOSITORY 		 https://github.com/sheldonrobinson/CTranslate2.git
+  GIT_TAG        		 origin/master
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
   
   EXCLUDE_FROM_ALL
   			 
   OVERRIDE_FIND_PACKAGE
 )
+
+################## onednn
+FetchContent_Declare(
+  dnnl
+  GIT_REPOSITORY 		 https://github.com/sheldonrobinson/oneDNN.git
+  GIT_TAG        		 origin/main
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
+  
+  EXCLUDE_FROM_ALL
+			 
+  OVERRIDE_FIND_PACKAGE
+)
+
+################## onetbb
+FetchContent_Declare(
+  tbb
+  GIT_REPOSITORY 		 https://github.com/sheldonrobinson/oneTBB.git
+  GIT_TAG        		 origin/master
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
+  
+  EXCLUDE_FROM_ALL
+  			 
+  OVERRIDE_FIND_PACKAGE
+)
+
+set(TBB_TEST OFF CACHE BOOL "Enable testing" FORCE)
+set(TBB_EXAMPLES OFF CACHE BOOL "Enable examples" FORCE)
+set(TBB_STRICT ON CACHE BOOL "Treat compiler warnings as errors" FORCE)
+set(TBB_WINDOWS_DRIVER OFF CACHE BOOL "Build as Universal Windows Driver (UWD)" FORCE)
+set(TBB_NO_APPCONTAINER OFF CACHE BOOL "Apply /APPCONTAINER:NO (for testing binaries for Windows Store)" FORCE)
+set(TBB4PY_BUILD OFF CACHE BOOL "Enable tbb4py build" FORCE)
+set(TBB_BUILD ON CACHE BOOL "Enable tbb build" FORCE)
+set(TBBMALLOC_BUILD OFF CACHE BOOL "Enable tbbmalloc build" FORCE)
+set(TBB_CPF OFF CACHE INTERNAL "Enable preview features of the library" FORCE)
+set(TBB_FIND_PACKAGE OFF CACHE BOOL "Enable search for external oneTBB using find_package instead of build from sources" FORCE)
+set(TBB_DISABLE_HWLOC_AUTOMATIC_SEARCH OFF CACHE BOOL "Disable HWLOC automatic search by pkg-config tool" FORCE)
+set(TBB_ENABLE_IPO ON CACHE BOOL "Enable Interprocedural Optimization (IPO) during the compilation" FORCE)
+set(TBB_CONTROL_FLOW_GUARD OFF CACHE BOOL "Enable Control Flow Guard (CFG) during the compilation" FORCE)
+set(TBB_FUZZ_TESTING OFF CACHE BOOL "Enable fuzz testing" FORCE)
+set(TBB_INSTALL OFF CACHE BOOL "Enable installation" FORCE)
+set(TBB_FILE_TRIM ON CACHE BOOL "Enable __FILE__ trim" FORCE)
+set(TBB_ENABLE_SHARED_LIBS ON CACHE BOOL "Build shared libs" FORCE)
+
+FetchContent_MakeAvailable(tbb)
+
+file(REAL_PATH ${tbb_SOURCE_DIR}/include TBB_INCLUDE_DIR)
+file(REAL_PATH ${tbb_SOURCE_DIR} TBB_SOURCE_DIR)
+file(REAL_PATH ${tbb_BINARY_DIR} TBB_BINARY_DIR)
+
+################## armadillo
+FetchContent_Declare(
+  armadillo
+  GIT_REPOSITORY 		 https://github.com/sheldonrobinson/armadillo.git
+  GIT_TAG        		 15.2.x
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
+  
+  EXCLUDE_FROM_ALL
+  			 
+  OVERRIDE_FIND_PACKAGE
+)
+
+################## OpenBLAS
+FetchContent_Declare(
+  openblas
+  GIT_REPOSITORY 		 https://github.com/sheldonrobinson/OpenBLAS.git
+  GIT_TAG        		 origin/develop
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
+  
+  EXCLUDE_FROM_ALL
+			 
+  OVERRIDE_FIND_PACKAGE
+)
+
+set(OPENBLAS_BUILD_WITHOUT_LAPACK ON CACHE BOOL "Do not build LAPACK and LAPACKE (Only BLAS or CBLAS)" FORCE)
+set(OPENBLAS_BUILD_WITHOUT_LAPACKE ON CACHE BOOL "Do not build the C interface to LAPACK)" FORCE)
+set(OPENBLAS_BUILD_LAPACK_DEPRECATED OFF CACHE BOOL "When building LAPACK, include also some older, deprecated routines" FORCE)
+set(BUILD_TESTING OFF CACHE BOOL "Build LAPACK testsuite when building LAPACK" FORCE)
+set(BUILD_BENCHMARKS OFF CACHE BOOL "Build the collection of BLAS/LAPACK benchmarks" FORCE)
+set(C_LAPACK ON CACHE BOOL "Build LAPACK from C sources instead of the original Fortran" FORCE)
+set(OPENBLAS_BUILD_WITHOUT_CBLAS OFF CACHE BOOL "Do not build the C interface (CBLAS) to the BLAS functions" FORCE)
+set(OPENBLAS_DYNAMIC_ARCH OFF CACHE BOOL "Include support for multiple CPU targets, with automatic selection at runtime (x86/x86_64, aarch64, ppc or RISCV64-RVV1.0 only)" FORCE)
+set(BUILD_RELAPACK OFF CACHE BOOL "Build with ReLAPACK (recursive implementation of several LAPACK functions on top of standard LAPACK)" FORCE)
+set(OPENBLAS_BUILD_STATIC_LIBS OFF CACHE BOOL "Build static library" FORCE)
+set(OPENBLAS_BUILD_SHARED_LIBS ON CACHE BOOL "Build shared library" FORCE)
+set(OPENBLAS_INSTALL OFF CACHE BOOL "Install applications and library" FORCE)
+set(NOFORTRAN ON CACHE BOOL "No fortran compiler available" FORCE)
+set(NO_AVX512 OFF CACHE BOOL "Do not use AVX512 extensions" FORCE)
+set(USE_OPENMP ON CACHE BOOL "Enable OpenMP" FORCE)
+
+FetchContent_MakeAvailable(openblas)
+
+if (MSVC)
+    target_compile_options(openblas_shared PUBLIC /fp:fast /arch:avx /arch:AVX2)
+else ()
+    target_compile_options(openblas_shared PUBLIC -mavx -mavx2 -mfma)
+endif ()
+
+file(REAL_PATH ${openblas_SOURCE_DIR} OPENBLAS_INCLUDE_DIR)
+file(REAL_PATH ${openblas_SOURCE_DIR} OPENBLAS_SOURCE_DIR)
+file(REAL_PATH ${openblas_BINARY_DIR} OPENBLAS_BINARY_DIR)
+
+file(GLOB OPENBLAS_HEADERS_H ${openblas_SOURCE_DIR}/*.h)
+file(COPY ${OPENBLAS_HEADERS_H} DESTINATION ${OPENBLAS_BINARY_DIR})
+file(TO_NATIVE_PATH ${CMAKE_BINARY_DIR} OPENBLAS_CONFIG_DIRPATH)
+file(TO_NATIVE_PATH ${OPENBLAS_BINARY_DIR} OPENBLAS_BINARY_DIRPATH)
+list(APPEND OPENBLAS_INCLUDE_PATH ${OPENBLAS_CONFIG_DIRPATH} ${OPENBLAS_BINARY_DIRPATH})
+set(OPENBLAS_LIBRARY ${OPENBLAS_BINARY_DIR}/lib/$<CONFIG>/openblas.lib CACHE FILEPATH "openblas library" FORCE)
+
+list(APPEND OPENBLAS_INCLUDE_DIRS ${OPENBLAS_BINARY_DIR} ${CMAKE_BINARY_DIR})
+set(BLAS_LIBRARIES ${OPENBLAS_LIBRARY} CACHE STRING "BLAS libraries" FORCE)
+set(BLAS_INCLUDE_DIRS ${OPENBLAS_BINARY_DIR} CACHE STRING "BLAS include dirs" FORCE)
+# target_include_directories(openblas_shared PRIVATE ${OPENBLAS_BINARY_DIR})
+
+if(NOT TARGET BLAS::BLAS)
+	add_library(BLAS::BLAS INTERFACE IMPORTED)
+    set_target_properties(BLAS::BLAS PROPERTIES
+                          INTERFACE_LINK_LIBRARIES
+							openblas_shared
+						  INTERFACE_POSITION_INDEPENDENT_CODE ON
+							)
+endif()
+
+################## armadillo cont
+set(BLA_VENDOR "OpenBLAS" CACHE STRING "BLAS Vendor" FORCE)
+set(ARMADILLO_STATIC_LIB ON CACHE BOOL "Generate static library instead of shared library" FORCE)
+set(ARMADILLO_INSTALL OFF CACHE BOOL "Install applicatuins and libraries" FORCE)
+set(OPENBLAS_PROVIDES_LAPACK OFF CACHE BOOL "Assume that OpenBLAS provides LAPACK functions" FORCE)
+
+FetchContent_MakeAvailable(armadillo openblas)
+
+file(REAL_PATH ${armadillo_SOURCE_DIR}/include ARMADILLO_INCLUDE_DIR)
+file(REAL_PATH ${armadillo_SOURCE_DIR} ARMADILLO_SOURCE_DIR)
+file(REAL_PATH ${armadillo_BINARY_DIR} ARMADILLO_BINARY_DIR)
+
+set(ARMADILLO_LIBRARY ${ARMADILLO_BINARY_DIR}/$<CONFIG>/armadillo.lib CACHE FILEPATH "armadillo library" FORCE)
+
+add_dependencies(armadillo openblas_shared)
+
+################## onednn cont
+
+set(DNNL_VERBOSE OFF CACHE BOOL "allows oneDNN be verbose whenever ONEDNN_VERBOSE environment variable set to 1" FORCE)
+set(DNNL_ENABLE_CONCURRENT_EXEC ON CACHE BOOL "disables sharing a common scratchpad between primitives. This option must be turned ON if there is a possibility of executing distinct primitives concurrently. CAUTION: enabling this option increases memory consumption." FORCE) 
+set(DNNL_ENABLE_PRIMITIVE_CACHE ON CACHE BOOL "enables primitive cache." FORCE)
+set(DNNL_ENABLE_MAX_CPU_ISA ON CACHE BOOL "enables control of CPU ISA detected by oneDNN via DNNL_MAX_CPU_ISA environment variable and dnnl_set_max_cpu_isa() function" FORCE)
+set(DNNL_ENABLE_CPU_ISA_HINTS ON CACHE BOOL "enables control of CPU ISA specific hints by oneDNN via DNNL_CPU_ISA_HINTS environment variable and dnnl_set_cpu_isa_hints() function" FORCE)
+set(ONEDNN_BUILD_GRAPH ON CACHE BOOL "builds graph component" FORCE)
+set(DNNL_LIBRARY_TYPE "SHARED" CACHE STRING "specifies whether oneDNN library should be SHARED or STATIC" FORCE)
+set(DNNL_BUILD_DOC OFF CACHE BOOL "builds documentation" FORCE)
+set(DNNL_BUILD_EXAMPLES OFF CACHE BOOL "builds examples" FORCE)
+set(DNNL_BUILD_TESTS OFF CACHE BOOL "builds tests" FORCE)
+set(DNNL_BUILD_FOR_CI OFF CACHE BOOL "specifies whether oneDNN library will use special testing environment for internal testing processes" FORCE)
+set(DNNL_DEV_MODE OFF CACHE BOOL "Enables internal tracing capabilities" FORCE)
+set(DNNL_WERROR OFF CACHE BOOL "treat warnings as errors" FORCE)
+set(DNNL_EXPERIMENTAL OFF CACHE BOOL "Enables experimental features in oneDNN. When enabled, each experimental feature has to be individually selected using environment variables."  FORCE)
+set(DNNL_EXPERIMENTAL_UKERNEL OFF CACHE BOOL "Enable experimental functionality for ukernels. This option works independently from DNNL_EXPERIMENTAL." FORCE)
+set(DNNL_EXPERIMENTAL_PROFILING OFF CACHE BOOL "Enable experimental profiling capabilities. This option works independently from DNNL_EXPERIMENTAL." FORCE)
+set(DNNL_EXPERIMENTAL_LOGGING OFF CACHE BOOL "Enable experimental functionality for logging. This option works independently from DNNL_EXPERIMENTAL." FORCE)
+set(DNNL_EXPERIMENTAL_SYCL_KERNEL_COMPILER OFF CACHE BOOL "Enable experimental SYCL OpenCL kernel compiler extension. This option works independently from DNNL_EXPERIMENTAL." FORCE)
+set(DNNL_ENABLE_JIT_PROFILING OFF CACHE BOOL "Enable registration of oneDNN kernels that are generated at runtime with VTune Profiler (on by default). Without the registrations, VTune Profiler would report data collected inside the kernels as `outside any known module`." FORCE)
+set(DNNL_ENABLE_ITT_TASKS OFF CACHE BOOL "Enable ITT Tasks tagging feature and tag all primitive execution (on by default). VTune Profiler can group profiling results based on those ITT tasks and show corresponding timeline information." FORCE)
+set(DNNL_ENABLE_MEM_DEBUG OFF CACHE BOOL "enables memory-related debug functionality, such as buffer overflow (default) and underflow, using gtests and benchdnn. Additionaly, this option enables testing of out-of-memory handling by the library, such as failed memory allocations, using primitive-related gtests. This feature is experimental and is only available on Linux." FORCE)
+set(DNNL_ENABLE_STACK_CHECKER OFF CACHE BOOL "enables stack checker that can be used to get information about stack consumption for a particular library entry point. This feature is only available on Linux (see src/common/stack_checker.hpp for more details). Note: This option requires enabling concurrent scratchpad (DNNL_ENABLE_CONCURRENT_EXEC)." FORCE)
+set(DNNL_DISABLE_GPU_REF_KERNELS OFF CACHE BOOL "builds oneDNN with only optimized kernels for GPU compute primitives" FORCE)
+set(DNNL_INSTALL OFF CACHE BOOL "Install applications and libraries" FORCE)
+
+FetchContent_MakeAvailable(dnnl tbb openblas)
+
+if (MSVC)
+    target_compile_options(dnnl PUBLIC /arch:SSE2 /arch:AVX /arch:AVX2 /fp:fast)
+else ()
+    target_compile_options(dnnl PUBLIC -msse2 -mavx -mavx2 -mfma)
+endif ()
+
+file(REAL_PATH ${dnnl_SOURCE_DIR}/include DNNL_INCLUDE_DIR)
+file(REAL_PATH ${dnnl_SOURCE_DIR} DNNL_SOURCE_DIR)
+file(REAL_PATH ${dnnl_BINARY_DIR} DNNL_BINARY_DIR)
+
+set(DNNL_LIBRARY ${DNNL_BINARY_DIR}/src/$<CONFIG>/dnnl.lib CACHE FILEPATH "dnnl library" FORCE)
+
+add_dependencies(dnnl tbb openblas_shared)
+
+################## ct2
 
 set(WITH_MKL OFF CACHE BOOL "Compile with Intel MKL backend" FORCE)
 set(WITH_DNNL ON CACHE BOOL "Compile with DNNL backend" FORCE)
@@ -850,13 +917,7 @@ set(WITH_TENSOR_PARALLEL OFF CACHE BOOL "Compile with NCCL and MPI backend" FORC
 set(WITH_FLASH_ATTN OFF CACHE BOOL "Compile with Flash Attention 2" FORCE)
 set(CT2_INSTALL OFF CACHE BOOL "Install applications and libraries" FORCE)
 
-FetchContent_MakeAvailable(openblas tbb dnnl ct2)
-
-# if (MSVC)
-    # target_compile_options(ctranslate2 PUBLIC /arch:AVX /fp:fast /arch:AVX2)
-# else ()
-    # target_compile_options(ctranslate2 PUBLIC -mavx2 -mfma)
-# endif ()
+FetchContent_MakeAvailable(ct2 dnnl tbb openblas)
 
 file(REAL_PATH ${ct2_SOURCE_DIR}/include CTRANSLATE2_INCLUDE_DIR)
 file(REAL_PATH ${ct2_SOURCE_DIR} CTRANSLATE2_SOURCE_DIR)
@@ -867,19 +928,8 @@ add_dependencies(ctranslate2 dnnl tbb openblas_shared)
 target_include_directories(ctranslate2 PRIVATE ${DNNL_INCLUDE_DIR} ${DNNL_BINARY_DIR}/include ${OPENBLAS_INCLUDE_DIR} ${CMAKE_BINARY_DIR} ${OPENBLAS_BINARY_DIR})
 
 
-
 ######################### duckdb
-FetchContent_Declare(
-  duckdb
-  GIT_REPOSITORY	https://github.com/sheldonrobinson/duckdb.git
-  GIT_TAG			origin/v1.4.1
-  
-  EXCLUDE_FROM_ALL
-			 
-  OVERRIDE_FIND_PACKAGE
-)
-
-if(CMAKE_GENERATOR_PLATFORM MATCHES "^arm64")
+if ( (CMAKE_CXX_COMPILER_ARCHITECTURE_ID STREQUAL "ARM64") OR  (CMAKE_CXX_COMPILER_ARCHITECTURE_ID STREQUAL "arm64") )
     set(DUCKDB_EXPLICIT_PLATFORM "windows_arm64" CACHE STRING "Set the platform for duckdb" FORCE) 
 else()
     set(DUCKDB_EXPLICIT_PLATFORM "windows_amd64" CACHE STRING "Set the platform for duckdb" FORCE)
@@ -914,7 +964,7 @@ set(BUILD_UNITTESTS  OFF CACHE BOOL "Build the unittest runner." FORCE)
 set(ENABLE_UNITTEST_CPP_TESTS  OFF CACHE BOOL "Build the C++ Unit Tests." FORCE)
 set(SET_DUCKDB_LIBRARY_VERSION OFF CACHE BOOL "Whether or not to set the DuckDB Library version and emit versioned shared libraries" FORCE)
 
-FetchContent_MakeAvailable(bzip2 zlib duckdb)
+FetchContent_MakeAvailable(duckdb zlib bzip2)
 
 file(REAL_PATH ${duckdb_SOURCE_DIR}/src/include DUCKDB_INCLUDE_DIR)
 file(REAL_PATH ${duckdb_SOURCE_DIR} DUCKDB_SOURCE_DIR)
@@ -943,14 +993,8 @@ set(unnu_ragl_bundled_libraries
   # Defined in ../src/CMakeLists.txt.
   # This can be changed to accommodate different builds.
   $<TARGET_FILE:unnu_ragl>
-#  $<TARGET_FILE:duckdb>
-#  $<TARGET_FILE:tbb>
   $<TARGET_FILE:dnnl>
   $<TARGET_FILE:openblas_shared>
-#  $<TARGET_FILE:ctranslate2>
-#  $<TARGET_FILE:gqlitecpp>
-#  $<TARGET_FILE:gqlitedbdll>
   $<TARGET_FILE:sqlite3-shared>
-# $<TARGET_FILE:blingfiretokdll_static>
   PARENT_SCOPE
 )

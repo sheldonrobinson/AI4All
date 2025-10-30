@@ -76,21 +76,21 @@ class RagLite with ChangeNotifier {
     if (kDebugMode) {
       print('RagLite::query($text)');
     }
+    final completer = Completer<List<String>>();
 
     NativeCallable<UnnuRaglResponseCallbackFunction>? nativeResponseCallable;
-    final result = List<String>.empty(growable: true);
-    final completer = Completer<void>();
 
     void onResponseCallback(Pointer<UnnuRaglResult> response) {
       if (kDebugMode) {
         print('onResponseCallback()');
       }
+      final result = List<String>.empty(growable: true);
       try {
         if (response.ref.type == UnnuRaglResultType.UNNU_RAGL_QUERY) {
           if (response.ref.count > 0) {
-            final fragments_ptr = response.ref.fragments;
-            for (int i = 0; i < response.ref.count; i++) {
-              final it = fragments_ptr + i;
+            final fragmentsPtr = response.ref.fragments;
+            for (var i = 0; i < response.ref.count; i++) {
+              final it = fragmentsPtr + i;
               if (it.value.ref.length > 0) {
                 final text = it.value.ref.text.cast<ffi.Utf8>().toDartString();
                 result.add(text);
@@ -99,16 +99,7 @@ class RagLite with ChangeNotifier {
           }
         }
       } finally {
-        if (response.ref.count > 0) {
-          final fragments_ptr = response.ref.fragments;
-          for (int i = 0; i < response.ref.count; i++) {
-            final it = fragments_ptr + i;
-            if (it.value.ref.length > 0) {
-              ffi.calloc.free(it.value.ref.text);
-            }
-          }
-        }
-
+        unnu_ragl_free_result(response);
         if (kDebugMode) {
           print('unnu_set_ragl_result_callback:>');
         }
@@ -119,12 +110,12 @@ class RagLite with ChangeNotifier {
           nativeResponseCallable = null;
         }
       }
+      completer.complete(result);
       if (kDebugMode) {
         print('onResponseCallback:>');
       }
     }
 
-    completer.complete();
     if (kDebugMode) {
       print('unnu_set_ragl_result_callback()');
     }
@@ -142,16 +133,15 @@ class RagLite with ChangeNotifier {
     unnu_rag_lite_query(query.cast<Char>());
 
     /// Stream of token responses.
-    await completer.future;
-    ffi.calloc.free(query);
-    return result;
+    return completer.future.whenComplete(
+      () => ffi.calloc.free(query),
+    );
   }
 
   Stream<RagEmbeddingVector> embed(String text) async* {
-
     NativeCallable<UnnuRaglEmbeddingCallbackFunction>? nativeEmbeddingCallable;
 
-    final completer = Completer();
+    var completed = false;
     final responseStreamController =
         StreamController<RagEmbeddingVector>.broadcast(
           onCancel: () {
@@ -164,16 +154,16 @@ class RagLite with ChangeNotifier {
           sync: true,
         );
 
+    Future<void> closeStreamAsync() async {
+      await responseStreamController.close();
+    }
+
     void onEmbeddingCallback(Pointer<UnnuRagEmbdVec_t> response) {
       try {
         if (response.ref.type == UnnuRaglResultType.UNNU_RAGL_EMBEDDING) {
           if (response.ref.count > 0 &&
               response.ref.length > 0 &&
               response.ref.reflen > 0) {
-            final count = response.ref.count;
-            final embd = response.ref.values
-                .asTypedList(count)
-                .toList(growable: false);
             responseStreamController.add((
               type: RagEmbeddingVectorType.EMBEDDING,
               documentId: response.ref.ref_id.cast<ffi.Utf8>().toDartString(
@@ -182,27 +172,61 @@ class RagLite with ChangeNotifier {
               document: response.ref.text.cast<ffi.Utf8>().toDartString(
                 length: response.ref.length,
               ),
-              embeddings: embd,
+              embeddings: response.ref.values
+                  .asTypedList(response.ref.count)
+                  .toList(growable: false),
             ));
           }
-        } else if (response.ref.type == UnnuRaglResultType.UNNU_RAGL_FINISH) {
+        } else {
           responseStreamController.add((
             type: RagEmbeddingVectorType.ID,
-            documentId: response.ref.reflen > 0 ? response.ref.ref_id.cast<ffi.Utf8>().toDartString(
-              length: response.ref.reflen,
-            ) : '',
+            documentId:
+                response.ref.reflen > 0
+                    ? response.ref.ref_id.cast<ffi.Utf8>().toDartString(
+                      length: response.ref.reflen,
+                    )
+                    : '',
             document: '',
             embeddings: <double>[],
           ));
-          if (!completer.isCompleted) {
-            completer.complete();
+          completed = true;
+        }
+      } on FormatException catch (e, s) {
+        if (kDebugMode) {
+          debugPrintStack(stackTrace: s, label: e.message);
+        }
+        try {
+          final characters = response.ref.text;
+          final length = characters.cast<ffi.Utf8>().length;
+
+          final charList = Uint8List.view(
+            characters.cast<Uint8>().asTypedList(length).buffer,
+            0,
+            length,
+          );
+          responseStreamController.add((
+            type: RagEmbeddingVectorType.EMBEDDING,
+            documentId: response.ref.ref_id.cast<ffi.Utf8>().toDartString(
+              length: response.ref.reflen,
+            ),
+            document: utf8.decode(
+              charList.toList(),
+              allowMalformed: true,
+            ),
+            embeddings: response.ref.values
+                .asTypedList(response.ref.count)
+                .toList(growable: false),
+          ));
+        } on Exception catch (e, s) {
+          if (kDebugMode) {
+            debugPrintStack(stackTrace: s);
           }
         }
       } finally {
         unnu_ragl_free_embedvector(response);
-        if (completer.isCompleted) {
+        if (completed) {
           if (!responseStreamController.isClosed) {
-            responseStreamController.close();
+            unawaited(closeStreamAsync());
           }
         }
       }
@@ -224,12 +248,6 @@ class RagLite with ChangeNotifier {
     yield* responseStreamController.stream;
 
     ffi.calloc.free(query);
-
-    if (completer.isCompleted) {
-      if (!responseStreamController.isClosed) {
-        responseStreamController.close();
-      }
-    }
   }
 
   void addMapping(String uri, String documentId) {
@@ -252,10 +270,8 @@ class RagLite with ChangeNotifier {
     if (kDebugMode) {
       print('RagLite::retrieve($id)');
     }
-
     NativeCallable<UnnuRaglEmbeddingCallbackFunction>? nativeEmbeddingCallable;
 
-    final completer = Completer();
     final responseStreamController =
         StreamController<RagEmbeddingVector>.broadcast(
           onCancel: () {
@@ -267,6 +283,10 @@ class RagLite with ChangeNotifier {
           },
           sync: true,
         );
+
+    Future<void> closeStreamAsync() async {
+      await responseStreamController.close();
+    }
 
     void onEmbeddingCallback(Pointer<UnnuRagEmbdVec_t> response) {
       try {
@@ -289,12 +309,10 @@ class RagLite with ChangeNotifier {
               embeddings: embd,
             ));
           }
-        } else if (response.ref.type == UnnuRaglResultType.UNNU_RAGL_FINISH) {
-          if (!completer.isCompleted) {
-            completer.complete();
-          }
+        } else if (response.ref.type == UnnuRaglResultType.UNNU_RAGL_FINISH ||
+            response.ref.type == UnnuRaglResultType.UNNU_RAGL_ERROR) {
           if (!responseStreamController.isClosed) {
-            responseStreamController.close();
+            unawaited(closeStreamAsync());
           }
         }
       } finally {
@@ -318,12 +336,6 @@ class RagLite with ChangeNotifier {
     yield* responseStreamController.stream;
 
     ffi.calloc.free(docId);
-
-    if (completer.isCompleted) {
-      if (!responseStreamController.isClosed) {
-        responseStreamController.close();
-      }
-    }
   }
 
   Future<RagEmbeddingVector> embedQuery(String text) async {
@@ -354,7 +366,19 @@ class RagLite with ChangeNotifier {
               embeddings: embd,
             ));
           }
-        } else if (response.ref.type == UnnuRaglResultType.UNNU_RAGL_FINISH) {}
+        } else if (response.ref.type == UnnuRaglResultType.UNNU_RAGL_FINISH) {
+          completer.complete((
+            type: RagEmbeddingVectorType.ID,
+            documentId:
+                response.ref.reflen > 0
+                    ? response.ref.ref_id.cast<ffi.Utf8>().toDartString(
+                      length: response.ref.reflen,
+                    )
+                    : '',
+            document: '',
+            embeddings: const <double>[],
+          ));
+        }
       } on FormatException catch (e, s) {
         try {
           final characters = response.ref.text;
@@ -372,28 +396,31 @@ class RagLite with ChangeNotifier {
               .asTypedList(count)
               .toList(growable: false);
           completer.complete((
-          type: RagEmbeddingVectorType.QUERY,
-          documentId: '',
-          document: output,
-          embeddings: embd,
+            type: RagEmbeddingVectorType.QUERY,
+            documentId: '',
+            document: output,
+            embeddings: embd,
           ));
         } on Exception catch (e, s) {
           if (kDebugMode) {
             debugPrintStack(stackTrace: s);
           }
+          completer.complete((
+            type: RagEmbeddingVectorType.ID,
+            documentId:
+                response.ref.reflen > 0
+                    ? response.ref.ref_id.cast<ffi.Utf8>().toDartString(
+                      length: response.ref.reflen,
+                    )
+                    : '',
+            document: '',
+            embeddings: const <double>[],
+          ));
         }
-      }finally {
+      } finally {
         unnu_ragl_free_embedvector(response);
-        if (completer.isCompleted) {
-          if (nativeEmbeddingCallable != null) {
-            nativeEmbeddingCallable!.close();
-            unnu_unset_ragl_embedding_callback();
-            nativeEmbeddingCallable = null;
-          }
-        }
       }
     }
-
 
     nativeEmbeddingCallable =
         NativeCallable<UnnuRaglEmbeddingCallbackFunction>.listener(
@@ -407,16 +434,14 @@ class RagLite with ChangeNotifier {
     final query = text.toNativeUtf8();
     unnu_rag_lite_query(query.cast<Char>());
 
-    if (completer.isCompleted) {
+    return completer.future.whenComplete(() {
       if (nativeEmbeddingCallable != null) {
         nativeEmbeddingCallable!.close();
         unnu_unset_ragl_embedding_callback();
         nativeEmbeddingCallable = null;
       }
-    }
-
-    ffi.calloc.free(query);
-    return completer.future;
+      ffi.calloc.free(query);
+    });
   }
 
   void setChunkSize(int sz) {

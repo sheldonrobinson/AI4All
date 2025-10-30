@@ -21,7 +21,9 @@ endif()
 find_package(Threads REQUIRED)
 find_package(OpenMP REQUIRED)
 
-add_library(llamacpp SHARED "llamacpp.cpp")
+set(LLAMACPP_SRCS llamacpp_llm.cpp llamacpp_utils.cpp)
+
+add_library(llamacpp SHARED ${LLAMACPP_SRCS})
 
 # add_dependencies(llamacpp infoware_prj-build ggml_prj-build llama_cpp_prj-build)
 
@@ -44,9 +46,9 @@ endif()
 target_compile_definitions(llamacpp PUBLIC DART_SHARED_LIB)
 
 if(ANDROID)
-    target_link_libraries(llamacpp PRIVATE log cpuinfo infoware llama common ggml-cpu ggml ggml-base llguidance Threads::Threads)
+    target_link_libraries(llamacpp PRIVATE log cpuinfo infoware nlohmann::json llama common ggml ggml-base llguidance Threads::Threads) # ggml-cpu 
 else()
-    target_link_libraries(llamacpp PRIVATE cpuinfo infoware llama common ggml-cpu ggml ggml-base llguidance Threads::Threads)
+    target_link_libraries(llamacpp PRIVATE cpuinfo infoware nlohmann::json llama common ggml ggml-base llguidance Threads::Threads) # ggml-cpu 
 endif()
 
 if (ANDROID)

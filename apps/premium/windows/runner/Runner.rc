@@ -95,7 +95,7 @@ BEGIN
             VALUE "InternalName", "premium" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 Konnek Inc. All rights reserved." "\0"
             VALUE "OriginalFilename", "premium.exe" "\0"
-            VALUE "ProductName", "premium" "\0"
+            VALUE "ProductName", "AI4All Premium Edition" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

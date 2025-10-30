@@ -287,28 +287,28 @@ class ContextParams with ChangeNotifier {
     // bool? flashAttention,
     bool? noPerformance,
   }) : _nCtx = nCtx,
-        _nBatch = nBatch,
-        _nUBatch = nUBatch,
-        _nSeqMax = nSeqMax,
-        _nThreads = nThreads,
-        _nThreadsBatch = nThreadsBatch,
-        _ropeScalingType = ropeScalingType,
-        _poolingType = poolingType,
-        _attentionType = attentionType,
-        _ropeFrequencyBase = ropeFrequencyBase,
-        _ropeFrequencyScale = ropeFrequencyScale,
-        _yarnExtrapolationFactor = yarnExtrapolationFactor,
-        _yarnAttenuationFactor = yarnAttenuationFactor,
-        _yarnBetaFast = yarnBetaFast,
-        _yarnBetaSlow = yarnBetaSlow,
-        _yarnOriginalContext = yarnOriginalContext,
-        _defragmentationThreshold = defragmentationThreshold,
-        _typeK = typeK,
-        _typeV = typeV,
-        _embeddings = embeddings,
-        _offloadKqv = offloadKqv,
-        // _flashAttention = flashAttention,
-        _noPerformance = noPerformance;
+       _nBatch = nBatch,
+       _nUBatch = nUBatch,
+       _nSeqMax = nSeqMax,
+       _nThreads = nThreads,
+       _nThreadsBatch = nThreadsBatch,
+       _ropeScalingType = ropeScalingType,
+       _poolingType = poolingType,
+       _attentionType = attentionType,
+       _ropeFrequencyBase = ropeFrequencyBase,
+       _ropeFrequencyScale = ropeFrequencyScale,
+       _yarnExtrapolationFactor = yarnExtrapolationFactor,
+       _yarnAttenuationFactor = yarnAttenuationFactor,
+       _yarnBetaFast = yarnBetaFast,
+       _yarnBetaSlow = yarnBetaSlow,
+       _yarnOriginalContext = yarnOriginalContext,
+       _defragmentationThreshold = defragmentationThreshold,
+       _typeK = typeK,
+       _typeV = typeV,
+       _embeddings = embeddings,
+       _offloadKqv = offloadKqv,
+       // _flashAttention = flashAttention,
+       _noPerformance = noPerformance;
 
   /// Creates a new instance of [ContextParams] from a map.
   ///
@@ -343,24 +343,61 @@ class ContextParams with ChangeNotifier {
       nUBatch: map['nUBatch'] != null ? map['nUBatch'] as int : null,
       nSeqMax: map['nSeqMax'] != null ? map['nSeqMax'] as int : null,
       nThreads: map['nThreads'] != null ? map['nThreads'] as int : null,
-      nThreadsBatch: map['nThreadsBatch'] != null ? map['nThreadsBatch'] as int : null,
-      ropeScalingType: map['ropeScalingType'] != null ? RopeScalingType.fromString(map['ropeScalingType'] as String) : null,
-      poolingType: map['poolingType'] != null ? PoolingType.fromString(map['poolingType'] as String) : null,
-      attentionType: map['attentionType'] != null ? AttentionType.fromString(map['attentionType'] as String) : null,
-      ropeFrequencyBase: map['ropeFrequencyBase'] != null ? map['ropeFrequencyBase'] as double : null,
-      ropeFrequencyScale: map['ropeFrequencyScale'] != null ? map['ropeFrequencyScale'] as double : null,
-      yarnExtrapolationFactor: map['yarnExtrapolationFactor'] != null ? map['yarnExtrapolationFactor'] as double : null,
-      yarnAttenuationFactor: map['yarnAttenuationFactor'] != null ? map['yarnAttenuationFactor'] as double : null,
-      yarnBetaFast: map['yarnBetaFast'] != null ? map['yarnBetaFast'] as double : null,
-      yarnBetaSlow: map['yarnBetaSlow'] != null ? map['yarnBetaSlow'] as double : null,
-      yarnOriginalContext: map['yarnOriginalContext'] != null ? map['yarnOriginalContext'] as int : null,
-      defragmentationThreshold: map['_defragmentationThreshold'] != null ? map['defragmentationThreshold'] as double : null,
-      typeK: map['typeK'] != null ? GgmlType.fromString(map['typeK'] as String) : null,
-      typeV: map['typeV'] != null ? GgmlType.fromString(map['typeV'] as String) : null,
+      nThreadsBatch:
+          map['nThreadsBatch'] != null ? map['nThreadsBatch'] as int : null,
+      ropeScalingType:
+          map['ropeScalingType'] != null
+              ? RopeScalingType.fromString(map['ropeScalingType'] as String)
+              : null,
+      poolingType:
+          map['poolingType'] != null
+              ? PoolingType.fromString(map['poolingType'] as String)
+              : null,
+      attentionType:
+          map['attentionType'] != null
+              ? AttentionType.fromString(map['attentionType'] as String)
+              : null,
+      ropeFrequencyBase:
+          map['ropeFrequencyBase'] != null
+              ? map['ropeFrequencyBase'] as double
+              : null,
+      ropeFrequencyScale:
+          map['ropeFrequencyScale'] != null
+              ? map['ropeFrequencyScale'] as double
+              : null,
+      yarnExtrapolationFactor:
+          map['yarnExtrapolationFactor'] != null
+              ? map['yarnExtrapolationFactor'] as double
+              : null,
+      yarnAttenuationFactor:
+          map['yarnAttenuationFactor'] != null
+              ? map['yarnAttenuationFactor'] as double
+              : null,
+      yarnBetaFast:
+          map['yarnBetaFast'] != null ? map['yarnBetaFast'] as double : null,
+      yarnBetaSlow:
+          map['yarnBetaSlow'] != null ? map['yarnBetaSlow'] as double : null,
+      yarnOriginalContext:
+          map['yarnOriginalContext'] != null
+              ? map['yarnOriginalContext'] as int
+              : null,
+      defragmentationThreshold:
+          map['_defragmentationThreshold'] != null
+              ? map['defragmentationThreshold'] as double
+              : null,
+      typeK:
+          map['typeK'] != null
+              ? GgmlType.fromString(map['typeK'] as String)
+              : null,
+      typeV:
+          map['typeV'] != null
+              ? GgmlType.fromString(map['typeV'] as String)
+              : null,
       embeddings: map['embeddings'] != null ? map['embeddings'] as bool : null,
       offloadKqv: map['offloadKqv'] != null ? map['offloadKqv'] as bool : null,
       // flashAttention: map['flashAttention'] != null ? map['flashAttention'] as bool : null,
-      noPerformance: map['noPerformance'] != null ? map['noPerformance'] as bool : null,
+      noPerformance:
+          map['noPerformance'] != null ? map['noPerformance'] as bool : null,
     );
   }
 
@@ -370,7 +407,8 @@ class ContextParams with ChangeNotifier {
   /// context parameters.
   ///
   /// Returns an instance of [ContextParams] created from the decoded JSON map.
-  factory ContextParams.fromJson(String source) => ContextParams.fromMap(json.decode(source) as Map<String, dynamic>);
+  factory ContextParams.fromJson(String source) =>
+      ContextParams.fromMap(json.decode(source) as Map<String, dynamic>);
 
   /// Creates a [ContextParams] instance from a native [llama_context_params] object.
   ///
@@ -408,15 +446,18 @@ class ContextParams with ChangeNotifier {
       nSeqMax: params.n_seq_max,
       nThreads: params.n_threads,
       nThreadsBatch: params.n_threads_batch,
-      ropeScalingType: params.rope_scaling_typeAsInt != -1
-          ? RopeScalingType.values[params.rope_scaling_typeAsInt + 1]
-          : null,
-      poolingType: params.pooling_typeAsInt != -1
-          ? PoolingType.values[params.pooling_typeAsInt + 1]
-          : null,
-      attentionType: params.attention_typeAsInt != -1
-          ? AttentionType.values[params.attention_typeAsInt + 1]
-          : null,
+      ropeScalingType:
+          params.rope_scaling_typeAsInt != -1
+              ? RopeScalingType.values[params.rope_scaling_typeAsInt + 1]
+              : null,
+      poolingType:
+          params.pooling_typeAsInt != -1
+              ? PoolingType.values[params.pooling_typeAsInt + 1]
+              : null,
+      attentionType:
+          params.attention_typeAsInt != -1
+              ? AttentionType.values[params.attention_typeAsInt + 1]
+              : null,
       ropeFrequencyBase: params.rope_freq_base,
       ropeFrequencyScale: params.rope_freq_scale,
       yarnExtrapolationFactor: params.yarn_ext_factor,
@@ -426,9 +467,13 @@ class ContextParams with ChangeNotifier {
       yarnOriginalContext: params.yarn_orig_ctx,
       defragmentationThreshold: params.defrag_thold,
       typeK:
-          params.type_kAsInt != -1 ? GgmlType.values[params.type_kAsInt] : null,
+          params.type_kAsInt != -1
+              ? GgmlType.fromValue(params.type_kAsInt)
+              : null,
       typeV:
-          params.type_vAsInt != -1 ? GgmlType.values[params.type_vAsInt] : null,
+          params.type_vAsInt != -1
+              ? GgmlType.fromValue(params.type_vAsInt)
+              : null,
       embeddings: params.embeddings,
       offloadKqv: params.offload_kqv,
       // flashAttention: params.flash_attn,
@@ -442,8 +487,7 @@ class ContextParams with ChangeNotifier {
   /// Llama library to obtain the default context parameters and then converts
   /// them to a [ContextParams] instance using the [ContextParams.fromNative] method.
   factory ContextParams.defaultParams() {
-    final llama_context_params contextParams =
-    llama_context_default_params();
+    final contextParams = llama_context_default_params();
 
     return ContextParams.fromNative(contextParams);
   }
@@ -481,8 +525,7 @@ class ContextParams with ChangeNotifier {
   /// Returns:
   /// - A `llama_context_params` object with the updated fields.
   llama_context_params toNative() {
-    final llama_context_params contextParams =
-    llama_context_default_params();
+    final llama_context_params contextParams = llama_context_default_params();
 
     contextParams.n_ctx = nCtx;
 
@@ -555,12 +598,12 @@ class ContextParams with ChangeNotifier {
 
     if (typeK != null) {
       // It may seem redundant to multiply by 1, but it's necessary to convert to a C int
-      contextParams.type_kAsInt = typeK!.index * 1;
+      contextParams.type_kAsInt = typeK!.value;
     }
 
     if (typeV != null) {
       // It may seem redundant to multiply by 1, but it's necessary to convert to a C int
-      contextParams.type_vAsInt = typeV!.index * 1;
+      contextParams.type_vAsInt = typeV!.value;
     }
 
     if (embeddings != null) {
@@ -682,12 +725,15 @@ class ContextParams with ChangeNotifier {
       attentionType: attentionType ?? this._attentionType,
       ropeFrequencyBase: ropeFrequencyBase ?? this._ropeFrequencyBase,
       ropeFrequencyScale: ropeFrequencyScale ?? this._ropeFrequencyScale,
-      yarnExtrapolationFactor: yarnExtrapolationFactor ?? this._yarnExtrapolationFactor,
-      yarnAttenuationFactor: yarnAttenuationFactor ?? this._yarnAttenuationFactor,
+      yarnExtrapolationFactor:
+          yarnExtrapolationFactor ?? this._yarnExtrapolationFactor,
+      yarnAttenuationFactor:
+          yarnAttenuationFactor ?? this._yarnAttenuationFactor,
       yarnBetaFast: yarnBetaFast ?? this._yarnBetaFast,
       yarnBetaSlow: yarnBetaSlow ?? this._yarnBetaSlow,
       yarnOriginalContext: yarnOriginalContext ?? this._yarnOriginalContext,
-      defragmentationThreshold: defragmentationThreshold ?? this._defragmentationThreshold,
+      defragmentationThreshold:
+          defragmentationThreshold ?? this._defragmentationThreshold,
       typeK: typeK ?? this._typeK,
       typeV: typeV ?? this._typeV,
       embeddings: embeddings ?? this._embeddings,
@@ -699,64 +745,87 @@ class ContextParams with ChangeNotifier {
 
   @override
   String toString() {
-    return 'ContextParams(_nCtx: $_nCtx, _nBatch: $_nBatch, _nUBatch: $_nUBatch, _nSeqMax: $_nSeqMax, _nThreads: $_nThreads, _nThreadsBatch: $_nThreadsBatch, _ropeScalingType: $_ropeScalingType, _poolingType: $_poolingType, _attentionType: $_attentionType, _ropeFrequencyBase: $_ropeFrequencyBase, _ropeFrequencyScale: $_ropeFrequencyScale, _yarnExtrapolationFactor: $_yarnExtrapolationFactor, _yarnAttenuationFactor: $_yarnAttenuationFactor, _yarnBetaFast: $_yarnBetaFast, _yarnBetaSlow: $_yarnBetaSlow, _yarnOriginalContext: $_yarnOriginalContext, _defragmentationThreshold: $_defragmentationThreshold, _typeK: $_typeK, _typeV: $_typeV, _embeddings: $_embeddings, _offloadKqv: $_offloadKqv, _noPerformance: $_noPerformance)';
+    return '''
+    ContextParams:
+    \t_nCtx: $_nCtx
+    \t_nBatch: $_nBatch
+    \t_nUBatch: $_nUBatch
+    \t_nSeqMax: $_nSeqMax
+    \t_nThreads: $_nThreads
+    \t_nThreadsBatch: $_nThreadsBatch
+    \t_ropeScalingType: $_ropeScalingType
+    \t_poolingType: $_poolingType
+    \t_attentionType: $_attentionType
+    \t_ropeFrequencyBase: $_ropeFrequencyBase
+    \t_ropeFrequencyScale: $_ropeFrequencyScale
+    \t_yarnExtrapolationFactor: $_yarnExtrapolationFactor
+    \t_yarnAttenuationFactor: $_yarnAttenuationFactor
+    \t_yarnBetaFast: $_yarnBetaFast
+    \t_yarnBetaSlow: $_yarnBetaSlow
+    \t_yarnOriginalContext: $_yarnOriginalContext
+    \t_defragmentationThreshold: $_defragmentationThreshold
+    \t_typeK: $_typeK
+    \t_typeV: $_typeV
+    \t_embeddings: $_embeddings
+    \t_offloadKqv: $_offloadKqv
+    \t_noPerformance: $_noPerformance
+    ''';
   }
 
   @override
   bool operator ==(covariant ContextParams other) {
     if (identical(this, other)) return true;
-  
-    return 
-      other._nCtx == _nCtx &&
-      other._nBatch == _nBatch &&
-      other._nUBatch == _nUBatch &&
-      other._nSeqMax == _nSeqMax &&
-      other._nThreads == _nThreads &&
-      other._nThreadsBatch == _nThreadsBatch &&
-      other._ropeScalingType == _ropeScalingType &&
-      other._poolingType == _poolingType &&
-      other._attentionType == _attentionType &&
-      other._ropeFrequencyBase == _ropeFrequencyBase &&
-      other._ropeFrequencyScale == _ropeFrequencyScale &&
-      other._yarnExtrapolationFactor == _yarnExtrapolationFactor &&
-      other._yarnAttenuationFactor == _yarnAttenuationFactor &&
-      other._yarnBetaFast == _yarnBetaFast &&
-      other._yarnBetaSlow == _yarnBetaSlow &&
-      other._yarnOriginalContext == _yarnOriginalContext &&
-      other._defragmentationThreshold == _defragmentationThreshold &&
-      other._typeK == _typeK &&
-      other._typeV == _typeV &&
-      other._embeddings == _embeddings &&
-      other._offloadKqv == _offloadKqv &&
-      // other._flashAttention == _flashAttention &&
-      other._noPerformance == _noPerformance;
+
+    return other._nCtx == _nCtx &&
+        other._nBatch == _nBatch &&
+        other._nUBatch == _nUBatch &&
+        other._nSeqMax == _nSeqMax &&
+        other._nThreads == _nThreads &&
+        other._nThreadsBatch == _nThreadsBatch &&
+        other._ropeScalingType == _ropeScalingType &&
+        other._poolingType == _poolingType &&
+        other._attentionType == _attentionType &&
+        other._ropeFrequencyBase == _ropeFrequencyBase &&
+        other._ropeFrequencyScale == _ropeFrequencyScale &&
+        other._yarnExtrapolationFactor == _yarnExtrapolationFactor &&
+        other._yarnAttenuationFactor == _yarnAttenuationFactor &&
+        other._yarnBetaFast == _yarnBetaFast &&
+        other._yarnBetaSlow == _yarnBetaSlow &&
+        other._yarnOriginalContext == _yarnOriginalContext &&
+        other._defragmentationThreshold == _defragmentationThreshold &&
+        other._typeK == _typeK &&
+        other._typeV == _typeV &&
+        other._embeddings == _embeddings &&
+        other._offloadKqv == _offloadKqv &&
+        // other._flashAttention == _flashAttention &&
+        other._noPerformance == _noPerformance;
   }
 
   @override
   int get hashCode {
     return _nCtx.hashCode ^
-      _nBatch.hashCode ^
-      _nUBatch.hashCode ^
-      _nSeqMax.hashCode ^
-      _nThreads.hashCode ^
-      _nThreadsBatch.hashCode ^
-      _ropeScalingType.hashCode ^
-      _poolingType.hashCode ^
-      _attentionType.hashCode ^
-      _ropeFrequencyBase.hashCode ^
-      _ropeFrequencyScale.hashCode ^
-      _yarnExtrapolationFactor.hashCode ^
-      _yarnAttenuationFactor.hashCode ^
-      _yarnBetaFast.hashCode ^
-      _yarnBetaSlow.hashCode ^
-      _yarnOriginalContext.hashCode ^
-      _defragmentationThreshold.hashCode ^
-      _typeK.hashCode ^
-      _typeV.hashCode ^
-      _embeddings.hashCode ^
-      _offloadKqv.hashCode ^
-      // _flashAttention.hashCode ^
-      _noPerformance.hashCode;
+        _nBatch.hashCode ^
+        _nUBatch.hashCode ^
+        _nSeqMax.hashCode ^
+        _nThreads.hashCode ^
+        _nThreadsBatch.hashCode ^
+        _ropeScalingType.hashCode ^
+        _poolingType.hashCode ^
+        _attentionType.hashCode ^
+        _ropeFrequencyBase.hashCode ^
+        _ropeFrequencyScale.hashCode ^
+        _yarnExtrapolationFactor.hashCode ^
+        _yarnAttenuationFactor.hashCode ^
+        _yarnBetaFast.hashCode ^
+        _yarnBetaSlow.hashCode ^
+        _yarnOriginalContext.hashCode ^
+        _defragmentationThreshold.hashCode ^
+        _typeK.hashCode ^
+        _typeV.hashCode ^
+        _embeddings.hashCode ^
+        _offloadKqv.hashCode ^
+        // _flashAttention.hashCode ^
+        _noPerformance.hashCode;
   }
 }
 
@@ -789,18 +858,13 @@ enum RopeScalingType {
 
   /// Converts a string value to the corresponding `RopeScalingType` enum value.
   static RopeScalingType fromString(String value) {
-    switch (value) {
-      case 'none':
-        return RopeScalingType.none;
-      case 'linear':
-        return RopeScalingType.linear;
-      case 'yarn':
-        return RopeScalingType.yarn;
-      case 'longrope':
-        return RopeScalingType.longrope;
-      default:
-        return RopeScalingType.unspecified;
-    }
+    return switch (value) {
+      'none' => RopeScalingType.none,
+      'linear' => RopeScalingType.linear,
+      'yarn' => RopeScalingType.yarn,
+      'longrope' => RopeScalingType.longrope,
+      _=> RopeScalingType.unspecified,
+    };
   }
 }
 
@@ -838,20 +902,14 @@ enum PoolingType {
 
   /// Converts a string value to the corresponding `PoolingType` enum value.
   static PoolingType fromString(String value) {
-    switch (value) {
-      case 'none':
-        return PoolingType.none;
-      case 'mean':
-        return PoolingType.mean;
-      case 'cls':
-        return PoolingType.cls;
-      case 'last':
-        return PoolingType.last;
-      case 'rank':
-        return PoolingType.rank;
-      default:
-        return PoolingType.unspecified;
-    }
+    return switch (value) {
+      'none' => PoolingType.none,
+      'mean' => PoolingType.mean,
+      'cls' => PoolingType.cls,
+      'last' => PoolingType.last,
+      'rank' => PoolingType.rank,
+       _=> PoolingType.unspecified,
+    };
   }
 }
 
@@ -874,14 +932,11 @@ enum AttentionType {
 
   /// Converts a string value to the corresponding `AttentionType` enum value.
   static AttentionType fromString(String value) {
-    switch (value) {
-      case 'causal':
-        return AttentionType.causal;
-      case 'non-causal':
-        return AttentionType.nonCausal;
-      default:
-        return AttentionType.unspecified;
-    }
+    return switch (value) {
+      'causal' => AttentionType.causal,
+      'non-causal' => AttentionType.nonCausal,
+       _=> AttentionType.unspecified,
+    };
   }
 }
 
@@ -907,190 +962,218 @@ enum AttentionType {
 /// The `fromString` method allows converting a string representation of a GGML type to its corresponding enum value.
 enum GgmlType {
   /// 32-bit floating point
-  f32,
+  f32(0),
 
   /// 16-bit floating point
-  f16,
+  f16(1),
 
   /// 4-bit quantization level 0
-  q4_0,
+  q4_0(2),
 
   /// 4-bit quantization level 1
-  q4_1,
+  q4_1(3),
 
   /// 4-bit quantization level 2
-  q4_2,
+  q4_2(4),
 
   /// 4-bit quantization level 3
-  q4_3,
+  q4_3(5),
 
   /// 5-bit quantization level 0
-  q5_0,
+  q5_0(6),
 
   /// 5-bit quantization level 1
-  q5_1,
+  q5_1(7),
 
   /// 8-bit quantization level 0
-  q8_0,
+  q8_0(8),
 
   /// 8-bit quantization level 1
-  q8_1,
+  q8_1(9),
 
   /// 2-bit quantization level for keys
-  q2_k,
+  q2_k(10),
 
   /// 3-bit quantization level for keys
-  q3_k,
+  q3_k(11),
 
   /// 4-bit quantization level for keys
-  q4_k,
+  q4_k(12),
 
   /// 5-bit quantization level for keys
-  q5_k,
+  q5_k(13),
 
   /// 6-bit quantization level for keys
-  q6_k,
+  q6_k(14),
 
   /// 8-bit quantization level for keys
-  q8_k,
+  q8_k(15),
 
   /// Integer quantization level 2 xxs
-  iq2_xxs,
+  iq2_xxs(16),
 
   /// Integer quantization level 2 xs
-  iq2_xs,
+  iq2_xs(17),
 
   /// Integer quantization level 3 xxs
-  iq3_xxs,
+  iq3_xxs(18),
 
   /// Integer quantization level 1 s
-  iq1_s,
+  iq1_s(19),
 
   /// Integer quantization level 4 nl
-  iq4_nl,
+  iq4_nl(20),
 
   /// Integer quantization level 3 s
-  iq3_s,
+  iq3_s(21),
 
   /// Integer quantization level 2 s
-  iq2_s,
+  iq2_s(22),
 
   /// Integer quantization level 4 xs
-  iq4_xs,
+  iq4_xs(23),
 
   /// 8-bit integer
-  i8,
+  i8(24),
 
   /// 16-bit integer
-  i16,
+  i16(25),
 
   /// 32-bit integer
-  i32,
+  i32(26),
 
   /// 64-bit integer
-  i64,
+  i64(27),
 
   /// 64-bit floating point
-  f64,
+  f64(28),
 
   /// Integer quantization level 1 m
-  iq1_m,
+  iq1_m(29),
 
   /// Brain floating point 16-bit
-  bf16,
+  bf16(30),
 
   /// Mixed quantization level 4-4
-  q4_0_4_4,
+  q4_0_4_4(31),
 
   /// Mixed quantization level 4-8
-  q4_0_4_8,
+  q4_0_4_8(32),
 
   /// Mixed quantization level 8-8
-  q4_0_8_8,
+  q4_0_8_8(33),
 
   /// Tensor quantization level 1
-  tq1_0,
+  tq1_0(34),
 
   /// Tensor quantization level 2
-  tq2_0;
+  tq2_0(35),
+
+  /// Mixed quantization level 4-4
+  iq4_nl_4_4(36),
+
+  /// Mixed quantization level 4-8
+  iq4_nl_4_8(37),
+
+  /// Mixed quantization level 8-8
+  iq4_nl_8_8(38),
+
+  /// Tensor quantization level 4
+  mxfp4(39);
+
+  final int value;
+  const GgmlType(this.value);
+
+  static GgmlType fromValue(int type) {
+    return switch (type) {
+      0 => GgmlType.f32,
+      1 => GgmlType.f16,
+      2 => GgmlType.q4_0,
+      3 => GgmlType.q4_1,
+      4 => GgmlType.q4_2,
+      5 => GgmlType.q4_3,
+      6 => GgmlType.q5_0,
+      7 => GgmlType.q5_1,
+      8 => GgmlType.q8_0,
+      9 => GgmlType.q8_1,
+      10 => GgmlType.q2_k,
+      11 => GgmlType.q3_k,
+      12 => GgmlType.q4_k,
+      13 => GgmlType.q5_k,
+      14 => GgmlType.q6_k,
+      15 => GgmlType.q8_k,
+      16 => GgmlType.iq2_xxs,
+      17 => GgmlType.iq2_xs,
+      18 => GgmlType.iq3_xxs,
+      19 => GgmlType.iq1_s,
+      20 => GgmlType.iq4_nl,
+      21 => GgmlType.iq3_s,
+      22 => GgmlType.iq2_s,
+      23 => GgmlType.iq4_xs,
+      24 => GgmlType.i8,
+      25 => GgmlType.i16,
+      26 => GgmlType.i32,
+      27 => GgmlType.i64,
+      28 => GgmlType.f64,
+      29 => GgmlType.iq1_m,
+      30 => GgmlType.bf16,
+      31 => GgmlType.q4_0_4_4,
+      32 => GgmlType.q4_0_4_8,
+      33 => GgmlType.q4_0_8_8,
+      34 => GgmlType.tq1_0,
+      35 => GgmlType.tq2_0,
+      36 => GgmlType.iq4_nl_4_4,
+      37 => GgmlType.iq4_nl_4_8,
+      38 => GgmlType.iq4_nl_8_8,
+      39 => GgmlType.mxfp4,
+      _ => GgmlType.f32,
+    };
+  }
 
   /// Converts a string value to the corresponding `GgmlType` enum value.
   static GgmlType fromString(String value) {
-    switch (value) {
-      case 'f32':
-        return GgmlType.f32;
-      case 'f16':
-        return GgmlType.f16;
-      case 'q4_0':
-        return GgmlType.q4_0;
-      case 'q4_1':
-        return GgmlType.q4_1;
-      case 'q4_2':
-        return GgmlType.q4_2;
-      case 'q4_3':
-        return GgmlType.q4_3;
-      case 'q5_0':
-        return GgmlType.q5_0;
-      case 'q5_1':
-        return GgmlType.q5_1;
-      case 'q8_0':
-        return GgmlType.q8_0;
-      case 'q8_1':
-        return GgmlType.q8_1;
-      case 'q2_k':
-        return GgmlType.q2_k;
-      case 'q3_k':
-        return GgmlType.q3_k;
-      case 'q4_k':
-        return GgmlType.q4_k;
-      case 'q5_k':
-        return GgmlType.q5_k;
-      case 'q6_k':
-        return GgmlType.q6_k;
-      case 'q8_k':
-        return GgmlType.q8_k;
-      case 'iq2_xxs':
-        return GgmlType.iq2_xxs;
-      case 'iq2_xs':
-        return GgmlType.iq2_xs;
-      case 'iq3_xxs':
-        return GgmlType.iq3_xxs;
-      case 'iq1_s':
-        return GgmlType.iq1_s;
-      case 'iq4_nl':
-        return GgmlType.iq4_nl;
-      case 'iq3_s':
-        return GgmlType.iq3_s;
-      case 'iq2_s':
-        return GgmlType.iq2_s;
-      case 'iq4_xs':
-        return GgmlType.iq4_xs;
-      case 'i8':
-        return GgmlType.i8;
-      case 'i16':
-        return GgmlType.i16;
-      case 'i32':
-        return GgmlType.i32;
-      case 'i64':
-        return GgmlType.i64;
-      case 'f64':
-        return GgmlType.f64;
-      case 'iq1_m':
-        return GgmlType.iq1_m;
-      case 'bf16':
-        return GgmlType.bf16;
-      case 'q4_0_4_4':
-        return GgmlType.q4_0_4_4;
-      case 'q4_0_4_8':
-        return GgmlType.q4_0_4_8;
-      case 'q4_0_8_8':
-        return GgmlType.q4_0_8_8;
-      case 'tq1_0':
-        return GgmlType.tq1_0;
-      case 'tq2_0':
-        return GgmlType.tq2_0;
-      default:
-        return GgmlType.f32;
-    }
+    return switch (value) {
+      'f32' => GgmlType.f32,
+      'f16' => GgmlType.f16,
+      'q4_0' => GgmlType.q4_0,
+      'q4_1' => GgmlType.q4_1,
+      'q4_2' => GgmlType.q4_2,
+      'q4_3' => GgmlType.q4_3,
+      'q5_0' => GgmlType.q5_0,
+      'q5_1' => GgmlType.q5_1,
+      'q8_0' => GgmlType.q8_0,
+      'q8_1' => GgmlType.q8_1,
+      'q2_k' => GgmlType.q2_k,
+      'q3_k' => GgmlType.q3_k,
+      'q4_k' => GgmlType.q4_k,
+      'q5_k' => GgmlType.q5_k,
+      'q6_k' => GgmlType.q6_k,
+      'q8_k' => GgmlType.q8_k,
+      'iq2_xxs' => GgmlType.iq2_xxs,
+      'iq2_xs' => GgmlType.iq2_xs,
+      'iq3_xxs' => GgmlType.iq3_xxs,
+      'iq1_s' => GgmlType.iq1_s,
+      'iq4_nl' => GgmlType.iq4_nl,
+      'iq3_s' => GgmlType.iq3_s,
+      'iq2_s' => GgmlType.iq2_s,
+      'iq4_xs' => GgmlType.iq4_xs,
+      'i8' => GgmlType.i8,
+      'i16' => GgmlType.i16,
+      'i32' => GgmlType.i32,
+      'i64' => GgmlType.i64,
+      'f64' => GgmlType.f64,
+      'iq1_m' => GgmlType.iq1_m,
+      'bf16' => GgmlType.bf16,
+      'q4_0_4_4' => GgmlType.q4_0_4_4,
+      'q4_0_4_8' => GgmlType.q4_0_4_8,
+      'q4_0_8_8' => GgmlType.q4_0_8_8,
+      'tq1_0' => GgmlType.tq1_0,
+      'tq2_0' => GgmlType.tq2_0,
+      'iq4_nl_4_4' => GgmlType.iq4_nl_4_4,
+      'iq4_nl_4_8' => GgmlType.iq4_nl_4_8,
+      'iq4_nl_8_8' => GgmlType.iq4_nl_8_8,
+      'mxfp4' => GgmlType.mxfp4,
+       _=> GgmlType.f32,
+    };
   }
 }

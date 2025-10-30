@@ -1,17 +1,35 @@
 name: core
-description: "AI4All Core Edition"
+description: "A new Flutter project."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-# Prevent accidental publishing to pub.dev.
-publish_to: 'none'
-
-version: 1.2.2
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+# In Windows, build-name is used as the major, minor, and patch parts
+# of the product and file versions while build-number is used as the build suffix.
+version: 1.3.0+1
 
 resolution: workspace
 
 environment:
   sdk: '>=3.7.0 < 4.0.0'
   flutter: '>=3.27.0'
-  
+
+# Dependencies specify other packages that your package needs in order to work.
+# To automatically upgrade your package dependencies to the latest versions
+# consider running `flutter pub upgrade --major-versions`. Alternatively,
+# dependencies can be manually updated by changing the version numbers below to
+# the latest version available on pub.dev. To see which dependencies have newer
+# versions available, run `flutter pub outdated`.
 dependencies:
   flutter:
     sdk: flutter
@@ -22,12 +40,15 @@ dependencies:
   unnu_ai_model:
   unnu_shared:
   unnu_widgets:
-  unnu_speech:
   unnu_sap:
+  unnu_speech:
   unnu_aux:
   unnu_common:
   flutter_chat_core: ^2.8.0
-  langchain: ^0.8.0+1
+  langchain:
+    git:
+      url: https://github.com/sheldonrobinson/langchain_dart.git
+      path: packages/langchain
   sqflite: ^2.4.2
   sqflite_common_ffi: ^2.3.6
   sembast: ^3.8.5+1
@@ -39,12 +60,20 @@ dependencies:
   june: ^1.0.0+1
   readmore_expandable_text: ^0.0.3
   timeago: ^3.7.1
+  splasher: ^0.1.1
+  lottie: ^3.3.2
   native_splash_screen: ^3.0.0
   window_manager: ^0.5.1
-  nativeapi: ^0.1.0-dev.2
+  nativeapi: ^0.1.0
+  super_native_extensions: ^0.9.1
+  super_clipboard: ^0.9.1
+  super_drag_and_drop: ^0.9.1
   flutter_platform_alert: ^0.8.0
   asset_cache: ^2.2.0
   flutter_adaptive_scaffold: ^0.3.3+1
+  card_settings_ui: ^2.0.1
+  flutter_form_builder: ^10.2.0
+  form_builder_validators: ^11.2.0
   package_info_plus: ^9.0.0
   flutter_memory_info: ^0.0.3
   disclosure: ^2.2.0
@@ -52,6 +81,7 @@ dependencies:
   feedback: ^3.2.0
   feedback_gitlab: ^3.0.0
   msix: ^3.16.9
+
 
 dev_dependencies:
   flutter_test:
@@ -61,8 +91,12 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.4
   native_splash_screen_cli: ^3.0.0
   very_good_analysis: ^10.0.0
+  build_runner: ^2.10.1
+  flutter_gen_runner: ^5.12.0
 
-      
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
 flutter:
   generate: true # Add this line
   uses-material-design: true
@@ -76,7 +110,7 @@ flutter:
     - assets/icon/2.0x/
     - assets/icon/3.0x/
     # model
-    - assets/models/chat/Qwen3-0.6B-Q8_0.gguf
+    - assets/models/chat/Qwen3-1.7B-Q4_K_M.gguf
     # resources
     - assets/json/config.json
     - assets/resources/disclaimer.md
@@ -418,7 +452,7 @@ msix_config:
   publisher_display_name: Sheldon Robinson
   identity_name: SheldonRobinson.AI4AllCore
   publisher: CN=1F2E715E-C3E2-42EE-A3A0-0B5CA6D53B74
-  msix_version: 1.2.2.0
+  msix_version: 1.3.0.0
   logo_path: H:\AI4All\apps\Core\assets\icon\3.0x\icon.png
   capabilities: microphone, broadFileSystemAccess, internetClient 
   store: true

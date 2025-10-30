@@ -1,23 +1,22 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:collection/collection.dart';
 import 'package:diffutil_dart/diffutil.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_chat_core/flutter_chat_core.dart';
 import 'package:sembast/sembast.dart';
-import 'package:collection/collection.dart';
 
 class SembastChatController
     with UploadProgressMixin, ScrollToMessageMixin
     implements ChatController {
+
+  SembastChatController(this.database);
   final Database database;
   final _operationsController = StreamController<ChatOperation>.broadcast();
   String _activeSessionId = '';
   set activeSessionId(String value) {
     _activeSessionId = value;
   }
-
-  SembastChatController(this.database);
 
   @override
   Future<void> insertMessage(Message message, {int? index}) async {
@@ -44,7 +43,9 @@ class SembastChatController
       if (result.isNotEmpty) return;
     }
     await store.add(database, message.toJson());
-    _operationsController.add(ChatOperation.insert(message, index ?? idx));
+    if ((message.metadata?['session.id'] ?? '') ==  _activeSessionId) {
+      _operationsController.add(ChatOperation.insert(message, index ?? idx));
+    }
   }
 
   @override
@@ -70,7 +71,9 @@ class SembastChatController
     if (record != null) {
       int idx = record.$1;
       final deleted = await store.record(record.$2.key).delete(database);
-      _operationsController.add(ChatOperation.remove(message, idx));
+      if ((message.metadata?['session.id'] ?? '') ==  _activeSessionId) {
+        _operationsController.add(ChatOperation.remove(message, idx));
+      }
     }
   }
 
@@ -85,7 +88,7 @@ class SembastChatController
       finder: Finder(
         filter: Filter.custom((record) {
           final message = Message.fromJson(
-            record.value as Map<String, dynamic>,
+            (record.value ?? <String, dynamic>{}) as Map<String, dynamic>,
           );
           return message.metadata != null &&
                   message.metadata!.containsKey('session.id')
@@ -104,16 +107,17 @@ class SembastChatController
       if (result.isNotEmpty) {
         final msg = Message.fromJson(result.first.$2.value);
         final oldIsStreaming =
-            msg.metadata != null && msg.metadata!.containsKey('allow.updates')
-                ? msg.metadata!['allow.updates'] as bool
-                : true;
+            !(msg.metadata != null && msg.metadata!.containsKey('allow.updates'))
+                || msg.metadata!['allow.updates'] as bool;
         if (oldIsStreaming) {
           await store
               .record(result.first.$2.key)
               .update(database, newMessage.toJson());
-          _operationsController.add(
-            ChatOperation.update(oldMessage, newMessage, result.first.$1),
-          );
+          if ((newMessage.metadata?['session.id'] ?? '') ==  _activeSessionId) {
+            _operationsController.add(
+              ChatOperation.update(oldMessage, newMessage, result.first.$1),
+            );
+          }
         }
       }
     }
@@ -208,8 +212,7 @@ class SembastChatController
               );
               return message.metadata != null &&
                       message.metadata!.containsKey('session.id')
-                  ? message.metadata!['session.id'] == _activeSessionId
-                  : false;
+                  && message.metadata!['session.id'] == _activeSessionId;
             }),
             sortOrders: [SortOrder('createdAt')],
           ),
@@ -238,8 +241,8 @@ class SembastChatController
     final ids = newMessages.groupSetsBy(
       (element) => element.metadata?['session.id'],
     );
-    int length = 0;
-    for (var value in ids.values) {
+    var length = 0;
+    for (final value in ids.values) {
       length = max(length, value.length);
     }
 

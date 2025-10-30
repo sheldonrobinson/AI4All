@@ -1,402 +1,165 @@
 part of '../unnu_ai_model.dart';
 
-/// A back-and-forth chat with a generative model.
-///
-/// Records messages sent and received in [history]. The history will always
-/// record the content from the first candidate in the
-/// [LLMResult], other candidates may be available on the returned
-/// response.
-final class ChatSession {
-  final Future<LLMResult> Function(
-    ChatPromptValue content, {
-    LLMOptions? generationConfig,
-  })
-  GenerateContent;
-  final Stream<LLMResult> Function(
-    ChatPromptValue content, {
-    LLMOptions? generationConfig,
-  })
-  GenerateContentStream;
-
-  final _mutex = Mutex();
-  final List<cm.ChatMessage> _history;
-  final LLMOptions? _generationConfig;
-
-  ChatSession._(
-    this.GenerateContent,
-    this.GenerateContentStream,
-    this._history,
-    this._generationConfig,
-  );
-
-  /// The content that has been successfully sent to, or received from, the
-  /// generative model.
-  ///
-  /// If there are outstanding requests from calls to [sendMessage] or
-  /// [sendMessageStream], these will not be reflected in the history.
-  /// Messages without a candidate in the response are not recorded in history,
-  /// including the message sent to the model.
-  Iterable<cm.ChatMessage> get history => _history.skip(0);
-
-  void rewrite(Iterable<cm.ChatMessage> messages) async {
-    final lock = await _mutex.acquire();
-    try {
-      _history.clear();
-      _history.addAll(messages);
-    } finally {
-      if (lock != null) {
-        lock.release();
-      }
-    }
-  }
-
-  /// Sends [message] to the model as a continuation of the chat [history].
-  ///
-  /// Prepends the history to the request and uses the provided model to
-  /// generate new content.
-  ///
-  /// When there are no candidates in the response, the [message] and response
-  /// are ignored and will not be recorded in the [history].
-  ///
-  /// Waits for any ongoing or pending requests to [sendMessage] or
-  /// [sendMessageStream] to complete before generating new content.
-  /// Successful messages and responses for ongoing or pending requests will
-  /// be reflected in the history sent for this message.
-  Future<LLMResult> sendMessage(cm.ChatMessage message) async {
-    final lock = await _mutex.acquire();
-    try {
-      final response = await GenerateContent(
-        ChatPromptValue(_history.followedBy([message]).toList(growable: false)),
-        generationConfig: _generationConfig,
-      );
-      _history
-        ..add(message)
-        ..add(cm.ChatMessage.ai(response.output));
-      return response;
-    } finally {
-      if (lock != null) {
-        lock.release();
-      }
-    }
-  }
-
-  /// Continues the chat with a new [message].
-  ///
-  /// Sends [message] to the model as a continuation of the chat [history] and
-  /// reads the response in a stream.
-  /// Prepends the history to the request and uses the provided model to
-  /// generate new content.
-  ///
-  /// When there are no candidates in any response in the stream, the [message]
-  /// and responses are ignored and will not be recorded in the [history].
-  ///
-  /// Waits for any ongoing or pending requests to [sendMessage] or
-  /// [sendMessageStream] to complete before generating new content.
-  /// Successful messages and responses for ongoing or pending requests will
-  /// be reflected in the history sent for this message.
-  ///
-  /// Waits to read the entire streamed response before recording the message
-  /// and response and allowing pending messages to be sent.
-  Stream<LLMResult> sendMessageStream(
-    cm.ChatMessage message, {
-    Map<String, dynamic> metadata = const <String, dynamic>{},
-  }) async* {
-    try {
-      fmt.format('{h} {w}', {'h': 'hello', 'w': 'world'});
-      final prompt = switch (message) {
-        SystemChatMessage() =>
-          (metadata['rag.enabled'] ?? false) as bool &&
-                  ((metadata['rag.data'] ?? <String, dynamic>{})
-                          as Map<String, dynamic>)
-                      .isNotEmpty
-              ? ChatMessage.system(
-                fmt.format(
-                  UNNU_RAG_SYSTEM_PROMPT,
-                  metadata['rag.data'] as Map<String, Object>,
-                ),
-              )
-              : message,
-        HumanChatMessage() =>
-          (metadata['rag.enabled'] ?? false) as bool &&
-                  ((metadata['rag.data'] ?? <String, Object>{})
-                          as Map<String, Object>)
-                      .isNotEmpty
-              ? ChatMessage.humanText(
-                fmt.format(
-                  UNNU_RAG_COT_PROMPT,
-                  metadata['rag.data'] as Map<String, Object>,
-                ),
-              )
-              : message,
-        AIChatMessage() => message,
-        ToolChatMessage() => message,
-        CustomChatMessage() => message,
-      };
-      var fullResponse = const LLMResult(
-        id: '',
-        output: '',
-        finishReason: FinishReason.unspecified,
-        metadata: {},
-        usage: LanguageModelUsage(),
-      );
-      final promptValue = ChatPromptValue(
-        _history.followedBy([prompt]).toList(growable: false),
-      );
-      yield* GenerateContentStream(
-        promptValue,
-        generationConfig: _generationConfig,
-      ).map((response) {
-        if (response.finishReason == FinishReason.stop ||
-            response.finishReason == FinishReason.toolCalls) {
-          fullResponse = response;
-        }
-        return response;
-      });
-
-      _history.add(message);
-      var tools = List<cm.AIChatMessageToolCall>.empty(growable: false);
-      if (fullResponse.metadata['tool_calls'] != null) {
-        final toolCalls =
-            const JsonDecoder().convert(
-                  (fullResponse.metadata['tool_calls']) as String,
-                )
-                as List<Map<String, String>>;
-        tools =
-            toolCalls
-                .map<cm.AIChatMessageToolCall>(
-                  (value) => cm.AIChatMessageToolCall(
-                    id: value['id'] ?? '<unspecified>',
-                    name: value['name'] ?? '<unspecified>',
-                    arguments:
-                        value['arguments'] != null
-                            ? JsonDecoder().convert(
-                                  value['arguments']!,
-                                )
-                                as Map<String, dynamic>
-                            : <String, dynamic>{},
-                    argumentsRaw: value['arguments'] ?? '',
-                  ),
-                )
-                .toList();
-      }
-      final aiMessage = cm.AIChatMessage(
-        content: fullResponse.output,
-        toolCalls: tools,
-      );
-      _history.add(aiMessage);
-    } catch (e, s) {
-      if (kDebugMode) {
-        debugPrintStack(stackTrace: s);
-      }
-    }
-  }
-
-  static ChatSession dummy() {
-    return ChatSession._(
-      (content, {generationConfig}) => Future<LLMResult>.value(
-        LLMResult(
-          id: '',
-          metadata: {},
-          finishReason: FinishReason.unspecified,
-          output: '',
-          usage: LanguageModelUsage(),
-          streaming: false,
-        ),
-      ),
-      (content, {generationConfig}) => Stream<LLMResult>.empty(),
-      [],
-      LcppOptions(concurrencyLimit: 100, defaultIsStreaming: false),
-    );
-  }
-}
-
-/// Starts a [ChatSession] that will use this model to respond to messages.
-///
-/// ```dart
-/// final chat = model.startChat();
-/// final response = await chat.sendMessage(Content.text('Hello there.'));
-/// print(response.text);
-/// ```
-ChatSession _startChat(
-  Future<LLMResult> Function(
-    ChatPromptValue content, {
-    LLMOptions? generationConfig,
-  })
-  generateContent,
-  Stream<LLMResult> Function(
-    ChatPromptValue content, {
-    LLMOptions? generationConfig,
-  })
-  generateContentStream, {
-  List<cm.ChatMessage>? history,
-  LLMOptions? generationConfig,
-}) => ChatSession._(
-  generateContent,
-  generateContentStream,
-  history ?? [],
-  generationConfig,
-);
-
 typedef ChatCallback =
-    Future<LLMResult> Function(
+    Future<ChatResult> Function(
       PromptValue prompt, {
-      LLMOptions? generationConfig,
+      ChatModelOptions? generationConfig,
     });
 typedef StreamingChatCallback =
-    Stream<LLMResult> Function(
+    Stream<ChatResult> Function(
       PromptValue prompt, {
-      LLMOptions? generationConfig,
+      ChatModelOptions? generationConfig,
     });
 
 final class UnnuAIModel with ChangeNotifier {
-  final BaseChatMessageHistory chatMessageHistory;
-  final BaseLLM model;
-  final StreamSink<String>? responseSink;
-
-  static RegExp thinking = RegExp(
-    '^<think>(.*)</think>',
-    multiLine: true,
-    dotAll: true,
-  );
-
   UnnuAIModel({
     required this.model,
-    BaseChatMessageHistory? chatMessageHistory,
+    required this.memory,
     this.responseSink,
-  }) : chatMessageHistory =
-           chatMessageHistory ??
-           ChatMessageHistory(
-             messages: List<cm.ChatMessage>.empty(growable: true),
-           );
+  });
+  final BaseChatMemory memory;
+  final BaseChatModel model;
+  final StreamSink<String>? responseSink;
+  final Map<String, Tool> _tools = <String, Tool>{};
 
   UnnuAIModel copyWith({
-    BaseChatMessageHistory? chatMessageHistory,
-    BaseLLM? model,
+    BaseChatMemory? memory,
+    BaseChatModel? model,
     StreamSink<String>? responseSink,
-    String? modelName,
   }) {
     return UnnuAIModel(
-      chatMessageHistory: chatMessageHistory ?? this.chatMessageHistory,
+      memory: memory ?? this.memory,
       model: model ?? this.model,
       responseSink: responseSink ?? this.responseSink,
     );
   }
 
-  Stream<LLMResult> prompt(
-    List<cm.ChatMessage> request, {
-    LLMOptions? options,
-  }) async* {
-    final messages = await chatMessageHistory.getChatMessages().then(
-      (value) => value.followedBy(request),
-    );
-
-    String response = '';
-    final stream =
-        ((options ??
-                    const LcppOptions(
-                      defaultIsStreaming: true,
-                      concurrencyLimit: 1000,
-                    ))
-                as LcppOptions)
-            .defaultIsStreaming;
-    if (stream) {
-      yield* model
-          .stream(ChatPromptValue(messages.toList(growable: false)))
-          .map((result) {
-            if (result.streaming) {
-              response += result.output;
-              responseSink?.add(result.output);
-            }
-            return result;
-          });
-    } else {
-      yield* model
-          .invoke(ChatPromptValue(messages.toList(growable: false)))
-          .asStream()
-          .map((result) {
-            response += result.output;
-            responseSink?.add(result.output);
-
-            return result;
-          });
-    }
-
-    responseSink?.add(''); //send empty string to flush Dialoguizer
-    cm.ChatMessage llmMessage = cm.ChatMessage.ai(
-      response.replaceFirst(thinking, ''),
-    );
-
-    for (final message in request) {
-      await chatMessageHistory.addChatMessage(message);
-    }
-    await chatMessageHistory.addChatMessage(llmMessage);
-  }
-
-  ChatSession getChatSession({
-    List<cm.ChatMessage>? history,
-    LLMOptions? generationConfig,
-  }) {
-    return _startChat(
-      _content,
-      _streaming,
-      history: history ?? [],
-      generationConfig: generationConfig,
-    );
-  }
-
-  Future<LLMResult> _content(
-    PromptValue contents, {
-    LLMOptions? generationConfig,
-  }) async {
-    LcppOptions options = LcppOptions(
+  ChatModelOptions get options => switch (model.defaultOptions) {
+    LcppOptions() => model.defaultOptions.copyWith(
       model: model.modelType,
-      concurrencyLimit:
-          generationConfig?.concurrencyLimit ??
-          model.defaultOptions.concurrencyLimit,
-      defaultIsStreaming: false,
-    );
-
-    prompt(contents.toChatMessages(), options: options);
-
-    return await prompt(contents.toChatMessages()).reduce((
-      LLMResult prev,
-      LLMResult curr,
-    ) {
-      return prev.concat(curr);
-    });
-  }
-
-  Stream<LLMResult> _streaming(
-    PromptValue contents, {
-    LLMOptions? generationConfig,
-  }) async* {
-    LcppOptions options = LcppOptions(
+    ),
+    _ => const LcppOptions().copyWith(
       model: model.modelType,
-      concurrencyLimit:
-          generationConfig?.concurrencyLimit ??
-          model.defaultOptions.concurrencyLimit,
+      concurrencyLimit: model.defaultOptions.concurrencyLimit,
+      tools: _tools.values.toList(),
       defaultIsStreaming: true,
-    );
+      toolChoice: _tools.isNotEmpty ? ChatToolChoice.auto : ChatToolChoice.none,
+    ),
+  };
 
-    yield* prompt(contents.toChatMessages(), options: options);
-  }
+  ToolsAgent get agent => ToolsAgent.fromLLMAndTools(
+    llm: model,
+    memory: memory,
+    tools: _tools.values.toList(),
+  );
 
-  set history(List<cm.ChatMessage> messages) {
-    chatMessageHistory.clear();
-    for (final msg in messages) {
-      chatMessageHistory.addChatMessage(msg);
+  Future<void> setup({List<Tool> tools = const <Tool>[]}) async {
+    if (tools.isNotEmpty ){
+      _tools.addEntries(
+        tools.map((element) => MapEntry(element.name, element)),
+      );
+    } else {
+      _tools.clear();
     }
-    notifyListeners();
+    if (model is LlamaCppProvider) {
+      await (model as LlamaCppProvider).setup(tools: tools);
+    }
+
   }
 
-  Future<List<cm.ChatMessage>> get messages async {
-    return await chatMessageHistory.getChatMessages();
+  Future<void> teardown() async {
+    if (model is LlamaCppProvider) {
+      await (model as LlamaCppProvider).teardown();
+    }
+    _tools.clear();
+  }
+
+  Stream<ChatResult> get chat =>
+      (model is LlamaCppProvider)
+          ? (model as LlamaCppProvider).chat.tap(
+            (message) => responseSink?.add(
+              !(message.finishReason == FinishReason.stop ||
+                      message.finishReason == FinishReason.toolCalls)
+                  ? message.output.content
+                  : '',
+            ),
+          )
+          : const Stream<ChatResult>.empty();
+
+  static ChatMessage transformToRAG(
+    ChatMessage message, {
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) {
+    final data =
+        (metadata['rag.data'] ?? const <String, dynamic>{})
+            as Map<String, dynamic>;
+    final enabled = (metadata['rag.enabled'] ?? false) as bool;
+    return switch (message) {
+      SystemChatMessage() =>
+        enabled && data.isNotEmpty
+            ? ChatMessage.system(
+              ((data[UnnuQueryFragmentType.CURRENT_INFO.name] ?? '') as String)
+                      .trim()
+                      .isNotEmpty
+                  ? fmt.format(
+                    UNNU_RAG_SYSTEM_PROMPT,
+                    {
+                      ...data,
+                      'RANDOM': 'R${const Uuid().v1().replaceAll('-', '')}',
+                    },
+                  )
+                  : (data[UnnuQueryFragmentType.USER_QUERY.name] ?? '')
+                      as String,
+            )
+            : ChatMessage.system('\n\n${message.content}'),
+      HumanChatMessage() =>
+        enabled && data.isNotEmpty
+            ? ChatMessage.humanText(
+              ((data[UnnuQueryFragmentType.CURRENT_INFO.name] ?? '') as String)
+                      .trim()
+                      .isNotEmpty
+                  ? fmt.format(
+                    UNNU_RAG_COT_PROMPT,
+                    {
+                      ...data,
+                      'RANDOM': 'R${const Uuid().v1().replaceAll('-', '')}',
+                    },
+                  )
+                  : (data[UnnuQueryFragmentType.USER_QUERY.name] ?? '')
+                      as String,
+            )
+            : ChatMessage.humanText('\n\n${message.content}'),
+      AIChatMessage() => message,
+      ToolChatMessage() => message,
+      CustomChatMessage() => message,
+    };
+  }
+
+  ChatPromptTemplate prompt(String query) {
+    model.bind(options);
+    final promptTemplate = ChatPromptTemplate.fromTemplates(const []);
+
+    return promptTemplate;
+  }
+
+  Future<void> _setHistory(List<ChatMessage> messages) async {
+    await memory.clear().whenComplete(
+      () => messages.forEach(memory.chatHistory.addChatMessage),
+    );
+  }
+
+  set history(List<ChatMessage> messages) {
+    unawaited(_setHistory(messages).then((value) => notifyListeners()));
+  }
+
+  Future<List<ChatMessage>> get messages async {
+    return memory.chatHistory.getChatMessages();
   }
 
   Future<void> reset() async {
     if (model is LlamaCppProvider) {
       (model as LlamaCppProvider).reset();
     }
-    await chatMessageHistory.clear();
+    await memory.clear();
   }
 }

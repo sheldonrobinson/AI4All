@@ -53,9 +53,9 @@ typedef struct maAsrData
 } maAsrData_t;
 
 
-static const SherpaOnnxOnlineRecognizer* _recognizer = NULL;
+static const SherpaOnnxOnlineRecognizer* _unnu_asr_recognizer = NULL;
 
-static const SherpaOnnxOnlineStream* _stream = NULL;
+static const SherpaOnnxOnlineStream* _unnu_asr_stream = NULL;
 
 static const SherpaOnnxVoiceActivityDetector* _vad = NULL;
 
@@ -65,11 +65,11 @@ static const SherpaOnnxOnlinePunctuation* _punct = NULL;
 
 static bool _muted{ false };
 
-static std::atomic<bool> _enabled{ true };
+static std::atomic<bool> _unnu_asr_enabled{ true };
 
 static std::atomic<bool> _punctuate{ false };
 
-static bool _supported{ false };
+static bool _unnu_asr_supported{ false };
 
 static bool _is_listening{ false };
 
@@ -303,10 +303,10 @@ void _mic_init(
 #if defined(DEBUG) || defined(_DEBUG)
 		fprintf(stderr, "_mic_init Failed to open device.\n");
 #endif
-		_supported = false;
+		_unnu_asr_supported = false;
 		return;
 	}
-	_supported = true;
+	_unnu_asr_supported = true;
 #if defined(DEBUG) || defined(_DEBUG)
 	fprintf(stderr, "_mic_init:>\n");
 #endif
@@ -317,18 +317,18 @@ void unnu_asr_init(SherpaOnnxOnlineRecognizerConfig  config, SherpaOnnxVadModelC
 	fprintf(stderr, "unnu_asr_init()\n");
 #endif
 
-	if (_recognizer == NULL) {
+	if (_unnu_asr_recognizer == NULL) {
 #if defined(DEBUG) || defined(_DEBUG)
 		fprintf(stderr, "_recognizer()\n");
 #endif
-		_recognizer = SherpaOnnxCreateOnlineRecognizer(&config);
+		_unnu_asr_recognizer = SherpaOnnxCreateOnlineRecognizer(&config);
 	}
 
-	if (_stream == NULL && _recognizer != NULL) {
+	if (_unnu_asr_stream == NULL && _unnu_asr_recognizer != NULL) {
 #if defined(DEBUG) || defined(_DEBUG)
 		fprintf(stderr, "_stream()\n");
 #endif
-		_stream = SherpaOnnxCreateOnlineStream(_recognizer);
+		_unnu_asr_stream = SherpaOnnxCreateOnlineStream(_unnu_asr_recognizer);
 	}
 	if (strlen(vadConfig.silero_vad.model) > 0) {
 		if (_vad == NULL) {
@@ -408,15 +408,15 @@ int recordingCallback(void* user_data)
 			break;
 		}
 		
-		SherpaOnnxOnlineStreamAcceptWaveform(_stream, 48000,
+		SherpaOnnxOnlineStreamAcceptWaveform(_unnu_asr_stream, 48000,
 			frames, 4800);
 
-		while (SherpaOnnxIsOnlineStreamReady(_recognizer, _stream)) {
-			SherpaOnnxDecodeOnlineStream(_recognizer, _stream);
+		while (SherpaOnnxIsOnlineStreamReady(_unnu_asr_recognizer, _unnu_asr_stream)) {
+			SherpaOnnxDecodeOnlineStream(_unnu_asr_recognizer, _unnu_asr_stream);
 		}
 
 		const SherpaOnnxOnlineRecognizerResult* r =
-			SherpaOnnxGetOnlineStreamResult(_recognizer, _stream);
+			SherpaOnnxGetOnlineStreamResult(_unnu_asr_recognizer, _unnu_asr_stream);
 
 		if (strlen(r->text) > 0) {
 			std::string text = r->text;
@@ -456,11 +456,11 @@ int recordingCallback(void* user_data)
 		}
 		SherpaOnnxDestroyOnlineRecognizerResult(r);
 
-		if (SherpaOnnxOnlineStreamIsEndpoint(_recognizer, _stream)) {
-			SherpaOnnxOnlineStreamReset(_recognizer, _stream);
+		if (SherpaOnnxOnlineStreamIsEndpoint(_unnu_asr_recognizer, _unnu_asr_stream)) {
+			SherpaOnnxOnlineStreamReset(_unnu_asr_recognizer, _unnu_asr_stream);
 
 			_transcribing = false;
-			if (_enabled.load() && !response.empty()) {
+			if (_unnu_asr_enabled.load() && !response.empty()) {
 #if defined(DEBUG) || defined(_DEBUG)
 				fprintf(stderr, "_heard %s\n", response.c_str());
 #endif
@@ -481,7 +481,7 @@ int recordingCallback(void* user_data)
 			response = "";
 		}
 	}
-	SherpaOnnxOnlineStreamReset(_recognizer, _stream);
+	SherpaOnnxOnlineStreamReset(_unnu_asr_recognizer, _unnu_asr_stream);
 #if defined(DEBUG) || defined(_DEBUG)
 	fprintf(stderr, "recordingCallback := is_listening(%s)\n", _is_listening ? "true" : "false");
 #endif
@@ -518,7 +518,7 @@ bool unnu_asr_start() {
 #if defined(DEBUG) || defined(_DEBUG)
 	fprintf(stderr, "unnu_asr_start()\n");
 #endif
-	if (_supported && thread_atomic_int_load(&record_flag) != 0) {
+	if (_unnu_asr_supported && thread_atomic_int_load(&record_flag) != 0) {
 			thread_atomic_int_store( &record_flag, 0 );
 			recording_worker = thread_create(recordingCallback, &record_flag, THREAD_STACK_SIZE_DEFAULT);
 			ma_data->streaming = true;
@@ -533,7 +533,7 @@ bool unnu_asr_stop() {
 #if defined(DEBUG) || defined(_DEBUG)
 	fprintf(stderr, "unnu_asr_stop(streaming: %s)\n", ma_data->streaming ? "true" : "false");
 #endif
-	if (_supported) {
+	if (_unnu_asr_supported) {
 		ma_data->streaming = false;
 		thread_atomic_int_store( &record_flag, 1 );
 	}
@@ -548,18 +548,18 @@ void unnu_asr_destroy() {
 		fprintf(stderr, "osaudio_close closed mic.\n");
 #endif
 		ma_data->streaming = false;
-		_supported = false;
+		_unnu_asr_supported = false;
 	}
 
 	if (_punct != NULL) {
 		SherpaOnnxDestroyOnlinePunctuation(_punct);
 	}
 
-	if (_stream != NULL) {
-		SherpaOnnxDestroyOnlineStream(_stream);
+	if (_unnu_asr_stream != NULL) {
+		SherpaOnnxDestroyOnlineStream(_unnu_asr_stream);
 	}
-	if (_recognizer != NULL) {
-		SherpaOnnxDestroyOnlineRecognizer(_recognizer);
+	if (_unnu_asr_recognizer != NULL) {
+		SherpaOnnxDestroyOnlineRecognizer(_unnu_asr_recognizer);
 	}
 
 	if (_vad != NULL) {
@@ -579,7 +579,7 @@ bool unnu_asr_is_streaming() {
 }
 
 bool unnu_asr_is_supported() {
-	return _supported;
+	return _unnu_asr_supported;
 }
 
 void unnu_asr_mute(bool mute) {
@@ -614,12 +614,12 @@ void unnu_asr_enable(bool enable) {
 #if defined(DEBUG) || defined(_DEBUG)
 	fprintf(stderr, "unnu_asr_enable(%s)\n", enable ? "true" : "false");
 #endif
-	_enabled = enable ? unnu_asr_start() : !unnu_asr_stop();
+	_unnu_asr_enabled = enable ? unnu_asr_start() : !unnu_asr_stop();
 #if defined(DEBUG) || defined(_DEBUG)
 	fprintf(stderr, "unnu_asr_enable::>\n");
 #endif
 }
 
 bool unnu_asr_is_enabled() {
-	return _enabled.load();
+	return _unnu_asr_enabled.load();
 }

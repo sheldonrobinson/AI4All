@@ -223,7 +223,13 @@ class ResponseData {
 
   @override
   String toString() {
-    return 'ResponseData(content: $content, citations: $citations, references: $references, metadata: $metadata)';
+    return '''
+    ResponseData:
+    \tcontent: $content
+    \tcitations: $citations
+    \treferences: $references
+    \tmetadata: $metadata
+    ''';
   }
 
   @override

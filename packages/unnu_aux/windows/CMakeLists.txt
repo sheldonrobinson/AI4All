@@ -56,9 +56,10 @@ find_package(Threads REQUIRED)
 ######################## hashpp
 FetchContent_Declare(
   hashpp
-  GIT_REPOSITORY https://github.com/D7EAD/HashPlusPlus.git
-  GIT_TAG        3805b30589d0e50b00b2896a7cb94bc85200e563
-  GIT_SHALLOW    TRUE
+  GIT_REPOSITORY 		 https://github.com/D7EAD/HashPlusPlus.git
+  GIT_TAG        		 origin/main
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
   
   EXCLUDE_FROM_ALL
 			 
@@ -91,9 +92,10 @@ endif()
 ######################## libconfig
 FetchContent_Declare(
   libconfig
-  GIT_REPOSITORY https://github.com/sheldonrobinson/libconfig.git
-  GIT_TAG        origin/unnu_aux
-  GIT_SHALLOW    TRUE
+  GIT_REPOSITORY 		 https://github.com/sheldonrobinson/libconfig.git
+  GIT_TAG        		 origin/unnu_aux
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
   
   EXCLUDE_FROM_ALL
 			 
@@ -112,9 +114,10 @@ FetchContent_MakeAvailable(libconfig)
 ######################## yaml-cpp
 FetchContent_Declare(
   yaml-cpp
-  GIT_REPOSITORY https://github.com/sheldonrobinson/yaml-cpp.git
-  GIT_TAG 		 origin/master
-  GIT_SHALLOW    TRUE
+  GIT_REPOSITORY 		 https://github.com/sheldonrobinson/yaml-cpp.git
+  GIT_TAG 		 		 origin/master
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
   
   EXCLUDE_FROM_ALL
 
@@ -136,9 +139,10 @@ FetchContent_MakeAvailable(yaml-cpp)
 ################## cpuinfo settings ###############################
 FetchContent_Declare(
   cpuinfo
-  GIT_REPOSITORY https://github.com/sheldonrobinson/cpuinfo.git
-  GIT_TAG        origin/main
-  GIT_SHALLOW    TRUE
+  GIT_REPOSITORY 		 https://github.com/sheldonrobinson/cpuinfo.git
+  GIT_TAG        		 origin/main
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
   
   EXCLUDE_FROM_ALL
 
@@ -164,30 +168,25 @@ file(REAL_PATH ${cpuinfo_BINARY_DIR} CPUINFO_BINARY_DIR)
 set(CPUINFO_LIBRARY ${CPUINFO_BINARY_DIR}/$<CONFIG>/cpuinfo.lib CACHE FILEPATH "cpuinfo library" FORCE)
 
 
-######################### blingfire
-# set(BLING_FIRE_INSTALL  OFF CACHE INTERNAL "Install applications and libraries" FORCE)
-# FetchContent_Declare(
-  # blingfire
-  # GIT_REPOSITORY	https://github.com/sheldonrobinson/BlingFire.git
-  # GIT_TAG			origin/master
+######################## dlib
+FetchContent_Declare(
+  dlib
+  GIT_REPOSITORY 		 https://github.com/sheldonrobinson/dlib.git
+  GIT_TAG        		 origin/master
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
+
+  OVERRIDE_FIND_PACKAGE
 			 
-  # OVERRIDE_FIND_PACKAGE
-# )
-
-# FetchContent_MakeAvailable(blingfire)
-
-# file(REAL_PATH ${blingfire_SOURCE_DIR}/blingfireclient.library/inc BLINGFIRE_INCLUDE_DIR)
-# file(REAL_PATH ${blingfire_SOURCE_DIR} BLINGFIRE_SOURCE_DIR)
-# file(REAL_PATH ${blingfire_BINARY_DIR} BLINGFIRE_BINARY_DIR)
-
-# set(BLINGFIRE_LIBRARY ${BLINGFIRE_BINARY_DIR}/$<CONFIG>/fsaClient.lib CACHE FILEPATH "blingfire library" FORCE)
+)
 
 ################## OpenBLAS
 FetchContent_Declare(
   openblas
-  GIT_REPOSITORY https://github.com/sheldonrobinson/OpenBLAS.git
-  GIT_TAG        origin/develop
-  GIT_SHALLOW    TRUE
+  GIT_REPOSITORY 		 https://github.com/sheldonrobinson/OpenBLAS.git
+  GIT_TAG        		 origin/develop
+  GIT_SHALLOW 			 TRUE
+  GIT_SUBMODULES_RECURSE TRUE
   
   EXCLUDE_FROM_ALL
 		 
@@ -222,10 +221,17 @@ file(REAL_PATH ${openblas_SOURCE_DIR} OPENBLAS_INCLUDE_DIR)
 file(REAL_PATH ${openblas_SOURCE_DIR} OPENBLAS_SOURCE_DIR)
 file(REAL_PATH ${openblas_BINARY_DIR} OPENBLAS_BINARY_DIR)
 
+file(GLOB OPENBLAS_HEADERS_H ${openblas_SOURCE_DIR}/*.h)
+file(COPY ${OPENBLAS_HEADERS_H} DESTINATION ${OPENBLAS_BINARY_DIR})
+file(TO_NATIVE_PATH ${CMAKE_BINARY_DIR} OPENBLAS_CONFIG_DIRPATH)
+file(TO_NATIVE_PATH ${OPENBLAS_BINARY_DIR} OPENBLAS_BINARY_DIRPATH)
+list(APPEND OPENBLAS_INCLUDE_PATH ${OPENBLAS_CONFIG_DIRPATH} ${OPENBLAS_BINARY_DIRPATH})
 set(OPENBLAS_LIBRARY ${OPENBLAS_BINARY_DIR}/lib/$<CONFIG>/openblas.lib CACHE FILEPATH "openblas library" FORCE)
 
+list(APPEND OPENBLAS_INCLUDE_DIRS ${OPENBLAS_INCLUDE_DIR} ${CMAKE_BINARY_DIR})
 set(BLAS_LIBRARIES ${OPENBLAS_LIBRARY} CACHE STRING "BLAS libraries" FORCE)
-set(BLAS_INCLUDE_DIRS ${OPENBLAS_INCLUDE_DIR} CACHE STRING "BLAS include dirs" FORCE)
+set(BLAS_INCLUDE_DIRS ${OPENBLAS_BINARY_DIR} CACHE STRING "BLAS include dirs" FORCE)
+# target_include_directories(openblas_shared PRIVATE ${OPENBLAS_BINARY_DIR})
 
 if(NOT TARGET BLAS::BLAS)
 	add_library(BLAS::BLAS INTERFACE IMPORTED)
@@ -235,77 +241,16 @@ if(NOT TARGET BLAS::BLAS)
 						  )
 endif()
 
-################## FFTW
-# FetchContent_Declare(
-  # fftw3f
-  # GIT_REPOSITORY https://github.com/sheldonrobinson/fftw3.git
-  # GIT_TAG        origin/main
-  # GIT_SHALLOW    TRUE
-  
-  # EXCLUDE_FROM_ALL
-		 
-  # OVERRIDE_FIND_PACKAGE
-# )
-
-# set(BUILD_TESTS OFF CACHE BOOL "Build tests" FORCE)
-# set(ENABLE_OPENMP ON CACHE BOOL "Use OpenMP for multithreading" FORCE)
-# set(ENABLE_THREADS ON CACHE BOOL "Use pthread for multithreading" FORCE)
-# set(WITH_COMBINED_THREADS OFF CACHE BOOL "Merge thread library" FORCE)
-# set(ENABLE_FLOAT ON CACHE BOOL "single-precision" FORCE)
-# set(ENABLE_LONG_DOUBLE OFF CACHE BOOL "long-double precision" FORCE)
-# set(ENABLE_QUAD_PRECISION OFF CACHE BOOL "quadruple-precision" FORCE)
-
-# set(ENABLE_SSE ON CACHE BOOL "Compile with SSE instruction set support" FORCE)
-# set(ENABLE_SSE2 ON CACHE BOOL "Compile with SSE2 instruction set support" FORCE)
-# set(ENABLE_AVX ON CACHE BOOL "Compile with AVX instruction set support" FORCE)
-# set(ENABLE_AVX2 ON CACHE BOOL "Compile with AVX2 instruction set support" FORCE)
-# set(DISABLE_FORTRAN ON CACHE BOOL "Disable Fortran wrapper routines" FORCE)
-# set(FFTW_INSTALL OFF CACHE BOOL "Install binaries" FORCE)
-
-# FetchContent_MakeAvailable(fftw3f)
-
-# if (MSVC)
-    # target_compile_options(fftw3f PUBLIC /fp:fast /arch:avx /arch:AVX2)
-	# target_compile_definitions(fftw3f PRIVATE FFTW_DLL)
-# else ()
-    # target_compile_options(openblas_shared PUBLIC -mavx -mavx2 -mfma)
-# endif ()
-
-# set_target_properties(fftw3f PROPERTIES
-                     # POSITION_INDEPENDENT_CODE ON)
-
-
-# if(NOT TARGET fftw3)
-	# add_library(fftw3 INTERFACE IMPORTED)
-    # set_target_properties(fftw3 PROPERTIES
-                          # INTERFACE_LINK_LIBRARIES fftw3f							  
-						  # INTERFACE_POSITION_INDEPENDENT_CODE ON
-						  # )
-# endif()
-
-
-######################## dlib
-FetchContent_Declare(
-  dlib
-  GIT_REPOSITORY https://github.com/sheldonrobinson/dlib.git
-  GIT_TAG        origin/master
-  GIT_SHALLOW    TRUE
-
-  OVERRIDE_FIND_PACKAGE
-			 
-)
-
+######################## dlib cont
 set(BLA_VENDOR "OpenBLAS" CACHE STRING "BLAS Vendor" FORCE)
-
 set(DLIB_IN_PROJECT_BUILD  ON CACHE INTERNAL "DLIB_IN_PROJECT_BUILD==true means you are using dlib by invoking add_subdirectory(dlib) in the parent project" FORCE)
 set(DLIB_ENABLE_ASSERTS  OFF CACHE INTERNAL "Enable this if you want to turn on the DLIB_ASSERT macro" FORCE)
 set(DLIB_ISO_CPP_ONLY  OFF CACHE INTERNAL "Enable this if you don't want to compile any non-ISO C++ code (i.e. you don't use any of the API Wrappers)" FORCE)
 set(DLIB_NO_GUI_SUPPORT  ON CACHE INTERNAL "Enable this if you don't want to compile any of the dlib GUI code" FORCE)
 set(DLIB_ENABLE_STACK_TRACE  OFF CACHE INTERNAL "Enable this if you want to turn on the DLIB_STACK_TRACE macros" FORCE)
-
 set(DLIB_JPEG_SUPPORT  OFF CACHE INTERNAL "Disable this if you don't want to link against libjpeg" FORCE)
 set(DLIB_LINK_WITH_SQLITE3  OFF CACHE INTERNAL "Disable this if you don't want to link against sqlite3" FORCE)
-set(DLIB_USE_BLAS  ON CACHE INTERNAL "Disable this if you don't want to use a BLAS library" FORCE)
+set(DLIB_USE_BLAS  OFF CACHE INTERNAL "Disable this if you don't want to use a BLAS library" FORCE)
 set(DLIB_USE_LAPACK  OFF CACHE INTERNAL "Disable this if you don't want to use a LAPACK library" FORCE)
 set(DLIB_USE_CUDA  OFF CACHE INTERNAL "Disable this if you don't want to use NVIDIA CUDA" FORCE)
 set(DLIB_PNG_SUPPORT  OFF CACHE INTERNAL "Disable this if you don't want to link against libpng" FORCE)
@@ -324,7 +269,7 @@ set(USE_SSE2_INSTRUCTIONS  ON CACHE INTERNAL "Compile your program with SSE2 ins
 set(USE_SSE4_INSTRUCTIONS  ON CACHE INTERNAL "Compile your program with SSE4 instructions" FORCE)
 set(USE_AVX_INSTRUCTIONS   ON CACHE INTERNAL "Compile your program with AVX instructions"  FORCE)
 
-FetchContent_MakeAvailable(openblas dlib)
+FetchContent_MakeAvailable(dlib openblas)
 
 # Invoke the build for native code shared with the other target platforms.
 # This can be changed to accommodate different builds.
@@ -342,9 +287,6 @@ set(unnu_aux_bundled_libraries
   # This can be changed to accommodate different builds.
   $<TARGET_FILE:unnu_aux>
   $<TARGET_FILE:yaml-cpp>
-  # $<TARGET_FILE:fftw3f>
-  # $<TARGET_FILE:fftw3f_threads>
-  # $<TARGET_FILE:fftw3f_omp>
   $<TARGET_FILE:openblas_shared> 
   PARENT_SCOPE
 )

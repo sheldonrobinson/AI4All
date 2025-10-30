@@ -22,6 +22,7 @@ dependencies:
   unnu_ai_model:
   unnu_shared:
   unnu_widgets:
+  unnu_mi5:
   unnu_speech:
   unnu_ragl:
   unnu_know:
@@ -29,15 +30,16 @@ dependencies:
   unnu_sap:
   unnu_aux:
   unnu_common:
-  langchain: ^0.8.0+1
+  langchain:
+    git:
+      url: https://github.com/sheldonrobinson/langchain_dart.git
+      path: packages/langchain
   flutter_chat_core: ^2.8.0
-  permission_handler: ^12.0.1
   sqflite: ^2.4.2
   sqflite_common_ffi: ^2.3.6
   sembast: ^3.8.5+1
   sembast_sqflite: ^2.2.1
   ai_glow: ^0.0.2
-  uuid: ^4.5.1
   async: ^2.13.0
   stream_transform: ^2.1.1
   shared_preferences: ^2.5.3
@@ -46,26 +48,34 @@ dependencies:
   path_provider: ^2.1.5
   readmore_expandable_text: ^0.0.3
   card_settings_ui: ^2.0.1
+  flutter_form_builder: ^10.2.0
+  form_builder_validators: ^11.2.0
   hold_to_confirm_button: ^0.0.2
   timeago: ^3.7.1
+  splasher: ^0.1.1
+  lottie: ^3.3.2
   native_splash_screen: ^3.0.0
+  window_manager: ^0.5.1
+  nativeapi: ^0.1.0
+  super_native_extensions: ^0.9.1
+  super_clipboard: ^0.9.1
+  super_drag_and_drop: ^0.9.1
+  flutter_platform_alert: ^0.8.0
+  uuid: ^4.5.1
+  yaml: ^3.1.3
   msix: ^3.16.9
   feedback: ^3.2.0
   feedback_gitlab: ^3.0.0
   asset_cache: ^2.2.0
-  window_size:
-    git:
-      url: https://github.com/google/flutter-desktop-embedding.git
-      path: plugins/window_size
   flutter_adaptive_scaffold: ^0.3.3+1
   package_info_plus: ^9.0.0
+  flutter_memory_info: ^0.0.3
   disclosure: ^2.2.0
   gpt_markdown: ^1.1.4
-  flutter_memory_info: ^0.0.3
-  motion_toast: ^2.14.0
-  flutter_staggered_grid_view: ^0.7.0
   serious_python:
-    path: ../../packages/serious-python/src/serious_python
+    git:
+      url: https://github.com/sheldonrobinson/serious-python.git
+      path: src/serious_python
 
 
 dev_dependencies:
@@ -89,6 +99,8 @@ flutter:
     - assets/icon/
     - assets/icon/2.0x/
     - assets/icon/3.0x/
+    # animations
+    - assets/animations/loading_circles.json
     # model
     - assets/models/chat/Qwen3-1.7B-Q4_K_M.gguf
     - assets/models/embedding/granite-embedding-107m-multilingual-ct2-int8/
@@ -98,6 +110,9 @@ flutter:
     - assets/resources/eula.md
     - assets/resources/toc.md
     - assets/resources/privacy_policy.md
+    # searxng
+    - app/app.zip
+    - app/app.zip.hash
   fonts:
     - family: Horizon
       fonts:
@@ -431,9 +446,9 @@ msix_config:
     show_prompt: true
     force_update_from_any_version: false
   publisher_display_name: Sheldon Robinson
-  identity_name: SheldonRobinson.AI4AllPlus
+  identity_name: SheldonRobinson.AI4AllPremium
   publisher: CN=1F2E715E-C3E2-42EE-A3A0-0B5CA6D53B74
-  msix_version: 1.0.0.1
-  logo_path: H:\Projects\AI4All\apps\Premium\assets\icon\3.0x\icon.png
+  msix_version: 1.0.1.0
+  logo_path: H:\AI4All\apps\Premium\assets\icon\3.0x\icon.png
   capabilities: microphone, broadFileSystemAccess, internetClient
   store: true

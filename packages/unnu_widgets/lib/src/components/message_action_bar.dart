@@ -509,16 +509,16 @@ class MessageActionBar extends StatelessWidget {
           label: Icon(button.enabled ? button.icon : button.secondaryIcon),
           backgroundColor:
               button.enabled
-                  ? theme.colorScheme?.onPrimary
-                  : theme.colorScheme?.onSurface,
+                  ? theme.colorScheme?.onSurface
+                  : bgColor ?? Colors.transparent,
           onPressed: button.onPressed,
         ),
         ButtonType.TextOnly => ActionChip(
           label: childWidget.text,
           backgroundColor:
               button.enabled
-                  ? theme.colorScheme?.onPrimary
-                  : theme.colorScheme?.onSurface,
+                  ? theme.colorScheme?.onSurface
+                  : bgColor ?? Colors.transparent,
           onPressed: button.onPressed,
         ),
         ButtonType.Chip => ActionChip(
@@ -526,8 +526,8 @@ class MessageActionBar extends StatelessWidget {
           label: childWidget.text,
           backgroundColor:
               button.enabled
-                  ? theme.colorScheme?.onPrimary
-                  : theme.colorScheme?.onSurface,
+                  ? theme.colorScheme?.onSurface
+                  : bgColor ?? Colors.transparent,
           onPressed: button.onPressed,
         ),
       },

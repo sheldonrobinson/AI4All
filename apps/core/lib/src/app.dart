@@ -27,8 +27,9 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
-
-  final LLMProviderController llmProviderController = June.getState(LLMProviderController.new);
+  final LLMProviderController llmProviderController = June.getState(
+    LLMProviderController.new,
+  );
   final StreamingMessageController streamingMessageController = June.getState(
     StreamingMessageController.new,
   );
@@ -43,29 +44,25 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
         ApplicationLayoutModelController.new,
       )..onInitDisclosures();
 
-      final done = await ModelUtils.switchModel(
-        UnnuModelDetails(
-          info: llmProviderController.activeModel.info,
-          specifications: llmProviderController.activeModel.specifications,
-        ),
-      );
-
       // Helper to create and insert the message, ensuring it only happens once.
       Future<void> loadInitialModel() async {
-          final chatSessionController = June.getState(
-            ChatSessionController.new,
-          );
+        final chatSessionController = June.getState(
+          ChatSessionController.new,
+        );
 
+        final ret = await ModelUtils.switchModel(
+          UnnuModelDetails(
+            info: llmProviderController.activeModel.info,
+            specifications: llmProviderController.activeModel.specifications,
+          ),
+        );
+        if (ret == 0) {
           await chatSessionController.newChat();
           await streamingMessageController.newChat();
+        }
       }
 
-      Timer.periodic(Durations.short4,(timer) async {
-        if(done){
-          await loadInitialModel();
-          timer.cancel();
-        }
-      });
+      await loadInitialModel();
     });
 
     WidgetsBinding.instance.addObserver(this);
@@ -73,10 +70,6 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    UnnuTts.destroy();
-    UnnuAsr.destroy();
-
     streamingMessageController.messagingModel.chatController.dispose();
     streamingMessageController.messagingModel.streamManager.dispose();
     super.dispose();
@@ -84,13 +77,16 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
 
   @override
   Future<AppExitResponse> didRequestAppExit() async {
+    WidgetsBinding.instance.removeObserver(this);
+    UnnuTts.destroy();
+    UnnuAsr.destroy();
     final prefs = await SharedPreferences.getInstance();
 
     await prefs.setString(
       'model.active',
       llmProviderController.activeModel.uri,
     );
-    llmProviderController.llm.close();
+    llmProviderController.provider.destroy();
     final configurationController = June.getState(
       ConfigurationController.new,
     );
@@ -187,6 +183,8 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                     "dock": appLocalizations.dock,
                     "feedback": appLocalizations.feedback,
                     "thinking": appLocalizations.thinking,
+                    "copy": appLocalizations.copy,
+                    "share": appLocalizations.share,
                   }
                   : <String, String>{};
 
