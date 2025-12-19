@@ -6,7 +6,7 @@ import 'package:ai_glow/ai_glow.dart';
 import 'package:asset_cache/asset_cache.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:disclosure/disclosure.dart';
-import 'package:feedback_gitlab/feedback_gitlab.dart';
+import 'package:feedback/feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_adaptive_scaffold/flutter_adaptive_scaffold.dart';
@@ -669,6 +669,21 @@ class ApplicationLayoutModelController extends JuneState {
               tooltips: appConfiguration.localizations,
               onCancelModelResponse: _onCancelModelResponse,
               mimetypes: [],
+              onFeedback: (String? contents) async{
+                final config =
+                await _jsonAssets.loadAsset(
+                  'config.json',
+                )
+                as Map<String, dynamic>;
+                BetterFeedback.of(context).showAndUploadToGitLab(
+                    projectId: (config['FEEDBACK_GITLAB_PROJECT'] ?? '') as String,
+                    // Required, use your GitLab project id
+                    apiToken: (config['FEEDBACK_GITLAB_TOKEN'] ?? '') as String,
+                    // Required, use your GitLab API token
+                    gitlabUrl: 'gitlab.com', // Optional, defaults to 'gitlab.com'
+                    contents: contents
+                );
+              },
             ),
           ),
         ],

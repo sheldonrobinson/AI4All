@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ffi';
 import 'dart:io';
 import 'dart:math' as m;
 
@@ -8,7 +7,7 @@ import 'package:ai_glow/ai_glow.dart';
 import 'package:asset_cache/asset_cache.dart';
 import 'package:card_settings_ui/card_settings_ui.dart';
 import 'package:disclosure/disclosure.dart';
-import 'package:feedback_gitlab/feedback_gitlab.dart';
+import 'package:feedback/feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_adaptive_scaffold/flutter_adaptive_scaffold.dart';
@@ -17,6 +16,7 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:hold_to_confirm_button/hold_to_confirm_button.dart';
+
 import 'package:june/june.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
@@ -32,6 +32,9 @@ import 'package:unnu_sap/unnu_tts.dart';
 import 'package:unnu_shared/unnu_shared.dart';
 import 'package:unnu_speech/unnu_speech.dart';
 import 'package:unnu_widgets/unnu_widgets.dart';
+
+
+
 
 class RAGSettings {
   final String documentsFolder;
@@ -308,6 +311,8 @@ class ApplicationLayoutModel {
   }
 }
 
+
+
 class ApplicationLayoutModelController extends JuneState {
   // Initialize transition time variable.
   static final _nudgeTimeoutInMillisecond = 2000;
@@ -368,7 +373,7 @@ class ApplicationLayoutModelController extends JuneState {
         ),
       );
 
-  final jsonAssets = JsonAssetCache(
+  final _jsonAssets = JsonAssetCache(
     assetBundle: rootBundle,
     basePath: 'assets/json/',
   );
@@ -477,7 +482,6 @@ class ApplicationLayoutModelController extends JuneState {
           chatSessionController.newChat();
           streamingMessageController.newChat();
         }
-        break;
       case AppPrimaryNavigation.SwitchModel:
         {
           final info = await ModelUtils.loadModelFile();
@@ -491,26 +495,25 @@ class ApplicationLayoutModelController extends JuneState {
                 .copyWith(uri: info.uri);
           }
         }
-        break;
       case AppPrimaryNavigation.About:
         _showAboutDialog(context);
-        break;
       case AppPrimaryNavigation.Feedback:
         {
           final Map<String, dynamic> config =
-              await jsonAssets.loadAsset(
+              await _jsonAssets.loadAsset(
                     'config.json',
                   )
                   as Map<String, dynamic>;
-          BetterFeedback.of(context).showAndUploadToGitLab(
-            projectId: (config['FEEDBACK_GITLAB_PROJECT'] ?? '') as String,
-            // Required, use your GitLab project id
-            apiToken: (config['FEEDBACK_GITLAB_TOKEN'] ?? '') as String,
-            // Required, use your GitLab API token
-            gitlabUrl: 'gitlab.com', // Optional, defaults to 'gitlab.com'
-          );
+          if(context.mounted) {
+            BetterFeedback.of(context).showAndUploadToGitLab(
+              projectId: (config['FEEDBACK_GITLAB_PROJECT'] ?? '') as String,
+              // Required, use your GitLab project id
+              apiToken: (config['FEEDBACK_GITLAB_TOKEN'] ?? '') as String,
+              // Required, use your GitLab API token
+              gitlabUrl: 'gitlab.com', // Optional, defaults to 'gitlab.com'
+            );
+          }
         }
-        break;
     }
   }
 
@@ -682,6 +685,21 @@ class ApplicationLayoutModelController extends JuneState {
               AssistantTheme: assistantTheme,
               tooltips: appConfiguration.localizations,
               onCancelModelResponse: _onCancelModelResponse,
+              onFeedback: (String? contents) async {
+                final config =
+                await _jsonAssets.loadAsset(
+                  'config.json',
+                )
+                as Map<String, dynamic>;
+                BetterFeedback.of(context).showAndUploadToGitLab(
+                  projectId: (config['FEEDBACK_GITLAB_PROJECT'] ?? '') as String,
+                  // Required, use your GitLab project id
+                  apiToken: (config['FEEDBACK_GITLAB_TOKEN'] ?? '') as String,
+                  // Required, use your GitLab API token
+                  gitlabUrl: 'gitlab.com', // Optional, defaults to 'gitlab.com'
+                  contents: contents,
+                );
+              },
               mimetypes: ['pdf', 'docx'],
             ),
           ),
@@ -1469,7 +1487,9 @@ class ApplicationLayoutModelController extends JuneState {
                                                           Icons.delete,
                                                         ),
                                                       ),
-                                                      const Spacer(flex: 3,),
+                                                      const Spacer(
+                                                        flex: 3,
+                                                      ),
                                                       Switch(
                                                         value: actives.contains(
                                                           toolMap.key,

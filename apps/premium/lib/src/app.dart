@@ -101,7 +101,6 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
       McpToolsController.new,
     );
     await toolsController.closeAll();
-    SeriousPython.terminate();
     return super.didRequestAppExit();
   }
 

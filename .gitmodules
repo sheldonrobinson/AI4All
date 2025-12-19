@@ -1,75 +1,21 @@
 [submodule "packages/unnu_ort/src/zlib"]
-	path = packages/unnu_ort/src/zlib
-	url = https://github.com/madler/zlib.git
-[submodule "packages/unnu_ce/src/ort"]
-	path = packages/unnu_ce/src/ort
-	url = https://github.com/microsoft/onnxruntime.git
-[submodule "packages/unnu_ce/src/zlib"]
-	path = packages/unnu_ce/src/zlib
+	path = pkgs/unnu_ort/src/zlib
 	url = https://github.com/madler/zlib.git
 [submodule "packages/unnu_ort/src/ort"]
-	path = packages/unnu_ort/src/ort
+	path = pkgs/unnu_ort/src/ort
 	url = https://github.com/microsoft/onnxruntime.git
-[submodule "packages/unnu_ce/src/Soar"]
-	path = packages/unnu_ce/src/Soar
-	url = https://github.com/sheldonrobinson/Soar.git
 [submodule "packages/unnu_ce/src/tokenizers"]
-	path = packages/unnu_ce/src/tokenizers
+	path = pkgs/unnu_ce/src/tokenizers
 	url = https://github.com/mlc-ai/tokenizers-cpp.git
 [submodule "packages/unnu_ce/src/sentencepiece"]
 	path = packages/unnu_ce/src/sentencepiece
 	url = https://github.com/google/sentencepiece.git
-[submodule "packages/unnu_ce/src/cpuinfo"]
-	path = packages/unnu_ce/src/cpuinfo
-	url = https://github.com/pytorch/cpuinfo.git
-[submodule "packages/unnu_ce/src/ostrich"]
-	path = packages/unnu_ce/src/ostrich
-	url = https://github.com/rdfostrich/ostrich.git
-[submodule "packages/unnu_ce/src/iostreams"]
-	path = packages/unnu_ce/src/iostreams
-	url = https://github.com/boostorg/iostreams.git
-[submodule "packages/unnu_ce/src/xz"]
-	path = packages/unnu_ce/src/xz
-	url = https://github.com/tukaani-project/xz.git
-[submodule "packages/unnu_ce/src/lzo2"]
-	path = packages/unnu_ce/src/lzo2
-	url = https://github.com/damageboy/lzo2.git
 [submodule "packages/unnu_ort/src/tokenizers"]
-	path = packages/unnu_ort/src/tokenizers
+	path = pkgs/unnu_ort/src/tokenizers
 	url = https://github.com/mlc-ai/tokenizers-cpp.git
 [submodule "packages/unnu_ce/src/protobuf"]
 	path = packages/unnu_ce/src/protobuf
 	url = https://github.com/protocolbuffers/protobuf.git
-[submodule "packages/unnu_ce/src/eigen"]
-	path = packages/unnu_ce/src/eigen
-	url = https://gitlab.com/libeigen/eigen.git
-[submodule "packages/unnu_ce/src/armadillo"]
-	path = packages/unnu_ce/src/armadillo
-	url = https://gitlab.com/conradsnicta/armadillo-code.git
-[submodule "packages/unnu_ce/src/uuid4"]
-	path = packages/unnu_ce/src/uuid4
-	url = https://github.com/umasagashi/minimal_uuid4.git
 [submodule "packages/unnu_dxl/src/boostcontainer"]
 	path = packages/unnu_dxl/src/boostcontainer
 	url = https://github.com/boostorg/container.git
-[submodule "packages/unnu_ce/src/abseil"]
-	path = packages/unnu_ce/src/abseil
-	url = https://github.com/abseil/abseil-cpp.git
-[submodule "packages/unnu_ce/src/re2"]
-	path = packages/unnu_ce/src/re2
-	url = https://github.com/google/re2.git
-[submodule "packages/unnu_ce/src/jsoncpp"]
-	path = packages/unnu_ce/src/jsoncpp
-	url = https://github.com/open-source-parsers/jsoncpp.git
-[submodule "packages/unnu_ce/src/json"]
-	path = packages/unnu_ce/src/json
-	url = https://github.com/nlohmann/json.git
-[submodule "packages/unnu_sap/src/gitversion"]
-	path = packages/unnu_sap/src/gitversion
-	url = https://github.com/smessmer/gitversion.git
-[submodule "packages/unnu_sap/src/ma"]
-	path = packages/unnu_sap/src/ma
-	url = https://github.com/mackron/miniaudio.git
-[submodule "packages/unnu_ce/src/ortgenai"]
-	path = packages/unnu_ce/src/ortgenai
-	url = https://github.com/microsoft/onnxruntime-genai.git

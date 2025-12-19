@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:june/june.dart';
-import 'package:llamacpp/llamacpp.dart';
+import 'package:lcpp_ngin/lcpp_ngin.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';

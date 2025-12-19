@@ -9,13 +9,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_platform_alert/flutter_platform_alert.dart';
-import 'package:llamacpp/llamacpp.dart';
+import 'package:lcpp_ngin/lcpp_ngin.dart';
 import 'package:native_splash_screen/native_splash_screen.dart' as nss;
 import 'package:nativeapi/nativeapi.dart' as native;
 import 'package:unnu_aux/unnu_aux.dart';
 import 'package:unnu_sap/unnu_asr.dart';
 import 'package:unnu_sap/unnu_tts.dart';
 import 'package:unnu_speech/unnu_speech.dart';
+import 'package:unnu_widgets/unnu_widgets.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'initialize/initialize.dart';
@@ -138,10 +139,7 @@ Future<void> main() async {
                 await windowManager.focus();
               },
             );
-            runApp(
-              const BetterFeedback(
-                child: MyApp(),
-              ),
+            runApp(MyApp(),
             );
           }
         default:
@@ -175,6 +173,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MyHomePage();
+    return BetterFeedback(
+        feedbackBuilder:
+            (context, onSubmit, scrollController) => UnnuCustomFeedbackForm(
+          onSubmit: onSubmit,
+          scrollController: scrollController,
+        ),
+        child: const MyHomePage());
   }
 }

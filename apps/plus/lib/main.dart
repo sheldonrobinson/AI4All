@@ -15,6 +15,7 @@ import 'package:nativeapi/nativeapi.dart' as native;
 import 'package:splasher/splasher.dart';
 import 'package:unnu_aux/unnu_aux.dart';
 import 'package:unnu_shared/unnu_shared.dart';
+import 'package:unnu_widgets/unnu_widgets.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'initialize/initialize.dart';
@@ -128,9 +129,7 @@ Future<void> main() async {
             );
 
             runApp(
-              BetterFeedback(
-                child: MyApp(completed: completer),
-              ),
+              MyApp(completed: completer),
             );
           }
         default:
@@ -167,13 +166,19 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return JuneBuilder(
-      InitializationStatusController.new,
-      builder:
-          (controller) =>
-              completed.isCompleted
-                  ? const MyHomePage()
-                  :  Splasher.withLottie(
+    return BetterFeedback(
+      feedbackBuilder:
+          (context, onSubmit, scrollController) => UnnuCustomFeedbackForm(
+            onSubmit: onSubmit,
+            scrollController: scrollController,
+          ),
+      child: JuneBuilder(
+        InitializationStatusController.new,
+        builder:
+            (controller) =>
+                completed.isCompleted
+                    ? const MyHomePage()
+                    : Splasher.withLottie(
                       logo: 'assets/animations/loading_circles.json',
                       logoWidth: 360,
                       logoHeight: 360,
@@ -185,6 +190,7 @@ class MyApp extends StatelessWidget {
                       navigator: const SizedBox.shrink(),
                       futureNavigator: completed.future,
                     ),
+      ),
     );
   }
 }

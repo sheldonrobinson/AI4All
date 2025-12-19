@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:june/june.dart';
-import 'package:llamacpp/llamacpp.dart';
+import 'package:lcpp_ngin/lcpp_ngin.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -381,7 +381,7 @@ Future<void> runInitializaton(Completer<bool> completer) async {
       ));
       await loadConfiguration();
       statusController.update((
-        name: 'AI',
+        name: 'AI (takes long time, may momentarily pause ...)',
         status: InitializationStatus.VALIDATING,
       ));
       await registerModels();

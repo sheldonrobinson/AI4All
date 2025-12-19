@@ -37,7 +37,7 @@ dependencies:
   unnu_sap: ^0.0.1
   flutter_chat_core: ^2.8.0
   permission_handler: ^12.0.1
-  llamacpp: ^1.0.0
+  lcpp_ngin: ^1.0.0
   sqflite: ^2.4.2
   sqflite_common_ffi: ^2.3.6
   sembast: ^3.8.5+1

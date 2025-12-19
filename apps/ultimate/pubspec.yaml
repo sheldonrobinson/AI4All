@@ -17,7 +17,7 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-  llamacpp:
+  lcpp_ngin: ^1.0.0
   unnu_ai_model:
   unnu_shared:
   unnu_widgets:

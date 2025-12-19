@@ -10,20 +10,31 @@ workspace:
   - apps/premium
   - apps/ultimate
   - apps/ultra
-  - packages/llamacpp
-  - packages/unnu_aux
-  - packages/unnu_ai_model
-  - packages/unnu_common
-  - packages/unnu_dxl
-  - packages/unnu_know
-  - packages/unnu_mi5
-  - packages/unnu_ragl
-  - packages/unnu_sap
-  - packages/unnu_shared
-  - packages/unnu_speech
-  - packages/unnu_widgets
-  - packages/mcp_dart
-  - packages/serious-python/src/serious_python
+  - pkgs/unnu_aux
+  - pkgs/unnu_ai_model
+  - pkgs/unnu_common
+  - pkgs/unnu_ce
+  - pkgs/unnu_dxl
+  - pkgs/unnu_know
+  - pkgs/unnu_mi5
+  - pkgs/unnu_ragl
+  - pkgs/unnu_sap
+  - pkgs/unnu_shared
+  - pkgs/unnu_speech
+  - pkgs/unnu_tts
+  - pkgs/unnu_widgets
+  - pkgs/mcp_dart
+  - pkgs/serious-python/src/serious_python
+  - pkgs/serious-python/src/serious_python_platform_interface
+  - pkgs/serious-python/src/serious_python_linux
+  - pkgs/serious-python/src/serious_python_darwin
+  - pkgs/serious-python/src/serious_python_android
+  - pkgs/serious-python/src/serious_python_windows
+  - pkgs/unnu_addins_client/unnu_addins_client
+  - pkgs/unnu_addins_client/unnu_addins_client_platform_interface
+  - pkgs/unnu_addins_client/unnu_addins_client_android
+  - pkgs/unnu_addins_client/unnu_addins_client_ios
+  - pkgs/unnu_addins_client/unnu_addins_client_windows
   
 dev_dependencies:
   melos: ^7.3.0
@@ -34,7 +45,7 @@ melos:
     apps:
       - apps/*
     packages:
-      - packages/*
+      - pkgs/*
   ide:
     intellij:
       enabled: true

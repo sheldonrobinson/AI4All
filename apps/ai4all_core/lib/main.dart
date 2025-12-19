@@ -10,7 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_memory_info/flutter_memory_info.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:june/june.dart';
-import 'package:llamacpp/llamacpp.dart';
+import 'package:lcpp_ngin/lcpp_ngin.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:unnu_sap/unnu_asr.dart';
 import 'package:unnu_sap/unnu_tts.dart';

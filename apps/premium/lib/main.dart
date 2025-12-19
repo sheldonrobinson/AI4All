@@ -3,12 +3,12 @@ import 'dart:developer' as dev;
 import 'dart:io';
 import 'dart:math' as math;
 
-
 import 'package:asset_cache/asset_cache.dart';
 import 'package:feedback/feedback.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import 'package:flutter_memory_info/flutter_memory_info.dart';
 import 'package:flutter_platform_alert/flutter_platform_alert.dart';
 import 'package:june/june.dart';
@@ -18,9 +18,8 @@ import 'package:serious_python/serious_python.dart';
 import 'package:splasher/splasher.dart';
 import 'package:unnu_aux/unnu_aux.dart';
 import 'package:unnu_shared/unnu_shared.dart';
+import 'package:unnu_widgets/unnu_widgets.dart';
 import 'package:window_manager/window_manager.dart';
-
-
 
 import 'initialize/initialize.dart';
 import 'src/app.dart';
@@ -135,9 +134,7 @@ Future<void> main() async {
               },
             );
             runApp(
-              BetterFeedback(
-                child: MyApp(completed: completer),
-              ),
+              MyApp(completed: completer),
             );
             SeriousPython.terminate();
           }
@@ -167,24 +164,33 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return JuneBuilder(
-      InitializationStatusController.new,
-      builder:
-          (controller) =>
-      completed.isCompleted
-          ? const MyHomePage()
-          :  Splasher.withLottie(
-        logo: 'assets/animations/loading_circles.json',
-        logoWidth: 360,
-        logoHeight: 360,
-        title: const Text('AI4All'),
-        loaderColor: Colors.white,
-        loadingTextPadding: EdgeInsets.zero,
-        loadingText: Text(controller.message),
-        backgroundColor: Colors.transparent,
-        navigator: const SizedBox.shrink(),
-        futureNavigator: completed.future,
+    return BetterFeedback(
+      feedbackBuilder:
+          (context, onSubmit, scrollController) => UnnuCustomFeedbackForm(
+            onSubmit: onSubmit,
+            scrollController: scrollController,
+          ),
+      child: JuneBuilder(
+        InitializationStatusController.new,
+        builder:
+            (controller) =>
+                completed.isCompleted
+                    ? const MyHomePage()
+                    : Splasher.withLottie(
+                      logo: 'assets/animations/loading_circles.json',
+                      logoWidth: 360,
+                      logoHeight: 360,
+                      title: const Text('AI4All'),
+                      loaderColor: Colors.white,
+                      loadingTextPadding: EdgeInsets.zero,
+                      loadingText: Text(controller.message),
+                      backgroundColor: Colors.transparent,
+                      navigator: const SizedBox.shrink(),
+                      futureNavigator: completed.future,
+                    ),
       ),
     );
   }
 }
+
+
