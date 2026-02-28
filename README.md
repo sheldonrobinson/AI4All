@@ -6,6 +6,35 @@ The project focuses on **privacy‑first AI**, **low‑latency inference**, and 
 
 ---
 
+## Releases
+<!-- display an HTML-only app badge. Useful when you can't execute JS, such as in Github markdown pages -->
+<table>
+  <tr>
+    <th>Core Edition</th>
+    <th>Plus Edition</th>
+    <th>Premium Edition</th>
+  </tr>
+  <tr>
+    <td>
+ <a href="https://apps.microsoft.com/detail/9N0VK7ZDSSSD?mode=direct">
+	<img src="https://get.microsoft.com/images/en-us%20dark.svg" width="200"/>
+</a>     
+    </td>
+    <td>
+<a href="https://apps.microsoft.com/detail/9P3T3TV3PM0K?mode=direct">
+	<img src="https://get.microsoft.com/images/en-us%20dark.svg" width="200"/>
+</a>      
+    </td>
+    <td>
+ <a href="https://apps.microsoft.com/detail/9P4N4VLQ277H?mode=direct">
+	<img src="https://get.microsoft.com/images/en-us%20dark.svg" width="200"/>
+</a>     
+    </td>
+  </tr>
+</table>
+
+---
+
 ## ✨ Overview
 
 AI4All implements a compact **Dart** wrapper around **llama.cpp**, enabling:
